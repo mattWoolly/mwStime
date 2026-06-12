@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // mwStime — Akai S-series timestretch emulation. Copyright (C) 2026 mattWoolly.
 //
-// CyclicEngine CLASSIC — the [AKZ §4.2] two-grain overlap scheduler,
-// implementing the dsp-engine.md §3.4 reference pseudocode with the
-// float-free integer stretch path of §3.2.
+// CyclicEngine — the [AKZ §4.2] two-grain overlap scheduler, implementing the
+// dsp-engine.md §3.4 reference pseudocode. CLASSIC uses the float-free integer
+// stretch path of §3.2; REVISED (task 011) uses a fractional input hop with
+// 2-point linear-interpolation reads for sample-exact timing (§3.2 REVISED
+// line, §3.4 REVISED note).
 
 #include "mws/stretch/CyclicEngine.h"
 
@@ -11,17 +13,9 @@
 #include <cassert>
 #include <cmath>
 #include <cstdint>
-#include <stdexcept>
 
 namespace mws::stretch {
 namespace {
-
-[[noreturn]] void throwRevisedUnimplemented()
-{
-    throw std::logic_error(
-        "mws::stretch::CyclicEngine: REVISED hop mode is not implemented yet "
-        "(plan/backlog/011-cyclic-engine-revised.md)");
-}
 
 // ---------------------------------------------------------------------------
 // CLASSIC schedule constants (dsp-engine.md §3.1–§3.2).
@@ -87,6 +81,58 @@ std::int64_t classicOutputLength(const ClassicSchedule& s)
 }
 
 // ---------------------------------------------------------------------------
+// REVISED schedule constants (dsp-engine.md §3.2 REVISED line, §3.4 note).
+//
+// REVISED shares the §3.1 cycle/overlap geometry with CLASSIC but advances the
+// input read by a FRACTIONAL hop (`hop_in = hop_out / T`, no integer-% coercion
+// and no rounding). Because the read advances exactly in step with the output
+// inside each grain, timing is sample-exact: the schedule consumes the whole
+// input over an output of length round(N·T) (akaizer-analysis.md §2.2 "perfect
+// timing"). The price is that the grain start is fractional, so reads are
+// 2-point linear interpolations (§3.4) — the sole source of the slight drift.
+// ---------------------------------------------------------------------------
+struct RevisedSchedule
+{
+    std::int64_t n = 0;       ///< input length N
+    std::int64_t c = 0;       ///< cycle length C, clamped to N [AKZ §2.1]
+    std::int64_t ovStart = 0; ///< grain phase where the crossfade begins
+    std::int64_t fadeLen = 0; ///< C - ovStart (>= 1 guard for the division)
+    std::int64_t hopOut = 0;  ///< output spacing of grain launches = ovStart
+    double hopIn = 0.0;       ///< fractional input advance per grain = hop_out/T
+    std::int64_t outLen = 0;  ///< sample-exact length round(N·T)
+};
+
+RevisedSchedule makeRevisedSchedule(std::int64_t numInputFrames, int cycleLenSamples,
+                                    double timeFactorPct,
+                                    const CyclicEngine::SpliceCal& cal)
+{
+    RevisedSchedule s;
+    s.n = std::max<std::int64_t>(0, numInputFrames);
+
+    // Engine arithmetic safety only — range clamping is ModelSpec's job.
+    s.c = std::max<std::int64_t>(1, cycleLenSamples);
+    s.c = std::min(s.c, std::max<std::int64_t>(1, s.n)); // clamp C to N (§3.4)
+
+    s.ovStart = std::llround(static_cast<double>(s.c)
+                             * (1.0 - static_cast<double>(cal.overlapF)));
+    s.ovStart = std::clamp<std::int64_t>(s.ovStart, 1, s.c);
+    s.fadeLen = std::max<std::int64_t>(1, s.c - s.ovStart);
+    s.hopOut = s.ovStart;
+
+    // REVISED keeps the 0.01% step — no integer coercion (dsp-engine.md §2).
+    // Engine safety floor on T mirrors CLASSIC's tPct >= 1 (avoids /0).
+    const double t = std::max(0.01, timeFactorPct / 100.0);
+    s.hopIn = static_cast<double>(s.hopOut) / t;
+
+    // Sample-exact length: round(N·T) (akaizer-analysis.md §2.2). Uses the
+    // un-floored factor so the rendered length matches the user's exact ratio.
+    s.outLen = (s.n <= 0) ? 0
+                          : std::llround(static_cast<double>(s.n) * timeFactorPct / 100.0);
+    s.outLen = std::max<std::int64_t>(0, s.outLen);
+    return s;
+}
+
+// ---------------------------------------------------------------------------
 // Float-free stretch-path arithmetic (dsp-engine.md §3.2; OpenMPT [AKZ §4.1]).
 // ---------------------------------------------------------------------------
 
@@ -107,6 +153,26 @@ inline float readSample(core::ConstAudioView src, std::int64_t index) noexcept
     if (index < 0 || index >= static_cast<std::int64_t>(src.size()))
         return 0.0f;
     return src[static_cast<std::size_t>(index)];
+}
+
+/// REVISED-only fractional read (dsp-engine.md §3.4 REVISED note): 2-point
+/// linear interpolation between the two integer source samples bracketing
+/// `pos`. The fractional part comes solely from the grain's fractional start
+/// offset (§3.2) — this is the sole source of REVISED's slight pitch drift. A
+/// zero fraction short-circuits to the verbatim sample so an integral hop is
+/// bit-identical to CLASSIC (the degenerate-equivalence property). Edge rule:
+/// reads past the end return 0 (shared with readSample).
+inline float readSampleInterp(core::ConstAudioView src, double pos) noexcept
+{
+    const double floorPos = std::floor(pos);
+    const auto i0 = static_cast<std::int64_t>(floorPos);
+    const double frac = pos - floorPos;
+    const float s0 = readSample(src, i0);
+    if (frac == 0.0)
+        return s0;
+    const float s1 = readSample(src, i0 + 1);
+    return static_cast<float>(static_cast<double>(s0)
+                              + (static_cast<double>(s1) - static_cast<double>(s0)) * frac);
 }
 
 /// float32 <-> Q31 integer lattice for the crossfade mix. std::ldexp is exact
@@ -141,6 +207,78 @@ struct Grain
     bool active = false;
 };
 
+/// REVISED grain: a fractional start offset, an integer phase. The phase
+/// advances by exactly one input sample per output sample (rate 1 — perfect
+/// in-grain pitch), so every read shares the constant fractional offset of the
+/// grain start (dsp-engine.md §3.4 REVISED note).
+struct GrainR
+{
+    double off = 0.0;     ///< fractional input start offset
+    std::int64_t pos = 0; ///< integer phase within the grain
+    bool active = false;
+};
+
+/// REVISED render loop — the §3.4 reference scheduler with the fractional hop
+/// and interpolated reads. The crossfade reuses the CLASSIC `mixQ31`/`fade15`
+/// arithmetic so that an integral hop (zero-fraction reads) is bit-identical to
+/// the CLASSIC render (degenerate-equivalence property). Unlike CLASSIC the
+/// loop never breaks on input exhaustion: it runs to the sample-exact
+/// `outLen = round(N·T)` length, with reads past the end returning 0.
+core::AudioBuffer renderRevised(core::ConstAudioView src, const RevisedSchedule& s,
+                                FadeShape shape)
+{
+    core::AudioBuffer outBuffer(1, static_cast<std::size_t>(s.outLen));
+    if (s.outLen == 0)
+        return outBuffer;
+    core::AudioView out = outBuffer.channel(0);
+
+    GrainR a{ /*off*/ 0.0, /*pos*/ 0, /*active*/ true };
+    GrainR b;
+    std::int64_t outIdx = 0;
+
+    while (outIdx < s.outLen)
+    {
+        const float sA = readSampleInterp(src, a.off + static_cast<double>(a.pos));
+
+        float outSample = sA;
+        if (b.active)
+        {
+            switch (shape)
+            {
+                case FadeShape::Linear:
+                    break;
+            }
+            const std::int64_t fade15 = ((a.pos - s.ovStart) << 15) / s.fadeLen;
+            const float sB = readSampleInterp(src, b.off + static_cast<double>(b.pos));
+            outSample = (fade15 == 0) ? sA : mixQ31(sA, sB, fade15);
+        }
+        out[static_cast<std::size_t>(outIdx)] = outSample;
+        ++outIdx;
+
+        ++a.pos;
+        if (b.active)
+            ++b.pos;
+
+        if (!b.active && a.pos >= s.ovStart)
+        {
+            b.off = a.off + s.hopIn; // REVISED: fractional grain start
+            b.pos = 0;
+            b.active = true;
+        }
+
+        if (a.pos >= s.c)
+        {
+            a = b;
+            b = GrainR{};
+            // No input-exhaustion break (contrast with CLASSIC): REVISED runs
+            // to the exact round(N·T) length. The relaunch above keeps `a`
+            // active every cycle, so the loop always fills outLen.
+        }
+    }
+
+    return outBuffer;
+}
+
 } // namespace
 
 core::AudioBuffer CyclicEngine::render(core::ConstAudioView src, int cycleLenSamples,
@@ -148,7 +286,11 @@ core::AudioBuffer CyclicEngine::render(core::ConstAudioView src, int cycleLenSam
                                        engine::HopMode mode) const
 {
     if (mode == engine::HopMode::Revised)
-        throwRevisedUnimplemented();
+        return renderRevised(
+            src,
+            makeRevisedSchedule(static_cast<std::int64_t>(src.size()), cycleLenSamples,
+                                timeFactorPct, cal_),
+            cal_.shape);
 
     const ClassicSchedule s =
         makeClassicSchedule(static_cast<std::int64_t>(src.size()), cycleLenSamples,
@@ -227,7 +369,8 @@ std::int64_t CyclicEngine::expectedOutputLength(std::int64_t numInputFrames,
                                                 engine::HopMode mode) const
 {
     if (mode == engine::HopMode::Revised)
-        throwRevisedUnimplemented();
+        return makeRevisedSchedule(numInputFrames, cycleLenSamples, timeFactorPct, cal_)
+            .outLen;
 
     return classicOutputLength(
         makeClassicSchedule(numInputFrames, cycleLenSamples, timeFactorPct, cal_));

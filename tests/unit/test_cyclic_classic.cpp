@@ -306,12 +306,15 @@ TEST_CASE("cyclic: classic handles empty input", "[cyclic][classic]")
     REQUIRE(engine.expectedOutputLength(0, 1000, 300.0, HopMode::Classic) == 0);
 }
 
-TEST_CASE("cyclic: revised mode is an unimplemented stub (task 011)", "[cyclic][classic]")
+TEST_CASE("cyclic: revised mode is now implemented (task 011)", "[cyclic][classic]")
 {
+    // Task 011 replaced the REVISED stub: it must render without throwing and
+    // produce the sample-exact length round(N*T). Full REVISED property
+    // coverage lives in test_cyclic_revised.cpp.
     const CyclicEngine engine;
     const AudioBuffer src = makeIndexEncodedSource(100);
-    REQUIRE_THROWS_AS(engine.render(src.channel(0), 50, 150.0, HopMode::Revised),
-                      std::logic_error);
-    REQUIRE_THROWS_AS(engine.expectedOutputLength(100, 50, 150.0, HopMode::Revised),
-                      std::logic_error);
+    AudioBuffer out;
+    REQUIRE_NOTHROW(out = engine.render(src.channel(0), 50, 150.0, HopMode::Revised));
+    REQUIRE(out.numFrames() == 150); // round(100 * 1.5)
+    REQUIRE(engine.expectedOutputLength(100, 50, 150.0, HopMode::Revised) == 150);
 }
