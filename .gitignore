@@ -1,0 +1,26 @@
+# Build artifacts
+build/
+cmake-build-*/
+out/
+*.o
+*.a
+*.dylib
+*.so
+*.vst3
+*.component
+*.clap
+
+# IDE / editor
+.idea/
+.vscode/
+*.xcodeproj
+*.xcworkspace
+compile_commands.json
+.cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependency caches (JUCE fetched via CMake FetchContent into build/)
+_deps/
