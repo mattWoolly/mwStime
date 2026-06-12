@@ -39,9 +39,11 @@ target_sources(mwStime
         src/PluginProcessor.cpp
         src/PluginEditor.cpp
         src/state/Parameters.cpp
+        ui/Faceplate.cpp
+        ui/lookandfeel/SeriesLookAndFeel.cpp
 )
 
-target_include_directories(mwStime PRIVATE src)
+target_include_directories(mwStime PRIVATE src "${CMAKE_CURRENT_SOURCE_DIR}")
 
 target_compile_definitions(mwStime
     PUBLIC

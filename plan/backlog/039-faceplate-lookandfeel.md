@@ -1,7 +1,7 @@
 ---
 id: 039
 title: SeriesLookAndFeel + FaceplateSpec + Faceplate component (cached vector chassis)
-status: todo
+status: in-review
 depends-on: [027]
 component: ui
 estimated-size: M
