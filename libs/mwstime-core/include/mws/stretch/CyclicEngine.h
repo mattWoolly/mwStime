@@ -7,11 +7,15 @@
 // NEVER the [AKZ §10] splice formula. All splice constants live in SpliceCal
 // so hardware calibration is data-only.
 //
-// This task (plan/backlog/010) ships CLASSIC hop mode: integer input hop,
-// integer-% time factor, and a float-free stretch path (32.32 fixed-point
-// positions, rounded integer crossfade lerp with a 15-bit fraction —
-// dsp-engine.md §3.2; cross-platform bit-exactness, architecture.md §2).
-// REVISED is an unimplemented stub until task 011.
+// CLASSIC hop mode (plan/backlog/010): integer input hop, integer-% time
+// factor, and a float-free stretch path (32.32 fixed-point positions, rounded
+// integer crossfade lerp with a 15-bit fraction — dsp-engine.md §3.2;
+// cross-platform bit-exactness, architecture.md §2).
+//
+// REVISED hop mode (plan/backlog/011): fractional input hop (hop_in = hop_out/T,
+// no integer-% coercion), giving sample-exact timing (output length round(N·T));
+// fractional grain starts make source reads 2-point linear interpolations, the
+// sole source of REVISED's slight pitch drift (dsp-engine.md §3.2, §3.4 note).
 
 #pragma once
 
@@ -70,7 +74,11 @@ public:
     /// next grain cannot play a complete cycle, making the output length
     /// exactly the §3.4 schedule-derived value (see expectedOutputLength).
     ///
-    /// REVISED is task 011: calling it throws std::logic_error.
+    /// REVISED (task 011): hop_in = hop_out / T is fractional (the time factor
+    /// keeps its 0.01% step — no integer coercion); grain starts are fractional
+    /// so source reads are 2-point linear interpolations; the render runs to the
+    /// sample-exact length round(N·T) (dsp-engine.md §3.4 REVISED note). Reads
+    /// past the input end still return 0.
     ///
     /// Parameter-range clamping (superset/model) is NOT done here — ModelSpec
     /// is the single clamping authority. The engine only enforces its own
@@ -85,7 +93,8 @@ public:
     ///   G = floor((N - C) / hop_in) + 1 complete grains,
     ///   length = (G - 1) * hop_out + C.
     /// Quantized by the integer hop — deliberately NOT round(N * T)
-    /// ("bad timing", [AKZ §2.2]). REVISED throws std::logic_error (task 011).
+    /// ("bad timing", [AKZ §2.2]). REVISED returns the sample-exact round(N * T)
+    /// (task 011; dsp-engine.md §3.4 REVISED note).
     [[nodiscard]] std::int64_t expectedOutputLength(std::int64_t numInputFrames,
                                                     int cycleLenSamples,
                                                     double timeFactorPct,

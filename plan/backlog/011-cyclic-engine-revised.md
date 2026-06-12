@@ -1,7 +1,7 @@
 ---
 id: 011
 title: CyclicEngine REVISED — fractional hop with linear-interp reads
-status: todo
+status: in-review
 depends-on: [010]
 component: dsp
 estimated-size: S
