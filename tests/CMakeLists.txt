@@ -18,6 +18,7 @@ add_executable(mwstime_tests
     unit/test_resampler.cpp
     unit/test_repitch.cpp
     unit/test_tempomap.cpp
+    unit/test_varclock.cpp
 )
 
 target_link_libraries(mwstime_tests
