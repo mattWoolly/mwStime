@@ -24,3 +24,6 @@ Thumbs.db
 
 # Dependency caches (JUCE fetched via CMake FetchContent into build/)
 _deps/
+
+# Downloaded third-party sources/binaries used for research (not redistributable)
+research-cache/

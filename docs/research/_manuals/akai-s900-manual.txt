@@ -1,0 +1,2048 @@
+        AKAI        professional
+
+
+
+
+         MIDI DIGITAL SAMPLER
+
+
+
+                                    B               o                                                     o
+                                                           aaanoaaQ
+                                                           b   a "a* "S" o       o   a
+
+
+
+
+                                                                                               s
+                                                                                         "**
+
+
+
+
+                                      ^^—   ——— =3             P US
+                                                                 SB    |§g       S£5=£
+                                                                                                   •:d- :©:•
+                                                                                                   .,'. »-i.,
+                                                                                                             :<!):•
+                                                                                                                »•   ;..
+                                                                                                                     ;.,   _'   i.,
+
+
+
+
+                                                           Ifct fc
+
+
+
+
+           -WARNING                                 —                        *
+
+
+
+
+            To prevent fire or shock hazard, do not expose this ap-
+            pliance to rain or moisture.
+
+                                                                                                   Operator's Manual
+
+
+Downloaded from www.Manualslib.com manuals search engine
+                 \/
+           Warning                                                                             Precautions
+
+
+
+            Power requirements
+           Power requirements for electrical equipment differ from area to area.
+                                                                                               FOR CUSTOMERS
+           Please ensure that your machine meets the power requirements in your
+           area.
+                                                                                               IH THE UK
+           If   in doubt, consult a qualified electrician.
+            20 V, 60 Hz for USA and Canada
+            1
+
+           220 V, 50 Hz for Europe except UK                                                   IMPORTANT FOR YOUR SAFETY
+           240 V, 50 Hz for UK and Australia                                                   The flex supplied with your machine will have two wires as shown In the
+                                                                                               illustration.
+
+
+
+
+           What you should know to protect yourself and                                        TWO CORE FLEX
+           the Akai S900.                                                                      IMPORTANT
+           Watch out! You might get an electric shock.                                         The wires in this mains lead are coloured in
+            •    Never touch the plug with wet hands.                                          accordance with the following code:
+            •    Always pull out by the plug and never the cord.
+            •    Only let a qualified professional repair or reassemble the Akai
+                                                                                                  Blue: Neutral                                                                   L
+                                                                                                   Brown: Live
+                 S900. An unauthorized person might touch the internal parts and re-           As the colours of the wires in the mains lead
+                 ceive a serious electric shock.                                               of this apparatus may not correspond with the
+                                                                                                                                                              N            /Pt
+            «    Never allow a child to put anything, especially metal, into the Akai          coloured markings identifying the terminals in
+                 S900.                                                                         your plug, proceed as follows: The wire which
+
+            Let's protect the Akai S900 too.
+            •
+
+            »
+            »
+                 Use only a household AC power source. Never use a DC power
+                 source.
+                 If   water is spilled on the Akai S900, disconnect it and call your dealer.
+                 Make sure that the Akai S900 is well ventilated and away from direct
+                                                                                               is coloured blue must be connected to the
+                                                                                               terminal which is marked with the letter N or
+                                                                                               coloured black.
+                                                                                               The wire which is coloured brown must be
+                                                                                               connected to the terminal which is marked »«•
+                                                                                                                                                           milBrown
+                                                                                               with the letter Lor coloured red.              (Neutral)       (Live)
+                 sunlight.                                                                     *  Do not connect any wire to the larger pin marked E or -=k when
+            • To avoid damage to the internal circuits and the external surface,                  wiring a plug. Ensure that all terminals are securely tightened and
+              keep away from heat (stoves, etc.).                                                 that no loose strands of wire exist.
+            » Avoid using spray type insecticide near the Akai 8900. It can
+              damage the finish and might Ignite suddenly.
+            » To avoid damaging the finish, never use denaturated alcohol, paint
+                  thinner or other similar chemicals to clean the Akai S900.
+            »     Place the Akai S900 on a flat and solid surface.
+
+
+
+
+                                                                                                  A                                                                A
+            To enjoy the Akai S900 for long time, please read this operator's manual
+            thoroughly.
+                                                                                                                                   CAUTION
+                                                                                                                              RISK OF ELECTRIC SHOCK
+                                                                                                                                     DO NOT OPEN
+            Should a problem persist, write down the model and serial numbers and
+            all pertinent data regarding warranty coverage as well
+                                                                   as a clear descrip-
+                                                                                                     CAUTION: TO REDUCE THE RISK OF ELECTRIC SHOCK,
+            tion of the existing trouble. Then, contact your nearest authorized Akai                          DO NOT REMOVE COVER (OR BACK).
+            Service Station, or the Service Department of Akai Electric Company,
+                                                                                                     NO USER-SERVICEABLE PARTS INSIDE.
+                                                                                                     REFER SERVICING TO QUALIFIED SERVICE PERSONNEL.
+            Tokyo, Japan.
+
+
+
+                                                                                                                   The lightning flash with the arrowhead symbol superimposed across
+                                                                                                                    graphical representation of a person, within an equilateral triangle,
+                                                                                                                   intended to alert the user to the presence of uninsulated "danger-
+                                                                                               /1\             • ous voltage" within the oroducf a enclosure; that may be of sufficient
+                                                                                                                 magnitude to constitute a risk of electric shock.
+
+                                                                                                                   The exclamation point within an equilateral triangle is Intented to
+                                                                                                               *   alert the user to the presence of important operating and mainte-
+
+                                                                                                               m nance (servicing) instructions in the literature accompanying the ap-
+                                                                                                                   pliance.
+
+
+
+
+Downloaded from www.Manualslib.com manuals search engine
+         TABLE OF CONTENTS
+
+
+         CHAPTER 1 fNTRODUCTION
+                            :                                     PART 6: THE EDIT PROGRAM BUTTON FUNCTIONS
+         WELCOME!                                                   PAGE 01 PROGRAM SELECT/COPY/RENAME/DELETE
+                                                                              :
+
+
+
+
+         SET IT UP                                                  PAGE 02: KEY/LOUDNESS INTERACTION, POSITIONAL
+         PLAYING BACK SOUNDS                                                  CROSSFADE
+         HOW TO COMMUNICATE WITH THE S900                           PAGE 03: KEYGROUP SELECT/COPY/DELETE
+            FUNCTIONS, PAGES, and BUTTONS                                     IMPORTANT INFORMATION ABOUT PAGES 04
+            GETTING AROUND THE S900: A PRACTICAL EXAMPLE                              to 16
+
+            CHANGING PARAMETERS                                     PAGE 04: VELOCITY CROSSFADE, VELOCITY SWITCH
+            ENTERING TEXT AND NAMES: MEET THE S900 WORD                       THRESHOLD
+            PROCESSOR                                               PAGE 05: SOFT SAMPLE RANGE ASSIGNMENT
+         DEFINITIONS                                                PAGE 06: SOFT SAMPLE LOUDNESS, FILTER,
+           VELOCITY KEYBOARD                                                  TRANSPOSE, AND FINE PITCH
+            SAMPLE                                                  PAGE 07: HARD SAMPLE RANGE ASSIGNMENT
+            KEYGROUP                                                PAGE 08: HARD SAMPLE LOUDNESS, FILTER,
+            PROGRAM                                                           TRANSPOSE, AND FINE PITCH
+         THE IMPORTANCE OF SAVING S900 MEMORY DATA TO               PAGE 09: KEYGROUP ENVELOPE SETTINGS
+         DISK                                                       PAGE 1 0: KEYGROUP VELOCITY RESPONSE
+         ERROR MESSAGES                                             PAGE 1 WARP (automatic pitch bend)
+                                                                          1       :
+
+
+
+
+         HOW TO USE THIS MANUAL                                     PAGE 1 2: LFO (low frequency oscillator for modulation)
+                                                                    PAGE 1 3: LFO DEPTH (via aftertouch or modulation wheel)
+                                                                    PAGE 4: KEY FILTER (filter keyboard tracking)
+                                                                          1
+         CHAPTER 2: REFERENCE SECTION                               PAGE 1 5: KEYGROUP MIDI ASSIGNMENT, STATUS, AND
+          PART 1 INTRODUCTION, SHORT FORM
+                   :
+                                                                              CHANNEL
+            FUNCTIONS, PAGES, and BUTTONS                           PAGE 16: ASSIGNING KEYGROUP AUDIO OUTPUT
+            SELECTING A PAGE                                      PART 7: THE EDIT SAMPLE BUTTON FUNCTIONS
+            ARROWS, CURSORS, and GADGETS                            PAGE 01 SELECT/COPY/RENAME/DELETE SAMPLE
+            CHANGING PARAMETERS                                     PAGE 02 SELECT PROGRAM MONITOR
+            ENTERING TEXT AND NAMES                                 PAGE 03 SAMPLE LOUDNESS, NOMINAL PITCH, AND
+            ERROR MESSAGES                                                            FINE PITCH
+             DEFINITIONS                                            PAGE 04: REPLAY MODE SELECT
+            THE IMPORTANCE OF SAVING MEMORY DATA TO DISK            PAGE 05: TIME DIRECTION (NORMAL/REVERSE)
+          PART 2: THE PLAY BUTTON FUNCTIONS                                  IMPORTANT INFORMATION ABOUT PAGES
+            PLAY FUNCTIONS                                                            06, 07, and 08
+          PART 3: THE TUNE BUTTON FUNCTIONS                         PAGE 06           START POINT
+            TUNE FUNCTIONS                                          PAGE 07           END POINT
+          PART 4: THE MIDI BUTTON FUNCTIONS                         PAGE 08           LOOP LENGTH
+            PAGE 01 MIDI CHANNEL AND MODE SELECT
+                       :
+                                                                    PAGE 09           RESAMPLE, DISCARD (memory saving
+            PAGE 02: MIDI TEST SIGNAL TRANSMIT (CHANNEL,                              features) IMPORTANT INFORMATION ABOUT
+                           NOTE, VELOCITY, TRIGGER)                                   PAGES 10, 11, and 12
+            PAGE 03: INCOMING MIDI SIGNAL ANALYZER                  PAGE 1 0: SPLICE X-FADE (select samples to be spliced,
+            PAGE 04: PITCH WHEEL RESPONSE                                             name new sample)
+            PAGE 05: RS-232 PORT PARAMETERS                         PAGE 1 1 SPLICE CROSS-FADE TIME
+          PART 5: THE DISK BUTTON FUNCTIONS                         PAGE 1 2: SPLICE ORDER
+            PAGE.01: LOAD SOUND DATA FROM DISK TO MEMORY          PART 8: THE REC BUTTON (SAMPLING) FUNCTIONS
+            PAGE 02: LOAD PROGRAM, OR PROGRAM AND                   STEP  1   NAME SAMPLE
+                           SAMPLES, FROM DISK                       STEP 2    SELECT PROGRAM FOR MONITORING
+             PAGE 03: LOAD SAMPLE FROM DISK                         STEP 3    SPECIFY SAMPLE TYPE
+             PAGE 04: ERASE DISK, THEN SAVE S900 MEMORY TO          STEP 4    SPECIFY AUDIO BANDWIDTH
+                           DISK                                     STEPS     SPECIFY RECORDING TIME
+             PAGE 05: PARAMETERS: SAVE PROGRAM, OR                  STEP 6    ASSIGN SAMPLE PITCH
+                           PROGRAM & SAMPLES, FROM S900 TO DISK     STEP 7    SELECT TRIGGER
+             PAGE 06: SAVE SAMPLE TO DISK                           STEP 8            SETTING LEVELS
+             PAGE 07: PARAMETERS: ERASE SAMPLE OR                   STEP 9            SAMPLING
+                           PROGRAM FROM DISK
+             PAGE 08: FORMAT DISK
+
+
+
+
+Downloaded from www.Manualslib.com manuals search engine
+            CHAPTER 1: INTRODUCTION
+
+
+             WELCOME!                                                                             * Individual audio outputs for eight signals, left and right mix
+             Welcome to the Akai S900 Sampler. This versatile sampler pro-                           outputs, and mono mix output.
+             vides the flexibility associated with more expensive machines,                       Of course, this list just skims the surface (for example, with an
+             yet is quite easy to use once you become familiar with its opera-                    optional hardware card the S900 becomes a full-featured sam-
+             tion.                                                                                pling drum machine). You will find out much more about the
+             It took many months of intensive development to                                      S900's capabilities over the course of this manual, but since you
+                                                                 produce the
+             S900, and it will take you some time and practice to master this                     are no doubt very eager to get started, let's set up the S900 and
+             advanced instrument. But the reward for your efforts will be the                     play back some sounds.
+             opportunity to make creative, exciting music using the latest in
+             sampling technology.
+                                                                                                  SET IT UP
+             The S900 has several features of interest:                                           1    Connect a cord from the master MIDI controller MIDI Out to
+             •   1 2 bit sampling resolution for less noise and
+                                                                                                       the S900 MIDI In jack. Akai recommends the MX73 master
+                                                                better high fre-
+                 quency response than older, eight bit samplers.                                       MIDI keyboard, but other MIDI-compatible controllers can be
+             •   Variable sampling bandwidth to save on memory.                                        used (MIDI keyboards, guitar-to-MIDI converters, MIDI drum
+                                                                                                       controllers etc.).
+             •   Built-in disk drive for added convenience.
+             •   A "user-friendly" liquid crystal display (LCD) that displays                     2.   Connect an audio patch cord from the S900 Mix Out jack to a
+                 helpful messages and instructions.                                                    suitable amplification system, initially turned to zero level.
+             •   Versatile MIDI implementation (omni, poly, and mono modes
+                                                                                                       (We will describe how to use the other outputs later in the
+                 available)
+                                                                                                       manual.)
+
+
+
+
+                                          Speakers     Mixer/                                         Mixer
+                                                                                                                                          -   To personal computer
+                                                       recorder
+                                          £_£
+                                          Amplifier
+                                                                                                                                          •   To other MIDI equipment
+
+
+
+
+                                          Effector                                                                    .q66
+                              Keyboard
+                              amplifier
+
+                                                                                                                            MIDI IN
+
+
+                                                                             MIDI OUT
+                                                           *££
+                                                                    TIhhM?!
+                                                                                              MX 73
+
+                                                                    m
+                                                                                 U
+
+                                                           c lull            *
+                                                                                 IMF             HI
+                                                                                 i   T•   i
+
+
+
+
+                                                                 MIDI Master Keyboard
+
+
+
+
+                                                                                                                        Player, Deck, CD etc.
+                                                                  ininiiirminfnnnraii
+
+
+
+
+                                     X^/ Guitar
+                                                                 D     5
+                                                                            aaSSaaaS
+                                          Microphone
+                                                                                                                                      '
+                                                                                                                                          FoOtSwitCrKAKAl PS-X80)
+
+
+
+
+Downloaded from www.Manualslib.com manuals search engine
+       PLAYSNG BACK SOUNDS                                                                  5.    Turn up your audio amplifier, turn up the S900 Output control
+                                                                                                  for a confortable listening level, and play your master control-
+       We know you can't wait any longer to hear the S900, so grab one
+                                                                                                  ler. The MIDI RECEIVE light (towards the right side of the
+       of the factory disks and let's go. Follow these instructions exact-
+       ly as given.
+                                                                                                  LCD) should light up as you play, and you should hear some
+                                                                                                  pretty life-like sounds coming out of your amplifier, if not,
+        1  Insert a factory sound disk as shown in Fig. 1. Push gently
+                                                                                                  check your connections. If the MIDI RECEIVE light does not
+           until the disk locks in place. A push tab will pop out from
+                                                                                                  light up, the S900 is not receiving MIDI data. Make sure your
+           below the disk slot after the disk is inserted. When you want                          controller is generating MIDI data. For more information, turn
+           to change disks, push on the tab and the disk will pop out.
+                                                                                                  to the MIDI section of this manual.
+        2. Turn on the S900 power. The red light in the lower right-hand
+                                                                                             6.   To audition other disks, first press the tab below the disk
+           side of the disk drive will light. This indicates that disk activity
+                                                                                                  drive insertion slot. The previously inserted disk should pop
+           is taking place {in this case, sound data is being transferred
+                                                                                                  out.   Now insert the next disk you want to hear as described in
+           from the disk into the S900's memory).
+                                                                                                  step 1
+        Caution: NEVER, EVER remove a disk while the red disk activi-                        7.   Note that there are eight function buttons below the LCD. The
+        ty light is on!! This is true of all disk drives, not just the S900's.                    second one from the right says "DISK." Press this button (Fig.
+        Removing a disk when the disk light is on may damage the disk                             1).
+        or drive.                                                                            8. Note the matrix of buttons shaded in gray and located under
+        3.   It   can take up to 40 seconds to load a disk, depending on how                    the right side of the LCD. Press the ENT button (bottom row,
+             much data is on the disk. While you're waiting, adjust the                         second from the right) (Fig. 1          )
+
+
+
+             CONTRAST control for the most readable LCD display.                             9. The new sounds will be loaded into S900 memory and the
+        4.   Turn the large gray CONTROL counter-clockwise. The sound                             disk activity light will come on. After the sounds are loaded,
+             programs contained in memory will scroll past the LCD                                the disk activity light will go off. Play your master controller.
+             window. Each program has an associated number; press the                             Now you know how to play back sounds, but there is much,
+             key corresponding to that number to select a particular                              much more to learn about the S900. When you're ready, pro-
+             program.                                                                             ceed to the next section.
+
+
+
+
+                                     AKAI^— ss™              3DD
+                                                  O
+
+                                                  p^
+                                                            nn
+                                                            a     a   "S" "8"
+
+
+
+
+                                                            LlftSLi^Sl.
+                                                                          «™
+                                                                                a   a   .
+                                                                                            -a
+                                                                                                                      D
+
+
+
+
+                                                                                                                                   O o: o:
+                                                                                                                                  ..:       i.
+                                                                                                                                                 o
+                                                                                                                                                 CONTROL
+
+
+                                                                                                                     ENT button
+
+                                                                                             Disk button
+
+
+
+                                             Label
+
+                        -Push tab
+
+                        -Disk slot                                                                                                                          Fig.1
+
+
+
+
+Downloaded from www.Manualslib.com manuals search engine
+           HOW TO COMMUNICATE WITH THE S900                                     GETTING AROUND THE S900:
+           This section is very important. Read it carefully, as it lays the    A PRACTICAL EXAMPLE
+           foundation for the rest of the manual,
+                                                                                Let's learn how the Function/Page/Button system works. We
+                                                                                will do all our practicing with a blank, formatted disk so that if
+           FUNCTIONS, PAGES, and BUTTONS                                        you make any errors nothing of importance will be lost.
+           The S900 has eight functions selected by eight front panel           1   Turn on power if it is not already.
+           master buttons: PLAY, REC, EDIT SAMPLE, EDIT PROGRAM,                2. Insert a blank, double-sided 3.5" disk as    shown previously in
+           MIDI, UTILITY, DISK, and MASTER TUNE.                                    Fig. 1 Push gently until the disk locks in place.
+                                                                                             .
+
+
+
+           Each function (except MASTER TUNE) includes several pages.           3. Press the DISK function button. The LCD will show Page 01
+           Each page covers a specific aspect of the function's operation.         the Load Disk page. There are several other pages associated
+           For example, typical DISK function pages are load sound from            with the DISK function, and three ways to access them:
+           disk, save sound to disk, erase disk, etc.                           • Enter the page number directly with the numeric (0—9)
+           Each page also displays several of the S900's parameters.               PARAMETER KEYS. This must be a two-digit number; if you
+           These are changed with the page programming buttons (con-               are calling up a single-digit page number, press the       button
+           tained within the gray rectangle below the right side of the LCD)       first (e.g. to call up Page 7, press the key then the 7 key).
+           and the upper-right hand CONTROL.                                    • You may advance to the next page by pressing PAGE (down
+                                                                                   arrow), or return to the previous page by pressing PAGE (up
+                                                                                    arrow).
+                                                                                •   If the arrow points at the page number (see next section for
+
+                                                                                    more about the arrow), CONTROL will select the different
+                                                                                    pages within a function.
+
+
+
+
+                                                           CONTRAST   -
+                                                                                                                         EDIT PROGRAM
+
+                                                                                                                         EDIT SAMPLE—
+
+                                                           POWER SWITCH   -
+                                                                                                                         REC
+
+                                                                                                                         PLAY-
+
+
+
+                                                                                    AJh^kl ftmfemmai                                  H mm3 hm ai ImmI
+
+
+
+
+                                                                                                                     "\mOr"
+
+                                                                                                                                                    SIIU MtlHM
+                                                                                                                                     13      CI
+
+
+                                                                                                      FLOPPY WSK DRIVE
+                                                                                                                                                                o                    t
+
+                                                                                      ,
+
+                                                                                      tzz
+                                                                                          —      yaasff'--wwb|_^__^
+                                                                                                  1
+                                                                                                            _______
+                                                                                                                  ™_™_r
+                                                                                                                                     iv.'fvum.:-:-'.vrriHii
+                                                                                                                                     i%PLAV MO0E         04   SAMPUS NAM!       OS
+                                                                                                                                     START POWT          OS   AJJAR             09
+                                                                                                          """"'
+                                                                                                      i
+                                                                                                                  ZZZ3         £™2   END S»0!Wr          07   VLCTY3BMS.        W
+                                                                                                                                     LOOP UEHOTH         oa   MTCH WARP         11
+
+                                                                                                                                     SHJCS X-FAOS        10   U=0               a
+
+
+
+
+                                                                                                                                     PARAMETER KEYS-
+                                                           FLOPPY DISK DRIVE-                                                        ON/+, OFF/- KEYS                       -
+
+
+
+
+                                                                                                                                     ENTKEY
+
+Downloaded from www.Manualslib.com manuals search engine
+        The front panel shows some of the most used page numbers for            Now let's learn how to select parameters within a page. Press
+        the EDIT SAMPLE, EDIT PRESET, and DISK functions.                       the EDIT PRESET function button and select Pag© 06. Again,
+        4. Scan through the other pages by using one or more of the             we don't need to concern ourselves with the specific LCD
+           methods described above. Don't expect the LCD messages to            message other than to know that an asterisk (*) indicates a
+           make much sense; they will be explained later. We just want          parameter that may be altered.
+           to get a feel for how the machine works.                             Two "gadgets" help you locate the desired parameter:
+        5. Select Page 08. The LCD asks if you want to FORMAT, and              An Arrow gadget point to the name of the currently selected
+           explains that means to "Prepare a new disk" for use with the         parameter (this will be the page number when the page is first
+           S900. It also reminds you to press ENT if you want to have           selected).
+            this happen. Since you    have a blank disk in the drive which      A flashing cursor indicates the value of the parameter pointed
+            you will eventually want to use with the S900, press ENT.           to by the Arrow. If you enter a piece of data (number, yes, no,
+         6. The Disk Activity light goes on. Remember, NEVER remove a           letter, etc.),it will be entered in the space indicated by the
+
+            disk when this light is on! The cursor will overwrite the exist-    flashing cursor.
+            ing display with dots. When the LCD is filled with dots and the     Use the elongated ARROW/CURSOR KEY to move the arrow
+            Disk Activity light goes off, the disk is ready for use with the    and cursor. Press the left side of the switch to move the ar-
+            3900. Pop out the disk, and you have a formatted disk ready         row/cursor left, and the right side to move the arrow/cursor to
+            for later experiments.                                              the right. Try this now.
+
+
+
+
+                                                                   ARROW/CURSOR KEYS
+                                                                    PAGE KEYS
+
+                                                                   CONTROL
+
+
+
+
+                                                       LETTER KEY
+
+                                                       PB KEY
+
+                                                       SPACE KEY                                 Fig. 2
+
+
+
+
+Downloaded from www.Manualslib.com manuals search engine
+          CHANGING PARAMETERS                                                   DEFINITIONS
+          Now practice changing parameters. Parameters can usually be           1  A velocity keyboard is a type of keyboard that measures the
+          changed in two ways:                                                     time it takes for a key to go from the up to down position. It as-
+          • Scroll by turning the CONTROL through the available options            sumes that if this time period is short, you have hit the key
+          • Use the PARAMETER KEYS if you know the value you want                  hard and want a loud sound; if this time period is longer, you
+            to enter. If the value is a number, use the 0-9 keys                   have hit the key softly and want a soft sound. Therefore, even
+                                                                 (remem-
+            ber that numbers must have leading zeroes - e.g. if a three-           though velocity is measuring the speed at which a key goes
+            digit number is required, enter zeroes if necessary.                   from key up to key down, we will consider it as an indication
+                                                                  Thus, 9
+            would be entered as 009. If a two-digit number is required,            of how hard or soft you hit the key.
+            then 9 would be entered as 09). Some parameters expect a            2. A Sample is a single sound that you record into the S900. To
+            yes/no answer, or a positive/negative indication; for these,           cover more than one key on a keyboard, the sample may be
+             usetheON/+ and OFF/- buttons.                                         transposed over up to a six-octave range.
+             Important: If the LCD asks you to press ENT after altering         3. A Keygroup is a pair of samples. Playing a velocity keyboard
+               a parameter, do so.                                                 harder increases the level of one of the samples and de-
+                                                                                   creases the level of the other (or, switches over from one of
+          ENTERING TEXT AND NAMES: MEET THE                                        the samples to the other at a certain velocity threshold).
+                                                                                   Thus, with a bass sound you can have a normally plucked
+          S900 WORD PROCESSOR                                                      string at lower levels and a slap bass effect at higher levels.
+          Occasionally you will need to enter a name rather than a                 The sample meant to be heard at higher velocity levels is
+          number, so let's meet the S900's "word processor".                       called the Loud sample and the sample meant to be heard at
+          Assuming that a blank disk is still in the drive, and that the EDIT        lower velocity levels is called the Soft sample.
+          PRESET function is still active, select Page 01 Move the arrow
+                                                            .                   4.   Trying to transpose a sample over too wide a range leads to
+          so that it points at "Select, Copy." This parameter requires a             an unnatural sound. The S900 can assign up to 32 samples
+          name instead of a number; here's how to enter a name.                      over the keyboard. Using multiple samples means that indi-
+          1  When the arrow point to a parameter that requires a name,               vidual samples need not be transposed very far. A Program
+             press the LETTER button (Fig. 2). The cursor will be replaced           (also called preset) is a set of keygroups, and can consist of
+             by a line under the letter to be entered.                               up to 32 different keygroups (or individual samples) assigned
+          2. Turn the control to choose a letter (A-Z). You may                    across the keyboard. For example, with a five-octave key-
+                                                                      also
+             choose 0-9, space, and #. To quickly choose a space with-             board you could take five samples and assign one to each
+             out having to turn the CONTROL, press the SPACE button. To            octave, or ten samples and assign one to every half-octave.
+             quickly choose a number, press the 0-9 buttons (Fig. 2).           Samples may be edited in a number of ways, as can programs.
+          3.   Alter selecting the desired character, move the cursor to the    These will be described fully later. Once samples and programs
+               next letter with the arrow/cursor button and repeat step 2. if   are set as desired, the S900 memory can be saved to disk.
+               you make a mistake at any time, back the cusor up to the in-
+               correct character and repeat step 2.
+          4.   Important: After entering the entire name, press ENT.            THE IMPORTANCE OF SAVING S900
+          We have now learned how to scan pages, select parameters,             MEMORY DATA TO DISK
+          and edit parameters. Before continuing, we need to cover some         PLEASE NOTE: The S900 has no permanent memory. you               If
+
+          basic definitions.                                                    load a disk into the S900 and alter the altered parameters
+                                                                                                                         it,
+
+                                                                                MUST BE SAVED TO DISK or your work will be lost you turn    if
+
+                                                                                off the power. This is described fully in      the section of the DISK
+                                                                                function.
+
+
+                                                                                ERROR MESSAGES
+                                                                                Ifail eight function lights flash, there is a usually not-too-serious
+
+                                                                                problem. The LCD will give you some idea of what is wrong. To
+                                                                                return to normal operation, press one of the function buttons.
+
+
+
+
+Downloaded from www.Manualslib.com manuals search engine
+                                                                                 8
+
+
+
+
+         HOW TO USE THIS MANUAL
+         We have now covered how to communicate with the S900. To
+         learn about how the S900 works, we suggest the following:
+         1        Load in various sound disks and select the EDIT PRESET
+                  function. Go through the EDIT PRESET section of this
+                  manual and vary parameters on the various pages, carefully
+                  noting the effects on the sound caused by these parameter
+                  variations. Feel free to experiment as much as you like —
+                  parameter editing only affects what is in the S900 memory,
+                  and sound disk data remains intact UNLESS you save the
+                  S900 memory to disk. Therefore, as long as you don't save to
+                  disk, you won't lose any data on the disk.
+         2. After getting a feel for the EDIT    PRESET (program) functions,
+                load in various sound disks and select the EDIT SAMPLE
+                function. Go through the EDIT SAMPLE section of this
+                manual and vary parameters on the various pages, carefully
+                noting the effects on individual samples caused by these
+                parameter variations. As mentioned above, as long as you
+                don't save to disk, you won't lose any data on the disk.
+             3. Start making your own samples. Insert a blank, formatted
+                disk into the S900, select the REC function, and go through
+                the REC section of this manual. We suggest speaking some
+                sentences for your first few samples, as this makes it very
+                easy to observe the effects of looping and other sampling
+                  parameter edits.
+             4. Practice making up disks using samples and programs from
+                various other disks. Read through the DISK section of the
+                manual to find out how this is done.
+             5. Experiment, experiment, experiment. The more you play with
+                the S900, the more you will become familiar with its operation
+                and the better you'll be able to exploit its many features.
+
+
+
+
+Downloaded from www.Manualslib.com manuals search engine
+           CHAPTER 2: REFERENCE SECTION
+
+
+                PART 1     :   INTRODUCTION, SHORT FORM ~1                              ENTERING TEXT AND NAMES
+           The following is a summary of the information presented in the               To enter a name:
+           introduction and is intended to serve as a reference. For
+                                                                     further
+                                                                                        1    When the cursor specifies a parameter that requires a name,
+           information, re-read Chapter 1                                                    press the LETTER button. The cursor will be replaced by a
+                                                                                             line under the letter to be entered.
+
+           FUNCTIONS, PAGES, and BUTTONS                                                2.   Turn the control to choose a letter (A~Z). You may also
+                                                                                             choose 0-9, space, and #. To quickly choose a space with-
+           The S900 has 8 functions selected by 8 front panel master but-
+                                                                                             out having to turn the CONTROL, press the SPACE button.
+           tons: PLAY, REC, EDIT SAMPLE, EDIT PROGRAM, MIDI,
+                                                                                        3. After selecting the desired character,  move the cursor to the
+           UTILITY, DISK, and MASTER TUNE.
+                                                                                           next letter and repeat step 2. If you make a mistake at any
+           Each function (except MASTER TUNE) includes several pages.
+                                                                                           time, back the cursor up to the incorrect character and repeat
+           Each page covers a specific aspect of the function's operation.
+                                                                                           step 2.
+           For example, typical DISK function pages are load sound from
+                                                                                        4. After entering the entire name, press ENT.
+           disk, save sound to disk, erase disk, etc.
+           Each page also displays several of the S900's parameters.
+           These are changed with the page programming buttons (con-                    ERROR MESSAGES
+           tained within the gray rectangle) and the upper-riqht hand                   Ifall eight function lights flash, there is an error. Press
+                                                                                                                                                    one of the
+           CONTROL.                                                                     function buttons to return to normal operation.
+
+
+           SELECTING A PAGE                                                             DEFINITIONS
+           There are three ways to select a page:                                       1    A velocity keyboard is a type of keyboard that measures the
+           1. Enter the page number directly with the numeric (0-9)                          time it takes for a key to go from the up to down position and
+              PARAMETER KEYS. This must be a two-digit number; if you                        therefore indicates dynamics.
+              are calling up a single-digit page number, press the                      2.   A Sample is a single sound that you record into the S900. To
+                                                                         button
+              first (e.g. to call up Page 7, press the
+                                                                                             cover more than one key on a keyboard, the sample may be
+                                                       key then the 7 key).
+           2. You may advance to the next page by pressing PAGE
+                                                                                             transposed over up to a six-octave range.
+                                                                         (down          3.   A Keygroup is a pair of samples. The sample meant to be
+              arrow), or return to the previous page by pressing PAGE
+                                                                            (up            heard at higher velocity levels is called the Loud sample and
+                arrow).
+           3.    the arrow points at the page number (see next section for
+                If
+                                                                                           the sample meant to be heard at lower velocity levels is called
+                more about the arrow), CONTROL will select the different                   the Soft sample.
+                                                                                        4. Trying to transpose a sample over too wide a range
+                pages within a function.                                                                                                         leads to
+                                                                                             an unnatural sound. The S900 can assign up to 32 samples
+                                                                                             over the keyboard. Using multiple samples means that indi-
+           ARROWS, CURSORS, and GADGETS                                                      vidual samples need not be transposed very far. A Program
+           Upon selecting a page, the LCD will indicate parameters related                   (also called preset) is a set of keygroups, and can consist of
+           to that page.   Two "gadgets" help you locate the desired parame-                 up to 32 different keygroups (or individual samples) assigned
+           ter:                                                                              across the keyboard.
+           1    An Arrow gadget point to the name of the currently selected
+                parameter.                                                              THE IMPORTANCE OF SAVING MEMORY
+           2.   A flashing cursor indicates the value of the parameter pointed          DATA TO DISK
+                to by the Arrow. If you enter a piece of data (number, yes, no,
+                letter, etc.),
+                                                                                        PLEASE NOTE: The S900 has no permanent memory. you              If
+                                 it   will   be entered in the space indicated by the
+                                                                                        load a disk into the S900 and alter the altered parameters
+                                                                                                                                  it,
+                flashing cursor.
+                                                                                        MUST BE SAVED TO DISK or your work will be lost you turn off
+                                                                                                                                                if
+           Use the elongated arrow/cursor switch to move the arrow and                  power. This is described fully in the section on the DISK func-
+           cursor. Press the left side of the switch to move the arrow/cursor
+                                                                                        tion.
+           left, and the right side to move the arrow/cursor
+                                                             to the right.
+
+
+           CHANGING PARAMETERS                                                           PART 2: THE PLAY BUTTON FUNCTION
+           Parameters can usually be changed in two ways:                               PLAY FUNCTION
+           1    Scroll through the available options by turning the CONTROL.            To play back programs stored in the S900 memory (usually
+           2.   Ifyou know the value you want to enter, use the PARAMETER               these are loaded from disk first; see DISK function Page 01 ):
+                 KEYS. If the value is a number, use the 0-9 keys (remember             1. Press the PLAY function button.
+                that numbers must have leading zeroes-e.g. if a three-digit             2. Turn CONTROL counter-clockwise. The programs contained
+                number is required, enter zeroes if necessary. Thus, 9 would               in memory will scroll past the LCD window.
+
+                be entered as 009. If a two-digit number is required, then 9            3. Each program has an associated number. Press the key cor-
+                would be entered as 09).Some parameters expect a yes/no                    responding to that number to select a particular program.
+                answer, or a positive/negative indication; for these, use the
+                ON/+ and OFF/- buttons.
+           Important: If the LCD asks you to press ENT after altering a
+           parameter, do so.
+
+
+
+Downloaded from www.Manualslib.com manuals search engine
+                                                                                                                                          10
+
+
+
+
+          PART 3: THE TUNE BUTTON                                                         NOTE SELECT
+          FUNCTIONS                                                                       Point arrow at "Key" and use the 0—9 keys or CONTROL to
+                                                                                          enter the desired MIDI note number (middle C=60h
+         TUNE FUNCTIONS
+         To adjust the S900 tuning to that of other instruments:                          VELOCITY SELECT
+            Press the MASTER TUNE function button.
+                                                                                          Point arrow at "Velocity" and use the 0-9 keys or CONTROL to
+         1
+
+         2. Enter the desired detuning as + or — followed by a two digit
+                                                                                          enter the desired velocity (loudness).
+            number between 00 and 16. Negative numbers offset tuning
+                  lower, positive numbers offset tuning higher. Numbers greater
+                  than 1 6 are not recognized.                                            TRIGGER NOTE
+         3.       To exit MASTER TUNE mode, hit any other function button.                Press the Play parameter button (not the PLAY function button)
+                                                                                          at any time to send the MIDI data through MIDI Out and also trig-
+
+           PART 4: THE MIDI BUTTON FUNCTIONS                                              ger the specified note within the S900.
+
+          MIDI FUNCTIONS                                                                  IPAGEQ3I INCOMING MIDI SIGNAL
+         A MIDI controller sends out MIDI data that describes your perfor-
+         mance— which notes are being played, dynamics, modulation,                       ANALYZER
+         etc. The S900 receives this data (if all is set properly) and pro-               Page 03 is your "window on MIDI" and shows:
+         duces sounds according to the data it receives.                                  ® The channel over which the Master Controller is sending
+                                                                                                notes.
+                                                                                          • The last note played by the Master controller, both in musical
+             PAGE 01 MIDI CHANNEL AND MODE                                                   terminology and MIDI note number.
+             SELECT^                                                                      ® The velocity (dynamics) of the last note played (displayed for
+             MIDI transmitters send data out over a particular channel from 1                as long as the note is held down)
+          to 16 (this is usually selectable). A MIDI receiver (such as the                There are no user-settable parameters on this page. It is used
+             S900) has two main modes of operation:                                       solely as a monitor. If the S900 is not responding properly to the
+             • OMNI ON (the S900 receives any MIDI data that appears on                   master controller, use this function to verify the channel number
+                any channel) This mode is useful for having the S900 receive
+                                .
+                                                                                          and also, that the master controller is sending out valid note and
+                master controller data without having to think about channel              velocity data.
+                   selection.
+             •     OMNI OFF (the S900 receives any MIDI data that appears on
+                   one channel). In most situations, turn OMNI off and set the                 PAGE 04I PITCH WHEEL RESPONSE
+                   S900 to the same channel number as the transmitter (see                 This page lets you trim the S900's response to the MIDI Master
+                   below).                                                                 Controller's pitch wheel.
+                                                                                           1    Point arrow at "Pitch wheel range ( ± semitones)."
+                                                                                                Select the range of the pitch bend travel, from :±1 semitone to
+             MIDI CHANNEL SELECT                                                           2.
+                                                                                                ±1 2 semitones, by entering a two-digit number (01 02  ,    .   .
+
+
+             1  Point arrow at "Basic MIDI channel."                                             1   2) or turning the   CONTROL.
+             2. Enter a two-digit channel number with the 0—9 keys. Enter
+                leading zeroes (i.e. 01 not 1 ).
+                                                                                               PAGE 05 RS-232 PORT PARAMETERS
+                                          ,
+
+
+
+
+                                                                                           The S900 may be controlled from the RS-232 port included on
+             OMNI ON/OFF (MODE) SELECT                                                     many home computers as well as via MIDI (for more information,
+             1.    Point arrow at "Omni on/off."
+                                                                                           refer to the Appendix "RS-232 Applications"). In RS-232 mode,
+             2.    Press + key for OMNI ON and - for OMNI OFF.
+                                                                                           the S900 Baud Rate (speed of communications) must match
+             3.    If the channels have been properly selected, playing the
+                                                                                           that of the computer.
+                   master controller will cause the MIDI RECEIVE light to glow.
+
+                  PAGE 02 MIDI TEST SIGNAL TRANSMIT                                        MIDI/RS-232 SELECT
+                                                                                           Point arrow at "Control by MIDI (1) RS232 (2).
+             I
+
+
+                                                                                                                                               Enter 1 for MIDI
+             ^CTfMNEL, NOTE, VELOCITY, TRIGGER)                                            or 2 for RS-232.
+                 This page lets you trigger a note in the S900 via the Play parame-
+                 ter button (not the PLAY function button). Pushing the Play
+                 parameter button also sends MIDI note and velocity data out the
+                                                                                           RS-232 BAUD RATE SELECT
+                 MIDI Out connector. This feature is useful for triggering a note          Point arrow at "RS232 Baud rate." The Baud rate is a five-digit
+                 without having to use an external controller (e.g. MIDI keyboard).        number; enter the first four digits of the number. Example:
+                                                                                           For 1 9200 Baud rate, enter 1 -9-2-0.
+                                                                                           For 300 Baud rate, enter 0-0-3-0.
+                 CHANNEL SELECT                                                            For 9600 Baud rate, enter 0-9-6-0.
+                 Point arrow at "Channel" and enter the two-digit channel
+                 number (i.e. 01 02 ... 1 6) over which the MIDI test signal will
+                                    ,
+                                                                                           You can also use the CONTROL but this is not recommended as
+                                                                                           it takes more time to make adjustments.
+                 appear.
+                 NOTE: This must be the same number as the S900 basic MID!                 The LCD will show a measurement of the actual Baud rate. If It is
+                 channel (selected on Page 1     )   if   you want to trigger the S900.
+                                                                                           more than ±2% different from the intended Baud rate, there is a
+                                                                                               problem.
+
+
+
+
+Downloaded from www.Manualslib.com manuals search engine
+                                 11
+
+
+
+
+         I
+              PART 5: THE DISK BUTTON FUNCTIONS                                                  PAGE 03I LOAD SAMPLE FROM DISK
+             DISK FUNCTIONS                                                                      '03     LOAD SAMPLE                (ENT)                   M*m-76»
+         The disk drive:                                                                                     * n a   ma       WELCOME
+         • Loads disk samples and programs into the S900, and
+         • Saves samples and programs stored in the S900 to disk.                           Use this feature to fill the S900 memory with many different
+           The S900 loses ail data in its memory when power is turned                       sounds by loading samples from various disks.
+           off, so save your work to disk before turning off power.
+                                                                    Also                    1 Point arrow at "name." Turn CONTROL to scan the catalog of
+            save your work to disk periodically to guard against power
+                                                                                              available samples, or enter the name of the sample you want
+                failures or unforeseen problems.
+                                                                                              to load. If the LCD says "none," there are no samples on the
+             One additional function, format, converts standard disks into                           disk.
+             disks suitable for use with the S900. Any new disk, or disk used
+                                                                                            Ifyou switch disks during this process, press the DISK function
+             previously with a diffeent piece of equipment (e.g. personal
+                                                                                            button immediately after the change to load the new disk sample
+             computer, other instrument) must be formatted before it can be
+                                                                                            catalog.
+             used with the S900.
+             Disks have a write-protect feature that helps prevent accidental               2.       After selecting a sample, press ENT. The disk activity Sight
+             erasure. There will be a small, movable tab in one corner of the                        will go on to indicate that loading is taking place.
+
+             disk. When slid towards the outside of the disk, a hole will
+             appear and you will not be able to record data on, or format, the              PAGE 04 ERASE DISK, THEN SAVE S900
+                                                                                                                      1
+
+
+
+
+             disk. Moving the tab towards the inside of the disk blocks the
+             hole and defeats the write-protect feature.
+                                                                                            M1W0W"T0 DISK
+                                                                                                 *0A         Clear disk and s a v a                         M«m-76K
+              PAGE 01 LOAD SOUND DATA FROM                                                                   entire mamory (ENT)                        D   is k-788
+
+             DISKTO""MEMORY
+                                                                                            Selecting Page 04 displays "Clear disk and save entire memory
+               -*0   I   Clnr memory              and     load              Mamo r y _76%   (ENT)." To do this, press the ENT button. Caution! This will
+                         a n t   i   r «   disk   (ENT)                       D s k_78»
+                                                                                i
+                                                                                            erase whatever had previously been on the disk, unless it was
+                                                                                            write-protected. If the disk is write-protected, the LCD will notify
+             Selecting Page 01 displays "Clear memory and load entire disk                  you and advise you what to do.
+                                                                                            After saving, the LCD will indicate what percentage of the disk
+             (ENT)." To do this, press the ENT button. Any data in the S900's
+             memory will be replaced with data from the disk.                               has been filled, and what percentage of the S900 memory was
+                                                                                            filled.
+             After loading, the LCD wil! indicate what percentage of the S900
+             memory has been filled, and what percentage of the disk was
+             filled.                                                                         PAGE 05 SAVE PROGRAM, OR PROGRAM
+                                                                                                                          !
+
+
+
+
+                                                                                             & SAMPLES, FROM S900 TO DISK
+              PAGEQ2 LOAD PROGRAM, OR PROGRAM
+             AND SAMPLES, FROM D!SK                                                              —0& SAVE PR OS RAM (ENT)                   PR only-            Disk
+                                                                                                     *name WELCOME                          *PR   &   smpls-     78%
+               ~0Z       LOAD PROGRAM (ENT)                 *PR   o n   Iy-M-76«
+                         *r>ama WELCOME                     *PR   *     Samples—            This page offers two main choices:
+                                                                                             * Save program only. Use this when you come up with a par-
+             This page offers two main choices:                                                ticularly useful program in the S900. Once saved to disk, you
+                                                                                                     can subsequently use this program with different sets of
+             » Load program only. Use this when you have samples in
+                                                                                                     samples.
+               memory that you want to arrange into a program, and already
+                                                                                             • Save program and samples. Use this to transfer a complete
+               have a program on disk that would be suitable for the samples
+                currently in S900 memory.                                                      program, including the samples contained in the program
+             • Load program and samples. Use this to make up a disk with                       from S900 memory to disk. To transfer a program and its sam-
+                many different sounds by loading programs and samples                          ples from one disk to another disk, load the program and sam-
+                from other disks. (Example: Load bass program and samples                      ples from one disk in memory (Page 02), then save to another
+                from one disk and drum program and samples from another                        disk from S900 memory.
+                disk to make up a "rhythm section" disk.)                                    1 Point arrow at "name." Turn CONTROL to scan the catalog of
+                                                                                                 .
+
+
+
+
+             1  Point arrow at "name." Turn CONTROL to scan the catalog of                     available programs, or enter the name of the program you
+                available programs, or enter the name of the program you                       want to save.
+                want to load.
+             2. Point arrow at "PR only" to load only the program data. Point
+                arrow at "PR & Sample" to load the programed samples that
+                make up the program.
+             3. After making your choice, press ENT. The disk activity light
+                wili turn on to indicate that loading is taking place.
+
+
+
+
+Downloaded from www.Manualslib.com manuals search engine
+                                                                                                                                          12
+
+
+
+
+          Ifyou switch disks during this process, press the DISK function                   PAGE08J FORMAT DISK
+          button immediately after the change to load the new disk sample
+          catalog.                                                                          -0B   DISK FORMAT.                                       Disk
+          2. Point arrow at "PR only" to save only the program data. Point                        Prepare new       d   sk   (ENT)
+             arrow at "PR & samples" if you want to save the program and
+             the samples that make up the program.                                      This page formats new or differently formatted disks to S900
+          3. After making your choice, press ENT. The disk activity light               specifications. Caution: Formatting will bulk-erase the entire
+             will turn on to indicate that saving is taking place.                      disk of previously stored data, so double-check the disk's identi-
+                                                                                        ty before formatting.
+
+                   PAGE 06 SAVE SAMPLE TO DISK                                          1  Selecting Page 08 displays "DISK FORMAT. Prepare new
+                                                                                           disk (ENT)." After making sure a blank disk (or one you want
+                       »*T6   SAVE SAMPLE      (ENT)                        Disk           to bulk-erase) is in the drive, press ENT.
+                              * n   «me WELCOME                              78%        2. The Disk Activity light in the lower right side of the drive will
+                                                                                           turn on. Remember not to remove the disk when this light is
+           This page saves a sample in memory to disk. You may transfer a                  on!
+           sample from one disk to another by loading the sample in                     3. When formatting begins, the cursor will overwrite the existing
+           memory from one disk (Page 03), then saving the sample from                     display with dots. When the LCD is filled with dots and the
+           S900 memory to a different disk.                                                  Disk Activity light goes off, the disk is formatted and ready for
+           1            Point arrow at "name." Turn CONTROL to scan the catalog of           use with the S900.
+                        available samples, or enter the name of the sample you want
+                        to save. If the LCD says "none," there are no samples on the
+                        disk.
+               Ifyou switch disks during this process, press ENT immediately
+               after the change to load the new disk sample catalog.
+
+               2.       After selecting a sample, press ENT. The disk activity light
+                        will go on to indicate that saving is taking place.
+
+
+
+               i
+                   PAGE 07 ERASE SAMPLE OR PROGRAM
+                                      [
+
+
+                   FROirDTSK
+                       -01 ERASE       FROM   tSmph                          Disk
+                                DISK (ENT)    * p r o g r   i                 %
+
+                   1  To erase a sample, point arrow at "Sample." Turn CONTROL
+                      to select the sample to be erased. Press ENT.
+                   2. To erase a program, point arrow at "Program." Turn
+                      CONTROL to select the program to be erased. Press ENT.
+                   3. After making your selection, press ENT. The disk activity light
+                      will indicate that erasure is taking place. The Disk space in-
+                      dicator will update the percentage of the disk allocated to
+                         data.
+                   Note: If the disk space indicator shows no change, the sample or
+                   program to be erased was not found. Make sure the disk drive's
+                   disk catalog matches that shown in the LCD. If you switch disks,
+                   press the DISK function button to load the new catalog, then
+                   reselectPage07.
+
+
+
+
+Downloaded from www.Manualslib.com manuals search engine
+           PART 6: THE EDIT PROGRAM BUTTON                                      POSITIONAL CROSSFADE
+                                                                                Samples may be assigned so that the high range of one sample
+           FUNCTIONS                                                            overlaps the low range of another sample. With positional cross-
+          EDIT PROGRAM FUNCTIONS                                                fade on, the lower sample will fade out as the higher sample
+          The EDIT PRESET (Program) function provides extensive ways            fades in over the range of the overlap. This is useful for creating
+          to alter the program. Editing options include velocity sensitivity,   a smooth, natural-sounding transition between adjacent sam-
+          amplitude envelopes, filtering, positional crossfade, etc.            ples.
+                                                                                Point arrow at "Positional crossfade." Press ON/+ for positional
+                                                                                crossfade on, OFF/— for crossfade off.
+           PAGE 01 PROGRAM SELECT/COPY/
+           RERKME7DELETE
+               — 15'        'Sllect, Copy                  TONE PRGRM
+                 PROGRAM tRinimi, 0#l»t« (-)               TONE PRGRM
+
+          This page offers four choices:
+          SELECT (the program you want to edit)
+          Point arrow at "Select, Copy." Use CONTROL to scan the availa-
+          ble programs for editing. When the LCD shows the desired pro-
+          gram, press ENT.
+          COPY (one program to another and keep both in memory)
+          Point arrow at "Select, Copy" and select the program to be
+          copied (see above). Press the + key then ENT. Note: Prior to
+          pressing +, you can select where the + will appear in the pro-                 Sample 1
+          gram name by pressing LETTER then placing the cursor (with                                                                     Sample 2
+          the ARROW/CURSOR button) where desired.
+           RENAME (an existing program)
+           Point arrow at "Select, Copy" and select program to be re-named
+           (see above, SELECT). Then point arrow at "Rename, delete (-)."
+           Name the program (as described in Chapter 2, Part 1 ).
+           DELETE (an existing program)
+           Point arrow at "Select, Copy" and select program to be deleted.
+           Then point arrow at "Rename, delete (-)." Check that the cursor
+           is on the first character of the name (if not, then point arrow at
+           "Select, Copy" and start over). Press -, then ENT. This erases                Sample 1                                    Sample 2
+           the sample from S900 memory.                                                  amplitude                                   amplitude
+
+
+               PAGE02JKEY/L0UDNESS INTERACTION,
+           P^STflONAL CROSSFADE
+                                                                                                          Positional crossfade
+                                                                                                                 region
+               —H2           *Key— loudness ±^ 00
+                             Positional crossfade               OFF
+
+           KEY/LOUDNESS INTERACTION
+           This sets how much the pitch of the note being played affects
+           the loudness.                                                                     3JKEYGROUP
+           1     Point arrow at "Key-loudness."                                              /COPY/DELETE
+           2.    Rotate CONTROL between -50 and +50 for the desired
+                 degree of interaction. With +00 Key/Loudness, the loudness       *03   KEYGROUP      :      — Select [0 to IOIUI
+                 remains constant no matter where you play on the keyboard.                                  • Copy  + ). Diletl (— _
+                                                                                                                       (             )
+
+
+                 Increasing the Key/Loudness up to +50 decreases the loud-
+                 ness as you play further down on the keyboard and increases    This page offers three choices:
+                 the loudness as you play further up on the keyboard. De-       SELECT (the keygroup to be edited)
+                 creasing the Key/Loudness to —50 increases the loudness        Point arrow at "Select." Use CONTROL to scan and select the
+                 as you play further down on the keyboard and decreases the     available keygroups for editing (or enter the keygroup number
+                 loudness as you play further up on the keyboard.               with the 0—9 keys). To edit all program keygroups simultane-
+                                                                                ously, press "all."
+
+
+
+
+Downloaded from www.Manualslib.com manuals search engine
+                                                                                                                                                                                      14
+
+
+
+
+         COPY (on© keygroup to another and keep both in memory)                                        .
+                                                                                                            PAGE05I SOFT SAMPLE RANGE
+         Point arrow at "Copy(+), Delete(— )." Press the + key then ENT.
+         The copied keygroup will be numbered one digit higher than the
+                                                                                                           ASSIGNMENT
+         previously highest-numbered keygroup.                                                                               Soft * s am p         #                 * L o w    Key   (Hi (h    K
+                                                                                                            -ig5                               i                                                    i
+
+
+
+         DELETE (an existing keygroup)                                                                          •   KG   I     SOFT                              C0            24     G8   I   27
+         Point arrow at "Copy( +) Delete(— ) ." Press the
+                                                   ,
+                                                                           — key then ENT.
+         The keygroup will be removed from memory.                                                         Keyboard assignment determines the range (from lowest note to
+          IMPORTANT INFORMATION ABOUT PAGES 04 to 16                                                       highest note) covered by a sample. Example: If you have a
+          The LCD shows the keygroup number being edited below                                             sample recorded at C3 (MIDI note 60) and want to transpose it
+           each page number. To change keygroups at any time, point                                        plus and minus one octave, the low note would be C2 (MIDI note
+           the arrow at "KG—" and use CONTROL (or enter a two-digit                                        48) and the high note would be C4 (MIDI note 72).
+           number with the 0—9 keys) to select the new keygroup. This                                      If there is no soft sample, which is the case if velocity threshold
+
+           feature is also convenient for efficiently adjusting identical                                  = (thus precluding the use of a loud sample— see Page 04),
+           parameters for various keygroups with a minimum of button-                                      the LCD will say "No soft sample, vlcty thrsh - 0."
+           pushing.                                                                                        1   Point arrow at "sample." Use CONTROL to select the sample
+                                                                                                               to be assigned to a given range of the keyboard.
+          PAGE04VEL0CITY CROSSFADE,                                                                        2. Point arrow at "Low key." Adjust CONTROL to select the
+
+          VELOCITY SWITCH THRESHOLD                                                                            desired note, or enter the three-digit MIDI note number with
+                                                                                                                the 0—9 keys.
+            •04          *   V e   I   o c   I   t y   Crgsslldl  ON                                       3.   Point arrow at "High key." Adjust CONTROL to select the
+              KG   I     iViitc              i   ty    switch threshold           I   28                        desired note, or enter the three-digit MIDI note number with
+                                                                                                                the 0—9 keys.
+
+         VELOCITY CROSSFADE
+         This function crossfades between the two samples of the key-                                      lEAGE06 SOFT SAMPLE LOUDNESS,
+         group so that as you play harder, the Soft sample volume gets                                     FILTER, TRANSPOSE, AND FINE PITCH
+         softer and the Hard sample volume gets louder. This provides a
+         smooth transition between Soft and Loud samples as you play                                        — ^6 S                (Logdmss             * F   i   I    t • r    *Trinfpon        *fini
+         with greater or lesser dynamics.                                                                     • KSt           I   I   +   00            99                      +00            +00
+         Point arrow at "Velocity Crossfade." Press ON/+ for velocity
+         crossfade on, OFF/— for velocity crossfade off.                                                   This page edits four soft sample parameters.
+          VELOCITY SWITCH THRESHOLD                                                                        LOUDNESS (soft sample level adjust)
+          As you play a velocity keyboard, it produces numbers that corre-                                 Each sample level can be adjusted by itself (Edit Sample PAGE
+          spond to your dynamics, with representing a soft keystrike                                       03) or as part of a keygroup, as in this case. Different sections of
+          and 1 28 representing a hard keystrike. You may select any                                       the keyboard can play at different levels if desired, or samples
+          number between          and 1 28 with this function. If the velocity                             with unequal levels can be balanced out for uniform keyboard re-
+          data is less than the selected number, the Soft sample will play.                                sponse.
+          If the velocity data is greater than the selected number, the Loud
+                                                                                                           Point arrow at "Loudness." Use CONTROL to increase loudness
+          sample will play.                                                                                above the nominal +00 point (up to +50), or decrease loudness
+          Point arrow at "Velocity switch threshold." Use CONTROL to                                       below the nominal +00 point (down to -50). Note: These fig-
+          select the desired switch point, or enter a three-digit number                                   ures represent arbitrary volume units, not deciBels.
+          with the 0—9 keys.
+                                                                                                            FILTER (soft sample high frequency response)
+          Note: A setting of 1 28 plays the Soft sample only since it is not                                Low pass filtering passes low frequency sounds and attenuates
+          possible to play a note louder than 1 28. A setting of 000 plays                                  high frequency sounds. The frequency at which the filtering
+          the Loud sample only since it is not possible to play a note softer                               action occurs is adjustable. One application is to clean up noisy
+          than 000.                                                                                         samples by removing high frequency hiss; also, filtering inter-
+                                                                                                            acts with filter velocity sensitivity (see PAGE 1 0).
+                                                                                                            Point arrow at "Filter." Use CONTROL to set the initial fiiter fre-
+                                                               Playing harder fades        in   loud        quency or enter a two-digit number with the 0—9 keys. The
+                                                               sample and fades out             soft        lower the number, the lower the cutoff frequency.
+                                                               sample. With velocity switch,
+                                                                                                            TRANSPOSE (soft sample transposition)
+                                                               there is an abrupt transition from
+                                                                                                            Point arrow at "Transpose." Use CONTROL or the +, -, and
+                                                               soft sample to hard sample at
+                                                               the specified velocity.
+                                                                                                            0—9 keys to vary transposition amount in semitones from 50
+                                                                                                            semitones up (+50) to 50 semitones down (—50). +00 gives no
+                                                                                                            transposition.
+                                                                                                            Note: Not atl samples are capable of being transposed over the
+                                                                                                            full range.
+
+                                                                                                            FINE PITCH (soft sample pitch)
+                                                                                                            Point arrow at "fine." Use CONTROL or the +, -, and 0-9 keys
+                                                                                                            to fine-tune the sample pitch up to just over a flatted fifth (+99)
+                               VELOCITY
+                  Soft                                  Loud                                                or an equivalent amount in the downward direction (—99). +00
+                                                                                                            gives no pitch change.
+
+
+
+
+Downloaded from www.Manualslib.com manuals search engine
+                              15
+
+
+
+
+             PAGE 071 LOUD SAMPLE RANGE                                                        PAGE 091 KEYGROUP ENVELOPE
+            ASSIGNMENT                                                                        SETTINGS
+                ~jg!7     Loud   * s a m p   I   e   *Low   K g y   «h   K« y                  -M9 ENV       *Attack    * O a c a y   tSustiin tRiliin
+                    *KGI      TONEI                    C0     24    G8       I   27              * KG  I                    80          99              30
+
+            Keyboard assignment determines the range (from lowest note to                     Sounds are often looped to create continuous sustain. This
+            highest note) covered by a sample. Example: If you have a                         saves memory but unfortunately sacrifices the natural dynamics
+            sample recorded at C3 (MIDI note 60) and wanted to transpose it                   of a sound. The envelope function allows dynamics to be put
+            plus and minus one octave, the low note would be C2 (MIDI note                    back in to a sound, and can also be used to create special ef-
+            48) and the high note would be C4 (MIDI note 72).                                 fects—super percussive piano sounds, for example, or guitar
+            If there is no loud sample, which is the case if velocity threshold
+                                                                                              notes with the attack characteristics of a woodwind instead of
+            = 1 28 (thus precluding the use of a loud sample; see Page 04),                   plucked instrument.
+            the LCD will say "No loud sample, vlcty thrsh = 28."    1                         There are four adjustable parameters, as summarized below.
+            1       Point arrow at "sample." Use CONTROL to select the sample
+                                                                                                                    Decay
+                    to be assigned to a given range of the keyboard.
+            2. Point arrow at "Low key." Adjust CONTROL to select the                                      Attack
+                                                                                                                                             .Sustain level
+               desired note, or enter the three-digit MIDI note number with
+               theO— 9 keys.
+            3. Point arrow at "High key." Adjust CONTROL to select the                                                                                  Release
+               desired note, or enter the three-digit MIDI note number with
+               the 0—9 keys.
+
+
+                PAGE08i LOUD SAMPLE LOUDNESS,
+             FILTER, TRANSPOSE, AND FINE PITCH
+                    *0B   L   *LoudneS5 *Fi t«r       I       *Transpos8 *        f   i
+
+
+
+
+                    *KGI         + 00    99                    +00      +00
+                                                                                                  Key down                                          Key up
+             This page edits four hard sample parameters.
+             LOUDNESS (hard sample level adjust)                                              ATTACK
+             Each sample level can be adjusted by itself (Edit Sample Page                    Attack is the envelope generator's first phase, and sets the
+             03) or as part of a keygroup, as in this case. Different sections of             amount of time required for the keygroup sound level to go from
+             the keyboard can play at different levels if desired, or samples                 full off to full on. Short attacks are characteristic of plucked
+
+             with unequal levels can be balanced out for uniform keyboard re-                 instruments; longer attacks are characteristic of woodwind and
+             sponse.                                                                          some bowed instruments.
+             Point arrow at "Loudness." Use CONTROL to vary loudness                          Point arrow at "Attack." Use CONTROL or enter a two-digit
+             from +50 above the nominal +00 point (louder) to —50 below                       number (00—99) with the 0—9 keys. Higher numbers give
+             the nominal +00 point (softer). Note: These figures represent ar-                longer attack times.
+             bitrary volume units, not deciBels.                                              DECAY
+             FILTER (hard sample high frequency response)                                     Decay is the envelope generator's second phase, and sets the
+             Low pass filtering passes low frequency sounds and attenuates                    time the keygroup sound level takes to fall from the maximum
+             high frequency sounds. The frequency at which the filtering                      sound level attained during the attack phase to an arbitrarily-set
+             action occurs is adjustable. One application is to clean up noisy                sustain level (see next heading).
+             samples by removing high frequency hiss; also, filtering inter-                  Point arrow at "Decay." Use CONTROL or enter a two-digit
+             acts with filter velocity sensitivity (see PAGE 10).                             number (00—99) with the 0—9 keys. Higher numbers give
+             Point arrow at "Filter." Use CONTROL to set the initial filter fre-              longer decay times.
+                quency or enter a two-digit number with the 0—9 keys. The                      SUSTAIN
+                lower the number, the lower the cutoff frequency.                              Sustain, the envelope generator's third phase, sets the keygroup
+                TRANSPOSE (hard sample transposition)                                          sound level during the time the key is held down. A looped
+                Point arrow at "Transpose." Use CONTROL or the +, — and                   ,
+                                                                                               sound will remain at this level until the key is released.
+                0—9 keys to vary transposition amount in semitones from 50                     Point arrow at "Sustain." Use CONTROL or enter a two-digit
+                semitones up (+50) or 50 semitones down (—50). +00 gives no                    number (00—99) with the 0—9 keys. Higher numbers give
+                transposition.                                                                 higher sustain levels.
+                Note: Not all samples are capable of being transposed over the                 RELEASE
+                full range.                                                                    Release, the envelope generator's fourth phase, starts upon
+                FINE PITCH (hard sample pitch)                                                 releasing a key and sets how long it takes for the keygroup
+                Point arrow at "fine." Use CONTROL or the +, — and number,
+                                                                                               sound level to fall from the sustain level back to zero. Completion
+                keys to fine-tune the sample pitch up to just over a flatted fifth             of the release phase terminates the envelope generator cycle.
+                (+ 99) or an equivalent amount in the downward direction                       Point arrow at "Release." Use CONTROL or enter a two-digit
+                (—99). +00 gives no pitch change.                                              number (00—99) with the — 9 keys. Higher numbers give
+                                                                                               longer release times.
+Downloaded from www.Manualslib.com manuals search engine
+                                                                                                                                 16
+
+
+
+
+         P AGE 1Q1KEYGRQUP VELOCITY                                             3.    Point arrow at "Attack offset." Use CONTROL, or the +, -,
+        RESPONSE                                                                      and 0—9 keys, to set total amount of pitch warp and direction.
+                                                                                Examples: +00 gives no pitch warp. —25 gives a slight warp
+         -*\£          VLCTY   *Loudness 3          tHtatk 50                   from fiat to normal pitch, —50 gives a strong warp from flat to
+              *KGI       SENS.  *Filt«r 50          *Rt!iin +00                 normal pitch, and + 50 gives a strong warp sharp to normal pitch.
+                                                                                Note: An upward pitch warp is characteristic of wind instruments
+        Three different paramenters can be altered by the note-on               (sax etc.); a downward pitch warp is characteristic of plucked
+        velocity: loudness, filter frequency, and attack time. Release          instruments (bass, drums, etc.).
+        time can be altered by a note's release (note-off) velocity.
+        LOUDNESS                                                                 PAGE 121 LFO (low frequency oscillator for
+        Point arrow at "Loudness." Use CONTROL or enter a two-digit             modulation)
+        number (00—99) with the 0-9 keys.
+        With 00 loudness, the loudness remains constant regardless of            — T2   LFO.          *   Depth      (Rita   lOil   « *D«sync
+        keyboard velocity. Increasing this number (up to 99) increases             •KGI                                64      64           ON
+        the effect that velocity has on loudness, with more velocity
+        giving a louder sound. Thus, the harder you play, the louder the
+                                                                                The S900's LFO adds vibrato effects and has four parameters:
+        keygroup sound.
+                                                                                DEPTH (of modulation)
+         FILTER                                                                 Point arrow at "Depth." Use CONTROL or the 0—9 keys to select
+         Point arrow at "Filter." Use CONTROL or enter a two-digit
+                                                                                a two-digit number (up to 99). Larger numbers make the vibrato
+         number (00—99) with the 0—9 keys.                                      effect more noticeable.
+         With a setting of 00, the filter cutoff frequency remains constant
+         regardless of keyboard velocity. Increasing this number (up to
+                                                                                 RATE (of modulation)
+                                                                                Point arrow at "Rate." Use CONTROL or the 0—9 keys to select
+         99) increases the effect that velocity has on filter cutoff, with
+                                                                                a two-digit number (up to 99). Larger numbers increase the vi-
+         more velocity giving a higher filter cutoff frequency. Thus, the
+                                                                                brato speed.
+         harder you play, the brighter the sound.
+         This effect is characteristic of many acoustic instruments.             DELAY (th© time over which modulaton fades In)
+                                                                                 Point arrow at "Delay." Use CONTROL or the 0—9 keys to select
+         ATTACK
+                                                                                 a two-digit number (up to 99). Larger numbers increase the
+         Point arrow at "Attack." Use CONTROL or enter a two-digit
+         number (00—99) with the 0—9 keys.                                       amount of time over which the modulation fades in.
+         With a setting of 00, the attack remains constant regardless of         DESYNC (LFOs)
+         keyboard velocity, increasing the number (up to 99) increases           Each S900 voice has its own LFO. These may be synchronized
+         the effect that velocity has on attack time, with more velocity         so that all notes vibrato together, or desynchronized so that vi-
+         giving shorter attack times. Thus, playing forcefully creates           brato occurs individually for individual notes. Desync LFO ef-
+         more percussive sounds than playing lightly.                            fects are useful when creating complex sounds, such as string
+                                                                                 sections.
+         RELEASE
+                                                                                 Point arrow at "Desync." Press ON/+ to sync LFOs, OFF/— to
+         Point arrow at "Release." Use CONTROL or use the +,           — and
+                                                                        ,
+
+                                                                                 desync.
+         0—9 keys to enter a two-digit from —50 to +50.
+         With a setting of 00, the release remains constant regardless of
+         the release velocity. With higher numbers (up to +50), releasing            PAGE 131 LFO DEPTH (via aftertouch or
+         the keys quickly gives a longer release time than releasing the         modulation wheel)
+         keys slowly. With lower numbers (down to —50), releasing the
+         keys quickly gives a shorter release time than releasing the keys            — 13 UFO DEPTH        Mf tirtoueh       *Mod.       >hnl
+         slowly.                                                                        *KG I                                        SO
+
+              PAGE 1 1 WARP (automatic pitch bend)                               LFO depth is often not set for a fixed amount (as described in
+                                                                                 Page 1 2) but selectively introduced under control of the player.
+               *il]lWARP tViltcit)    Time 99                                    One method is to use a modulation wheel, where turning the
+                • KGI    *Attuk offset +00                                       wheel adds modulation. Another is to use a keyboard with after-
+                                                                                 touch, where pressing on keys once they are down introduces
+         Warp adds a pitch-shift to a note's attack so that the note starts      modulation.
+         slightly sharp or flat before gliding down or up respectively to the    Note: Any modulation added on this page is in addition to the
+          normal pitch.                                                          modulation depth specified on PAGE 1 2.
+          1     Point arrow at "Velocity." Use CONTROL to set warp interac-          AFTERTOUCH (LFO depth control)
+                tion with velocity as follows:                                       Point arrow at "Aftertouch." Use the CONTROL or the 0-9 keys
+                                                                                     to enter a two-digit number. The higher the number, the greater
+          0: Velocity does not affect warp, which is constant.
+                                                                                     the modulation depth when aftertouch is activated.
+          1      Higher numbers give more warp with greater velocity.
+              -1 28:
+          The amount of warp is hardly noticeable at 1 even with very hard           MOD WHEEL (LFO depth control)
+                                                                                     Point arrow at "Mod. wheel." Use the CONTROL or the 0-9
+          playing; at 1 28, playing hard gives strong warps.
+                                                                                     keys to enter a two-digit number. The higher the number, the
+          2.     Point arrow at "Time." Use CONTROL to set the amount of
+                                                                                     greater the modulation depth when the modulation wheel is
+                 time over which the warp occurs (0 = short, 1 28 = long).
+                                                                                     turned to its maximum travel.
+
+
+
+
+Downloaded from www.Manualslib.com manuals search engine
+                                     17
+
+
+
+
+                PAGE 1 4 [KEY FILTER (filter keyboard                                                             and produce separate audio outputs.
+           trackingF                                                                                              09 (Left) The keygroup output will appear at the Left Out Jack.
+                                                                                                                  10 (Right) The keygroup output will appear at the Right Out
+                *   I   4            -K.i-Ht.r                             Constant pi to h                       jack.
+                    *KG      I                     5/2T                          OFF
+
+           This sets how much the pitch of the note being played affects
+                                                                                                                   PART 7: THE EDIT SAMPLE BUTTON
+            the filter cutoff.
+                                                                                                                   FUNCTIONS
+            Point arrow at "Key-filter." Use CONTROL or the 0-9 keys to                                           EDIT SAMPLE FUNCTIONS
+            enter a two-digit number. With 00 key-filter, the cutoff frequency                                    Edit sample provides extensive ways to alter the sample. Editing
+            remains constant no matter which keygroup keys you play. In-                                          options include level, tuning, nominal pitch, play forwards/back-
+            creasing the key-filter amount (up to 99) lowers the cutoff fre-                                      wards, looping, and more.
+            quency as you play lower notes of the keygroup.
+
+                PAGEtSj KEYGROUP MIDI ASSIGNMENT,                                                                  PAGE 01 SELECT/COPY/RENAME/ DELETE
+            STATUS, AND CHANNEL
+                                                                                                                  SAMPLT
+                                                                                                                    '   &_\                 *Select.Copy                 TONE
+                 "* 5            *M       I    I     channel               Thiskaygroup              on                 SAMPLE              * R e n a m e
+                                                                                                                                                      ,   delete         TONE
+                    *KGI         off           set             (JZT-I 5)   #• Ml D   I   ch.   ALL
+                                                                                                                  This page offers four choices:
+            The S900 is very flexible in its MIDI implementation. A keygroup
+                                                                                                                  SELECT (the sample you want to edit)
+            can be assigned to any one of the 1 6 MIDI channels. This allows
+                                                                                                                  Point arrow at "Select, Copy." Use CONTROL to examine the
+            for MIDI mono mode operation, where each sound is driven by
+                                                                                                                  catalog. When the LCD shows the sample you want to edit, press
+            its own channel. This mode is very popular for use with MIDI
+                                                                                                                  ENT.
+            sequencers and guitar synthesizers. A compete discussion of
+            MIDI is beyond the scope of this manual; Akai suggests the book                                       COPY (one sample to another and keep both in memory)
+            "MIDI For Musicians" (written by Craig Anderton and published                                         Point arrow at "Select, Copy" and select the sample to be copied
+            by AMSCO, a division of Music Sales) for those who want to                                            (see above). Press the + key then ENT. Note: Prior to pressing
+            learn more about MIDI.
+                                                                                                                  + you can select where the + will appear in the sample name
+                                                                                                                    ,
+
+
+
+                                                                                                                  by pressing LETTER then placing the cursor (with the
+            MIDI            STATUS                                                                                ARROW/CURSOR button) where desired.
+            The LCD's right side shows the keygroup's MIDI channel as ini-
+            tially set on MIDI Page 01 ("all" for Omni mode on, or a channel
+                                                                                                                  RENAME (an existing sample)
+                                                                                                                  Point arrow at "Select, Copy" and select sample to be re-named
+            number from to 16 that was specified instead).
+                                      1                   if
+                                                                                                                  (see above, SELECT). Then point arrow at "Rename, delete (-)."
+            MIDI            CHANNEL (offset)                                                                      Name as described in Chapter 2, Part               1
+            Point arrow at "MIDI channel offset." Use CONTROL or enter a
+            two-digit number with the 0-9 keys to offset the channel shown
+                                                                                                                  DELETE (an existing sample)
+            in the LCD by
+                                                                                                                  Point arrow at "Select, Copy" and select sample to be deleted
+                            to 1 5. Example: If the MIDI channel specified on
+            MIDI Page 01                                                                                          (see above, SELECT). Then point arrow at "Rename, delete (— )."
+                                              is 4,        then adding an offset of 1          for a   keygroup
+            means that particular keygroup will respond to MIDI data coming                                       Check that the cursor is on the first character of the name (if not,
+            in over channel 5 instead of channel 4. Adding an offset of 2
+                                                                                                                  then point arrow at "Select, Copy" and start over). Press — then       ,
+
+
+
+
+            would set the keygroup to receive on MIDI channel 6. The LCD                                          ENT. This erases the sample from S900 memory.
+            will update the channel number to reflect any offset you add.
+            Offsetting a channel beyond the number 16 will de-assign that                                          PAGE 02! SELECT PROGRAM MONITOR
+            keygroup from responding to any MIDI information on any chan-
+                nel and the LCD will show "NONE."                                                                    -*j2   2   * S ®   I   e c t   program Monitor
+
+            j
+                 PAGE 16 ASSIGNING KEYGROUP AUDIO
+                OUTPUT                                                                                             Point arrow at "Select program monitor." Turn CONTROL dial to
+                                                                                                                   select either a program or the direct input being sampled. If the
+                    •IS          »OUTPUT All ,)>0I, Monoij3l-)38)                                                  latter, adjust the monitor control for the desired level.
+
+                        *KGI     VOICE iS) Left {09) Right i\ 0)               ,
+
+
+
+
+                                                                                                                   PAGE03JSAMPLE LOUDNESS, NOMINAL
+                The S900 offers several audio outputs. Each keygroup can be                                        PTTCH7AND FINE PITCH
+                assigned to one of these outputs.
+                Point arrow at "Output Voice(s)," Use CONTROL or enter a two-                                           •13     Loudness              *    o m   pitch                pitch
+                digit number with the 0—9 keys as follows:                                                                              +   00            C3 B0                 -00
+                00 (All) The keygroup audio output will appear at the Mix Out
+                jack.                                                                                              This page edits three parameters.
+                01-08 (Mono) The keygroup output will appear at output jack                                        LOUDNESS (sample level adjust)
+                1-8, as designated. This is recommended for MIDI mono mode,                                        This option allows for mixing individual sample levels within a
+                as separate keygroups can respond to separate MIDI channels                                        program to allow for a uniform sound across the keyboard. Point
+Downloaded from www.Manualslib.com manuals search engine
+        arrow at "Loudness." Use CONTROL to vary loudness from +50                IMPORTANT INFORMATION ABOUT PAGES 06, 07, and 08
+        above the nominal +00 point (louder) to —SO below the nominal             Looping a sample, which creates a continuous, sustained tone
+        +00 point (softer). Note: These figures represent arbitrary               from a short sample, is an art and a science. Much of this art in-
+        volume units, not decibels.                                               volves finding the proper loop points and sample length, the
+        NOMINAL PITCH (of sample)                                                 parameters adjusted on PAGES 06, 07, and 08.
+        Point arrow at "Norn pitch." Use CONTROL to set the initial pitch         Fig. 3 graphically shows a flute note's amplitude envelope. Note
+        of the sample in semitones. To transpose up, choose a higher              how there is an attack phase as the player blows wind into the
+        number. To transpose down, choose a lower number.                         flute, where the flute level builds up to full. Then comes a sus-
+
+        Note: If you trigger the sound with the PLAY button, a higher             tained portion where the note stays basically the same until the
+        number will produce a lower pitch. This is because as the                 decay, where the player runs out of breath and the level goes
+        sample gets higher in pitch, the PLAY button (which keeps put-            back to zero.
+        ting out the same note) will transpose the note lower by a corre-         If we wanted to play long flute notes, we could sample the lon-
+
+        spondingly greater amount.                                                gest notes we think we might need. Unfortunately, this uses up
+         FINE PITCH                                                               lots of memory, which we might want to use for other sounds.
+         Point arrow at "Fine Pitch." Use CONTROL or the +, — and       ,
+                                                                                  One solution is to loop (continuously repeat) a portion of the
+         number keys to adjust the pitch plus or minus 1 semitone, in             sound to create a sustained tone. This process involves setting
+         cent (hundredth of a semitone) increments.                               a start point, stop point, and loop length.
+                                                                                  A sample is measured not in seconds, but in samples. Therefore,
+                                                                                  start, stop, and loop length are specified in samples.
+          PAGE 04 REPLAY MODE SELECT
+                           1
+
+
+                                                                                  The Start point sets the beginning of the sample. This has two
+                                                                                   main uses:
+           -2* «REPLAY MODE On«               shot (I).
+                                                                                   • If you started sampling too early, or if sampling was triggered
+                    Looping (2). Alternating (3)
+                                                                                      by noise, you will probably want to remove these unwanted
+                                                                                      sounds from the beginning of the sample.
+         A sample may be played back in one of three ways. Point arrow             * For special effects (e.g. cutting off the attack of a percussive
+         at "Replay mode" and indicate your choice with a number key:
+                                                                                      note).
+         (1   One shot. Triggering the sample will cause it to play for the        The End point sets the end of a sample. This has two main uses:
+                duration of the sample, then stop. This is the default setting.
+                Looping. If you hold down a key, the sample will play all the
+                                                                                   • Set the end of the loop point.
+          (2)
+                                                                                   * Determine a point past which no more sample is needed. The
+                way through. If the key is still held down, the sample will
+                play again from beginning to end and keep repeating in this
+                                                                                      remaining part of the sample can be discarded, thus freeing
+                manner for as long as the key is down. Note: The entire               up more memory.
+                sample need not be looped; a portion can be designated for
+                looping, as set on Pages 06, 07, and 08.                           Fig. 3
+          (3)   Alternating. If you hold down a key, the sample will play all
+                the way through. If the key is still held down, the sample will
+                play again from end to beginning, then from beginning to
+                end, from end to beginning, and so on for as long as the key
+                is down.
+                                                                                                                 Sustained               Release
+          Note: The entire sample need not be looped; a portion can be
+                                                                                               ;
+
+
+
+
+                                                                                          Attack                 phase                   (player runs
+          designated for alternating looping, as set on PAGES 06, 07, and                                                                out of break)
+                                                                                          phase
+          08.
+
+
+           PAGE05JTIME DIRECTION                                                   The Loop Length determines the loop length in sample points
+                                                                                   (so called because a sample consists of a finite number of
+          (NORMAL/REVERSE)                                                         points along a waveform; these points define the waveform's
+                                                                                   amplitude over time). The loop's beginning point is the end of the
+            -|? 5   tTIME DIRECTION                                                sample minus the loop length.
+                    Normal (I). Rotrsi (2)
+                                                                                   Example: In the flute sound shown, the start point is at 500
+                                                                                   points, the end point is at 4673 points, and the loop lenght is
+          Point arrow at "Time Direction." Use a number key to enter
+                                                                                    1 ,223 points.
+          either:
+                                                                                    Holding down a key will repeat the looped portion, as shown in
+          (1    The sample plays from beginning to end.                             Fig. 4.
+          (2)   The sample plays from end to beginning ("backward tape"             However, note that the flute volume does not stay constant over
+                effect).
+                                                                                    the duration of the sample. Therefore, there is a "glitch" (abrupt
+                                                                                    level change) where the beginning of the loop splices on to the
+                                                                                    end of the previous loop.
+                                                                                    Choosing better loop points can produce a loop without such
+                                                                                    glitches. Refer to Fig. 5.
+
+
+
+
+Downloaded from www.Manualslib.com manuals search engine
+                             19
+
+
+
+
+           Fig. 4                                                   Key held down                   PAGE07IEND POINT
+                                                                    loop repeats
+
+                                                                                                        -1J7   END POINT    * C » s 9    * F    i   n »
+
+                                                                                                          {000,   I00-0ZS. 000)          2 5.       000
+                                                                                                    End point sets the sample's end. The lower left LCD line displays
+                                                                                                    your range of choices-from 100 points greater than the start
+               01     j   500                                                                       point (as set on Page 06) to the end of the sample.
+           point  |   ;
+                          points                                                   Note abrupt      1. To vary the end a thousand sample points at a time, point
+                                                                                   level change        arrow at "Coarse." Use CONTROL or the 0—9 keys (enter a
+                                                                                                       three-digit number, such as 007, 4S6, etc.) to specify the
+           Fig. 5                              Looped                                                  coarse end point
+                                               portion                                              2. To vary the end one sample point at a time, point arrow at
+                                                                                                       "Fine." Use CONTROL or the 0-9 keys (enter a three-digit
+                                                                                                       number, such as 009, 138, etc.) to specify the exact end
+                                                                                                         point.
+
+
+                                                                                                        PAGE 08 LOOP LENGTH
+                                             No abrupt                               New loop
+                                             changes                                  length            *|?8   LOOP LENGTH »Co«rs«              * F   i   n *   * A u t o
+
+                                                                                                                  (S-   25,   000)      2,   000                (ENT)
+           A sustained tone, such as a flute, is easier to loop than a percus-
+           sive tone, which does not have a steady level. To loop a percus-                         Loop length sets which portion of the sample will repeat continu-
+           sive sound, try limiting or compressing the sound when sam-                              ously when the key is held down. The lower left LCD line dis-
+           pling to even out volume variations, then use a short sample                             plays your range of choices— from 5 sample points up to the ex-
+           length located fairly late in the note's decay. Since the note now                       isting sample length (taking any start or stop points specified on
+           sustains continuously, and you want it to decay, use the S900's                          Pages 06 and 07 into account).
+           on-board envelope generator (see EDIT PROGRAM, Page 09) to                               1 To vary the loop length in thousand of sample points, point
+           add an artificial decay effect.                                                            arrow at "Coarse." Use CONTROL or the 0—9 keys (enter a
+           Another solution is to use alternate looping (Page 04). This cre-                          three-digit number, such as 002, 608, etc.) to specify the
+           ates the effect shown below, which also helps to minimize glitch-                             coarse loop length.
+           ing.                                                                                     2.   To vary the loop length one sample point at a time, point arrow
+                                                                                                         at "Fine." Use CONTROL or the 0—9 keys (enter a three-digit
+                                   Alternate looping applied to Fig. 4                                   number, such as 009, 1 38, etc.) to specify the exact loop
+                                           Looped        Alternating                                      length.
+                                           portion       loops                                      AUTO (computer-generated loop length)
+                                                                                                    As noted previously, looping can produce glitches unless the
+                                                                                                    beginning and end points are carefully chosen to minimize
+                                                                              Note smooth portion   abrupt level changes. The S900's computer can compare the
+                                                   mim S2!2 mim               loops transitions     loop beginning and end points, then automatically choose a
+                                                   i.ia £:3. £:§.             between loops         length that provides the least amount of glitching.
+                                                                                                    Point arrow at "AUTO" and press ENT. Each time you press
+                                                                                                    ENT, the S900 will select a new loop length with a slightly short-
+                                                                                                    er length than the previous try. Listen to each change and use
+                PAGE 06 START POINT                                                                 the loop length that sounds best. Caution: Write down good loop
+                                                                                                    lengths so that if you try for a better auto-length and it turns out
+                -H6       START POINT          •   Ciiii      » F   i   n a                         to produce more glitching (computers aren't perfect at choosing
+                          (0- 2 4. 900)                  0.   000                                    loop lengths, nor are they musicians!), you can go back to your
+                                                                                                     original setting. The Auto function is very powerful and can help
+            Start point sets the sample's beginning. The lower left LCD line                         you make much better-sounding loops.
+            displays your range of choices— from the start of the sample to
+            1 00 points less than the total sample length.
+
+
+            1    To vary the start a thousand sample points at a time, point
+                 arrow at "Coarse." Use CONTROL or the 0—9 keys (enter a
+                 three-digit number, such as 021, 201, etc.) to specify the
+                  coarse start point.
+            2.    To vary the start one sample point at a time, point arrow at
+                  "Fine." Use CONTROL or the 0—9 keys (enter a three-digit
+                  number, such as 009, 138, etc.) to specify the exact start
+                  point.
+
+
+
+Downloaded from www.Manualslib.com manuals search engine
+                                                                                                                                                 20
+
+
+
+
+         ^PAGE 09! RESAMPLE, DISCARD (memory                                              PAGEIQJ SPLtCE X-FADE (select samples to
+         savlngleatures)                                                              be spliced, name new sample)
+              -19 *R«sampl« at half bandwidth (E NT)                                      -1* SPL CE 1         •   2nd   s a m p    a       name iSAMPLE 2
+                Discard biftri start. after and (ENT)                                         X-FADE               New   s   am p   «       name NEW SAMPLE
+
+         RESAMPLE                                                                     1  Select first sample to be spliced (or mixed) on PAGE 01
+         Resample at half bandwidth cuts the amount of memory used by                 2. Select PAGE 10.
+         the sample in half, but also reduces high frequency response by              3. Point arrow at "2nd sample name." Rotate CONTROL to scan
+         half.                                                                           the available samples for splicing.
+          1    Point arrow at "Resample at half bandwidth." Press ENT.                4. Point arrow at "New sample name." Name (as described in
+         2.    Sample time will be cut in half. You can continue resampling              Chapter 2, Part 1 ) the new sample that will hold the spliced or
+               (although quality will deteriorate with each resample) until                 mixed samples. Press ENT after naming.
+               the computer runs out of patience.
+         Caution: Resampling erases the original sample. It is good prac-
+         tice to make a copy of a sample, and resample the copy. If you do
+                                                                                           PAGE 1        SPLICE CRO!SS-FADE TIME
+         not like the results of resampling, you can always go back to the                        *Spl             crossfade tima,
+                                                                                           -III          c e                                     (points)
+         original sample.
+                                                                                                                   (0- 8. 496)000       i
+
+
+          DISCARD
+          Discard eliminates those portions of the sample before the start            1     The lower left side of the LCD shows the available number of
+          point and after the end point. Since you do not hear these parts
+                                                                                            sample points over which the crossfade will occur. Point
+          of the sample, discarding the sample past these points will save
+                                                                                            arrow at "Splice crossfade time (points)."
+          memory.                                                                     2.    Use CONTROL to dial in the desired crossfade time, or enter
+          Point arrow at "Discard before start, after end." Press ENT.
+                                                                                            a five-digit number with the 0—9 keys.
+          Caution: If you intend to alter the start or end point at some time
+          in the future, or think you might, do not use discard.
+                                                                                           PAGE 1 2 SPLICE ORDER
+              IMPORTANT INFORMATION ABOUT PAGES 10,11,                                     -12 *SPLICE ORDER: 1st then 2 r d                        (   I   )   ,
+
+              and 1
+                                                                                            2nd then 1st (2). Together (3). Mem                                     76K
+              The S900 can also splice two samples (end of one to begin-
+              ning of another) or mix samples together. For example, you
+              could splice the sustain of a piano on to the pluck of a guitar,
+                                                                                       1    To splice the beginning of the second sample to the end of
+                                                                                            the first sample, point arrow at "SPLICE ORDER:" and press
+              or mix bass and guitar samples together to create an octave
+                                                                                             1.
+              divider effect.
+              Splicing involves the same challenge as looping (i.e. finding a
+                                                                                      2.    To splice the beginning of the first sample to the end of the
+              glitchiess splice point with no level variations). The S900 cir-
+                                                                                            second sample, point arrow at "SPLICE ORDER:" and press
+                                                                                             2.
+              cumvents this problem by crossfading between the two sam-
+              ples over a specified number of samples.
+                                                                                      3.To mix the two samples together, point arrow at "SPLICE
+                                                                                        ORDER:" and press 3.
+                                                                                      Note that the LCD displays the remaining amount of memory.
+                                                                                      The S900 may not be able to splice for you if there is less
+               1   st sample                                          2nd sample      memory left than that of the two samples combined.
+
+
+
+
+              Crossfade region of splice - end of first sample transitions smoothly
+              into second sample
+
+
+
+
+Downloaded from www.Manualslib.com manuals search engine
+                            21
+
+
+
+
+            PART 8: THE REC BUTTON (SAMPLING)                                        STEP41 SPECIFY AUDIO BANDWIDTH
+            FUNCTIONS                                                               The sample's frequency response can be set from 3000 Hz to
+                                                                                    1 6000 Hz. Enter a five-digit number with the 0—9 keys; you can
+           RECORDING (SAMPLING) FUNCTIONS                                           also turn the CONTROL but this is more time-consuming.
+           Sampling is the process of recording sounds into the S900                Higher bandwidth signals (i.e. towards 16000 Hz) have better
+           memory. Once in memory, these sounds can be edited or                    high frequency response but also take up more memory than
+           grouped together into programs.                                          lower bandwidth signals. To conserve memory, use the minimum
+           If you are sampling with a microphone, plug into the front panel         bandwidth necessary for acceptable sound quality.
+           MIC INPUT jack. If you are sampling a line level signal, plug into
+           the front panel LINE INPUT jack.
+           Unlike other functions, the REC function has no page numbers
+                                                                                     STEP 5 SPECIFY RECORDING TIME
+           because pages are always accessed in the same order. After               The sample's overall time can be set from 250 ms (1 000 ms = 1
+           completing one page, move to the next page with the PAGE                 second) to the maximum allowed by the amount of memory re-
+           (down arrow) button.                                                     maining. This maximum time will vary depending on how much
+                                                                                    memory has been used and the audio bandwidth selected in
+                                                                                    step 4. Maximum sample length at 16000 Hz bandwidth with a
+               STEP 1 NAME SAMPLE
+                            1
+                                                                                    clear memory is 1 1 878 ms; at 3000 Hz bandwidth with a clear
+           The LCD says "Name of sample to be recorded." Name as de-                memory, 63351 ms (that's over one minute!!).
+           scribed in Chapter 2, Part 1 Press ENT when done. We suggest
+                                            .                                       Enter the five-digit number for recording time. Use the minimum
+           you include the sample's original pitch (e.g. C#, E, etc.) as part       time possible to conserve memory and leave room for other sam-
+           of the name. Example: GUITAR D5.                                         ples.
+
+
+           I
+               STEP 2 SELECT PROGRAM FOR
+                                [
+                                                                                      STEP61 ASSIGN SAMPLE PITCH
+               MOWdRING                                                             The LCD says "Pitch of sound being recorded." Play the key-
+           The LCD says "Name of program for monitoring." Use the control           board note that corresponds to the sample's pitch; we do not
+           to select an existing program (to hear the sample in context with        recommend using the CONTROL, and numeric entry will not
+           the program after recording) or monitor (for monitoring the              work in this case.
+           sample by itself through the output). If the latter, adjust monitor
+               level with the monitor control.                                        STEP 7 SELECT TRIGGER
+                                                                                    Use the 0—9 keys to enter a number as follows:
+                STEP 3 SPECIFY SAMPLE TYPE                                          (1     Sampling begins when you press any keyboard key.
+               You have three choices:                                               (2)   Sampling begins when you press a footswitch plugged into
+               (1)   Normal. When playing a velocity keyboard, the keys as-                 the rear panel footswitch jack.
+                     signed to this sample will play only this sample regardless     (3)    Sampling begins when a particular audio threshold is ex-
+                     of velocity.                                                           ceeded (as set in the next step).
+               (2)   Velocity crossfade - soft. When using velocity crossfade        Ifyou press 1 or 2 then change your mind, exit the REC function
+                     (EDIT PROGRAM Page 04) with a velocity-sensitive key-           by pressing another function button, then try again.
+                     board, the harder you play the keys assigned to this sample,
+                     the softer its level. When using velocity switch (EDIT
+                     PROGRAM Page 04), this sample will play when velocity
+                     data is below the specified velocity switch threshold,
+               (3)   Velocity crossfade - loud. When using velocity crossfade
+                     (EDIT PROGRAM Page 04) with a velocity-sensitive key-
+                     board, the harder you play the keys assigned to this sample,
+                     the louder its level. When using velocity switch (EDIT
+                     PROGRAM Page 04), this sample will play when velocity
+                     data is above the specified velocity switch threshold.
+               By sampling a soft instrument sound as (2) and a loud instru-
+               ment sound as (3), playing harder will produce the timbral
+               changes associated with playing an instrument dynamically.
+               The sound will crossfade smoothly from the soft sample to the
+               loud sample with velocity crossfade, or switch with velocity
+               switch.
+
+
+
+
+Downloaded from www.Manualslib.com manuals search engine
+                                                                                 22
+
+
+
+          STEP 8 SETTING LEVELS
+                      1
+
+
+
+
+         In thisstep, the lower half of the LCD serves as a bar-graph
+         meter to indicate sample signal level. The six dots to the right in-
+         dicate the overload region. The line below the bar-graph is a
+         peak-hold indicator that momentarily freezes the highest level
+         attained.
+          Ifyou pressed (1) in the previous step, the LCD will say "Press
+          any key to start recording." Play the sample and adjust the REC
+          LEVEL knob for the highest possible signal level short of over-
+          load. Press any key on the S900 or keyboard to begin recording.
+          If you pressed (2) in the previous step, the LCD will say "Hit foot-
+
+          switch to start recording." Play the sample and adjust the REC
+          LEVEL knob for the highest possible signal level short of over-
+          load. Hit the footswitch to begin recording.
+          If you pressed (3) in the previous step, the LCD will say "knob
+
+          sets trig level. Any key when ready." Play the sample and adjust
+          the REC LEVEL knob for the highest possible signal level short
+          of overioad. A T indicates the trigger level and may be changed
+          by turning the control. As soon as you press any key on the
+          S900 or keyboard, and the signal to be sampled exceeds the set
+          threshold, sampling will begin.
+
+
+               STJEP9J SAMPLING
+           Once sampling has been initiated, an arrow in the upper LCD
+           line will move from left to right to indicate how much sampling
+           time has elapsed. When the arrow reaches the right side of the
+           LCD, the selected sampling time has elapsed. You will then be
+           returned to step 7,
+           To replay the sample, advance to the next "page" (PAGE down
+           arrow) and press ENT. The sample will play for its entire dura-
+           tion. You may also play the sample by pressing the PLAY
+           parameter button. In this case the sample will play only as long
+           as you hold down PLAY.
+           To re-record the sample, return to the previous page (PAGE up
+           arrow) and repeat steps 7— 9.
+           To re-record the sample and change some of the previously set
+           parameters, press the REC function button and go through the
+           steps again.
+           To keep the sample you just recorded and record a different
+            sample, press the REC function button and start over.
+            To exit the REC function, press another function button (general-
+            ly EDIT SAMPLE if you want to alter the sound you just sampled).
+
+
+
+
+Downloaded from www.Manualslib.com manuals search engine
+                     .       23
+           Disk otiart
+
+
+
+           GRAND PIANO #1                                                                              OPERATION GUIDE DISK
+           GRAND PIANO #1 uses as the original sound da»      sound played                             The OPERATION GUIDE DISK has been prepared to help users
+           with a strong attack, and includes the following voice programs                             understand the various functions of the S900 faster and more
+           for user editing reference.                                                                 precisely.
+            Program Name                                                                               Eight programs are stored on the Operation Guide Disk, each
+            1. PIANO-A: Original sound                                                                 one clearly explaining the features of the S900.
+            2. PIANO-B: Soft piano sound acheived by filtering and applying                            1.   WELCOME
+                                 velocity sensitivity.                                                 This is simply an introduction. The S900's vast memory makes
+            3.    HONKY TONK:              Honky-tonk piano sound acheived by over-                    high quality sound and sampling for long periods of time possi-
+                                           lapping key groups and detuning.                            ble. This    program also serves as a POWER ON LOAD constant
+                                                                                                       pitch demonstration.
+            PIANO-A Sampling Data
+                                                                                                       2.   SAW-PGM
+             Key Group               Soft                           Key Range                          On this program, saw tooth waves have been sampled and
+                   KG                                           n^o. ~ High
+                                 Sample Name                                          MIDI
+                                                     Low    (          )        (   Note No.
+                                                                                               ,
+
+                                                                                               1       looped. This program is used mainly for explanations of syn-
+                     1            PIANO-C1        C0(24)~D1*(39)                                       thesizer functions.
+                     2            PIANO-G1        E1 (40)   -A 1(45)                                   3.   SQU-PGM
+                     3            PIANO-C2        A1*(46)~D2*(51)
+                     4            PIANO-G2        E2(52)~A2(57)
+                                                                                                       On this program, square waves (short waves with PW=50%)
+                     5            PIANO-C3        A2*(58)~D3*(63)                                      have been sampled and looped.
+                     6            PIANO-G3        E3(64)~-A3(69)                                       4.   TRI-PGM
+                     7            PIANO-C4        A3»(70)~D4*(75)                                      On this program, triangular waves have been sampled and
+                     8            PIANO-G4        E4(76)~A4(81)                                        looped.
+                     9            PIANO-C5        A4*(82)-~D5*(87)
+                    10                                                                                 5.   1-2-3 PGM
+                                  PIANO-G5        E5(88)-~C6<96)
+                                                                                                       On this program the numbers "One, Two Three" have been
+                                                                                                       sampled. This program is used mainly for edit sampling scan-
+                                                                                                       ning explanations.
+                                                                                                       6.   ONE TO TEN
+            CHOPPER BASS                                                                               On this program "One" to "Ten" have been sampled separately,
+                                                                                                       these ten voices have been divided into ten key groups and the
+            CHOPPER BASS uses a velocity switch to provide two types of                                key split function has been used. This gives a demonstration of
+            bass sound, soft and loud.                                                                 the S900's abundant output and key assign functions.
+            Program Name                                                                               7. VEL-SWITCH
+            1. CHOP BASS 1: Soft sound only.                                                           On this program, two samples, "Soft" and "Loud" are divided ac-
+            2. CHOP BASS 2: Soft sound and loud sound.
+                                                                                                       cording to the key velocity strength and played "Loud" when
+                                                                                                       there are 64 or more MIDI velocity data bits and "Soft" when
+            CHOP BASS Sampling Data                                                                    there are less than 64 data bits. This gives a demonstration of
+                 Key Group   I        Sample Name                          Key Range                   the velocity switch function.
+                    KG       ;
+
+                                    Soft         Loud                      Soft/ Loud                  8. VEL-CROSS
+                             i
+                                                                Low( noX, )~~High( Nofflo.         >   On this program, "Soft" and "Loud" voices have been sampled
+                         1       BASSE1        BASSE1            A0*(34)~G1(43)                        in pairs and velocity cross feeding has been made possible.
+                         2       BASSC2        BASSG2            G1»(44)~C2(48)                        The program is set so that:
+                         3       BASS 02*      BASS G2           C2*(49)~F2(53!                        When velocity data is large: "Loud" is played.
+                         4       BASSG2*       BASS G2           F2*(54)~G2<55)                        When velocity data is small: "Soft" is played.
+                         5       BASS G2*      BASSA2*           G2*(56)~-A2*(58)                      When velocity data is medium: "Loud" + "Soft" is played.
+                         6       BASSC3*       BASS D3L          B2(59)~C3(60)                         This gives a demonstration of the velocity cross feed function.
+                         7       BASS C3*      BASS 03           C3*(61)~D3(62)
+                         8       BASSC3*       BASSE3            D3*(63)~E3(64)
+                         9       BASSC3*       BASS F3*          F3(65)~C6(96)
+
+
+
+
+Downloaded from www.Manualslib.com manuals search engine
+                                                                             24
+        Specifications
+
+
+
+        System                Digital sampling
+                              Sampling frequency: 7.5 kHz — 40 kHz
+                              (MIN -MAX)
+                              Sampling time: 63.3 sec. — 1 1 .75 sec.
+                              (MAX -MIN)
+                              Voice: 8 Voice
+                              Range: 6 Octave
+        Storage               Built-in FLOPPY DISK DRIVE
+                              Memory capacity: 1 M byte
+                              Memory Medium: 3.5 inch (2DD)
+                                           BOTH SIDE, DOUBLE TRACK,
+                                           DOUBLE DENSITY
+                              Interna! memory: 750K byte
+        Multi sampling        32
+        Edit                  Scanning (ONE SHOT, LOOPING,
+                               ALTERNATING)
+                               A.D.S.R (Velocity-Attack, Velocity-Release)
+                               Velocity cross fade
+                               Velocity switch
+                               Positional cross fade
+                               Attack pitch offset (- Velocity)
+                               LFO (delay, rate, depth)
+                               Filter (Key tracking, Velocity)
+                               Sample merge
+        Communication          RS-232C or EQUIVALENT
+         External jack         MIDI (IN, OUT, THRU)
+                               REC trigger x1
+                               Micinput/P.B trigger x1
+                               Line input/P.B trigger x1
+                               Line output x8
+                               Stereo output x 2 (L, R)
+                               Mix output xl
+                               Voice output xl (13 PIN/DIN)
+         Dimensions            482.6 (W) x 1 32.6 (H) x 41 (D) mm
+                               (EIARackmount/3U)
+         Weight                10.8 kg
+
+
+
+
+Downloaded from www.Manualslib.com manuals search engine
+                            25
+           Edit program sheet
+
+
+
+
+                                 PROGRAM                                           PAGE
+                       01
+                                 NAME                                                      DATE      :
+                                                                                                              !              !________
+                                                                                           BY    :
+
+                                 KEY LOUDNESS
+                       02
+                                 POSITIONAL XFADE                      ON    OFF
+                       03        KEY GROUPS
+                                 VELOCITY XFADE                        ON    OFF     ON    OFF           ON       OFF           ON         OFF
+                       04
+                                 VELOCITY SW
+                                 SOFT SAMPLE NAME
+                       05        LOW KEY *
+                                            *
+                                 HIGH KEY
+                                 LOUDNESS
+                        S        FILTER
+                       06                                  COARSE
+                                 TRANSPOSE
+                                                           FINE
+                   >             LOUD SAMPLE NAME
+              r~
+                       07        LOW *
+                                            *
+              o                  HIGH KEY
+             "*"
+                                 LOUDNESS
+                        L        FILTER
+                        08                                 COARSE
+                                 TRANSPOSE
+                                                           FINE
+                                                  ATTACK
+                                                  DECAY
+                        09       ENV.
+                                                  SUSTAIN
+                                                  RELEASE
+                                                   LOUDNESS
+                                 VLCTY             ATTACK
+                        10
+                                   SENS.           FILTER
+                                                   RELEASE
+                                                   VELOCITY
+                                 PITCH
+                        II                        TIME
+                                 WARP
+                                                   OFFSET
+                                                   DEPTH
+                                                   RATE
+                        12       L.F.O.
+                                                   DELAY
+                                                   DESYNC              ON    OFF      ON   OFF           ON       OFF            ON         OFF
+                                 LFO               AFTER TOUCH
+                        13
+                                 DEPTH             MOD.WHEEL
+                                 KEY-FILTER
+                        14
+                                 CONSTANT PITCH                         ON   OFF      ON   OFF           ON       OFF            ON         OFF
+                                 MIDI                      OFFSET
+                        15
+                                   CHANNEL                 MIDI CH
+                        16       OUT PUT VOICES
+
+                       |IM|
+                             1    !h
+                                        If ff   m1
+Downloaded from www.Manualslib.com manuals search engine
+                                                           1!        'Iff
+                                                                                                                   *    *^Ate>ct either soft or loud.
+        MIDI implementation chart                                                                                         26
+                [   MIDI DIGITAL SAMPLER ]
+                         Model S900      MIDI Implementation Chart                                        Version :1.0
+
+                                                             Transmitted                   Recognized             Remarks
+                            Function
+
+              Basic                     Default          x                        1                            without Disk
+              Channel                   Changed          x                         1-16                        Memorized (Disk)
+
+                                        Default                                   Mode 1                       without Disk
+              Mode                                                                Mode           1-4           Memorized (Disk)
+                                        Messages                                  Omni on/off ,P/M
+                                        Altered          **************            x
+
+              Note                                                                         -    127
+              Number                    True voice       **************            24 - 96
+
+              Velocity Note ON                           x                         O           9n V= 1- 127
+                       Note OFF                          X                         O           9n V=0     or
+                                                                                               8n V= 1 - 127   used Velocity
+                                                                                                               release
+
+              After                     Key's            x                         x
+              Touch                     Ch's             X                         O
+               Pitch Bender                                                        O                           0-12:Half tone
+                                                                                                               step (7 bit)
+
+               Control                               1                             O                           Modulation wheel
+               Change
+                                                    64                             O                           Damper pedal
+
+
+
+
+               Prog                                                                    1         32            by Preset num-
+               Change               :   True    §          **************              1         32            ber value
+
+               System Exclusive                          O                         o                           ID : 4 7
+
+               System               :   Song Pos           x                           X
+                                    :   Song Sel             x                         X
+               Common               :   Tune                 X                         X
+
+               System    :Clock                              x                         x
+               Real Time Commands         :                  x                         x
+
+               Aux   Local ON/OFF
+                            :                                X                         X
+                    :A11 Notes OFF                           X                        O (123)
+               Mes- :Active Sense                            X                         X
+               sages Reset  j                                X                         X
+
+                Notes
+
+
+
+
+              Mode      1       :       OMNI ON, POLY             Mode   2   :   OMNI ON, MONO                              o   Yes
+              Mode      3       :       OMNI OFF, POLY            Mode   4   :   OMNI OFF, MONO                             x   no
+
+Downloaded from www.Manualslib.com manuals search engine
+                                                           AKAI
+
+
+
+
+                                                                   ©610513B1
+                                                                    610605-1
+                                                                  Printed in Japan
+Downloaded from www.Manualslib.com manuals search engine
+
