@@ -13,7 +13,7 @@ Deferred to v1.1 by ADR (no tasks here beyond reserved slots): INTELL engine
 
 | Wave | id | Title | Component | Size | Depends on | Status |
 |---|---|---|---|---|---|---|
-| 1 | 001 | CMake project skeleton, presets, Catch2, core stub, license-header check | infra | M | — | todo |
+| 1 | 001 | CMake project skeleton, presets, Catch2, core stub, license-header check | infra | M | — | done |
 | 2 | 002 | core Buffer / AudioView | dsp | S | 001 | todo |
 | 2 | 009 | ModelId, ModelSpec, ParamSnapshot (incl. qual/width) + clamping | dsp | M | 001 | todo |
 | 2 | 027 | JUCE 8 plugin skeleton (all v1 formats, COPY_PLUGIN_AFTER_BUILD) | infra | M | 001 | todo |

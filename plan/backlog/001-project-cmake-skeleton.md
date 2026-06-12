@@ -1,7 +1,7 @@
 ---
 id: 001
 title: CMake project skeleton, presets, Catch2, mwstime-core stub
-status: in-review
+status: done
 depends-on: []
 component: infra
 estimated-size: M
