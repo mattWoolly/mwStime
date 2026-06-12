@@ -3,30 +3,28 @@
 
 #include "PluginEditor.h"
 
-#include <mws/core/Version.h>
-
 namespace mws::plugin {
 
 PluginEditor::PluginEditor(PluginProcessor& processor)
     : juce::AudioProcessorEditor(processor)
 {
-    setSize(1000, 380);
+    lookAndFeel.setSpec(faceplate.spec());
+    setLookAndFeel(&lookAndFeel);
+
+    addAndMakeVisible(faceplate);
+
+    // 1000×380 base canvas (ui-design §1, §5); resizability is task 047.
+    setSize(ui::geometry::kBaseWidth, ui::geometry::kBaseHeight);
 }
 
-void PluginEditor::paint(juce::Graphics& g)
+PluginEditor::~PluginEditor()
 {
-    // Placeholder paint — the skeuomorphic S-series faceplate is later work.
-    // Referencing mwstime_core here proves the core/plugin layering links.
-    g.fillAll(juce::Colour(0xff3a3d40)); // S-series grey chassis placeholder
-
-    g.setColour(juce::Colour(0xff7bd96a)); // green LCD placeholder
-    g.setFont(juce::FontOptions(24.0f));
-    const auto engineVersion = mws::core::engineVersion();
-    g.drawText("mwStime — engine v"
-                   + juce::String(engineVersion.data(), engineVersion.size()),
-               getLocalBounds(), juce::Justification::centred);
+    setLookAndFeel(nullptr);
 }
 
-void PluginEditor::resized() {}
+void PluginEditor::resized()
+{
+    faceplate.setBounds(getLocalBounds());
+}
 
 } // namespace mws::plugin

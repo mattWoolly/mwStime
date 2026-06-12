@@ -18,12 +18,16 @@ juce_add_console_app(mwstime_plugin_tests
 target_sources(mwstime_plugin_tests
     PRIVATE
         test_parameters.cpp
+        test_faceplatespec.cpp
         "${CMAKE_SOURCE_DIR}/plugin/src/state/Parameters.cpp"
+        "${CMAKE_SOURCE_DIR}/plugin/ui/Faceplate.cpp"
+        "${CMAKE_SOURCE_DIR}/plugin/ui/lookandfeel/SeriesLookAndFeel.cpp"
 )
 
 target_include_directories(mwstime_plugin_tests
     PRIVATE
         "${CMAKE_SOURCE_DIR}/plugin/src"
+        "${CMAKE_SOURCE_DIR}/plugin"
 )
 
 target_compile_definitions(mwstime_plugin_tests
@@ -37,6 +41,7 @@ target_link_libraries(mwstime_plugin_tests
     PRIVATE
         mwstime_core
         juce::juce_audio_processors
+        juce::juce_gui_basics
         Catch2::Catch2WithMain
         juce::juce_recommended_config_flags
         juce::juce_recommended_warning_flags
