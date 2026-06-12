@@ -6,6 +6,7 @@ include(Catch)
 add_executable(mwstime_tests
     unit/SmokeTests.cpp
     unit/test_buffer.cpp
+    unit/test_butterworth.cpp
     unit/test_modelspec.cpp
     unit/test_wavio.cpp
     unit/test_resampler.cpp
