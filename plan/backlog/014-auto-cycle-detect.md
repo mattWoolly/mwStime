@@ -1,7 +1,7 @@
 ---
 id: 014
 title: Auto cycle detection (autC / AUTO-D)
-status: in-review
+status: done
 depends-on: [008]
 component: dsp
 estimated-size: S

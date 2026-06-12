@@ -29,7 +29,7 @@ Deferred to v1.1 by ADR (no tasks here beyond reserved slots): INTELL engine
 | 3 | 028 | APVTS parameter layout (+ autoCycle trigger, tests/plugin harness) | plugin | M | 009, 027 | done |
 | 3 | 039 | SeriesLookAndFeel + FaceplateSpec + Faceplate | ui | M | 027 | done |
 | 4 | 011 | CyclicEngine REVISED | dsp | S | 010 | done |
-| 4 | 014 | Auto cycle detection (autC/AUTO-D) | dsp | S | 008 | todo |
+| 4 | 014 | Auto cycle detection (autC/AUTO-D) | dsp | S | 008 | done |
 | 4 | 016 | Variable-clock chain (S900/S950, early-risk) | dsp | M | 004, 005, 007 | todo |
 | 4 | 017 | S1000/S1100 fixed-rate chain | dsp | M | 004, 006, 007 | todo |
 | 4 | 029 | State tree, stateVersion, migrations (incl. zone + clampMemory fields) | plugin | S | 028 | todo |
