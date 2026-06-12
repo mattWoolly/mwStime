@@ -1,7 +1,7 @@
 ---
 id: 028
 title: APVTS parameter layout — superset ranges, hardware-unit strings, non-automatables
-status: in-review
+status: done
 depends-on: [009, 027]
 component: plugin
 estimated-size: M

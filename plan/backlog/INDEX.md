@@ -26,7 +26,7 @@ Deferred to v1.1 by ADR (no tasks here beyond reserved slots): INTELL engine
 | 3 | 010 | CyclicEngine CLASSIC + SpliceCal | dsp | M | 002 | done |
 | 3 | 013 | RepitchEngine (S900 varispeed) | dsp | S | 002 | done |
 | 3 | 021 | TempoMap (sync math, window boundaries incl. time-sig numerator) | engine | S | 009 | done |
-| 3 | 028 | APVTS parameter layout (+ autoCycle trigger, tests/plugin harness) | plugin | M | 009, 027 | todo |
+| 3 | 028 | APVTS parameter layout (+ autoCycle trigger, tests/plugin harness) | plugin | M | 009, 027 | done |
 | 3 | 039 | SeriesLookAndFeel + FaceplateSpec + Faceplate | ui | M | 027 | todo |
 | 4 | 011 | CyclicEngine REVISED | dsp | S | 010 | todo |
 | 4 | 014 | Auto cycle detection (autC/AUTO-D) | dsp | S | 008 | todo |
