@@ -1,7 +1,7 @@
 ---
 id: 027
 title: JUCE 8 plugin skeleton — FetchContent, all v1 formats, passthrough processor
-status: todo
+status: in-review
 depends-on: [001]
 component: infra
 estimated-size: M

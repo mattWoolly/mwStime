@@ -25,8 +25,12 @@ add_subdirectory(libs/mwstime-core)   # mwstime_core (static, JUCE-free)
 # CLI golden-render driver — task 025:
 # add_subdirectory(tools/mwstime-render)
 
-# JUCE plugin — task 027. Guarded: the directory may not exist yet.
+# JUCE plugin — task 027. Guarded: the directory may not exist yet. JUCE and
+# clap-juce-extensions (both pinned tags) are fetched only when the plugin is
+# actually being built.
 if(MWS_BUILD_PLUGIN AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/plugin/CMakeLists.txt")
+    include(cmake/FetchJUCE.cmake)
+    include(cmake/FetchClapExtensions.cmake)
     add_subdirectory(plugin)
 endif()
 
