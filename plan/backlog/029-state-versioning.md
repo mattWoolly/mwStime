@@ -1,7 +1,7 @@
 ---
 id: 029
 title: Non-parameter state tree, stateVersion, migrations scaffolding
-status: in-review
+status: done
 depends-on: [028]
 component: plugin
 estimated-size: S
