@@ -7,6 +7,7 @@ add_executable(mwstime_tests
     unit/SmokeTests.cpp
     unit/test_buffer.cpp
     unit/test_modelspec.cpp
+    unit/test_wavio.cpp
 )
 
 target_link_libraries(mwstime_tests

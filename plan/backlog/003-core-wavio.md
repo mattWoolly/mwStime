@@ -1,7 +1,7 @@
 ---
 id: 003
 title: mws::core::WavIo — JUCE-free WAV reader/writer
-status: todo
+status: in-review
 depends-on: [002]
 component: dsp
 estimated-size: M
