@@ -37,6 +37,10 @@ PluginEditor::PluginEditor(PluginProcessor& processor)
     setLookAndFeel(&lookAndFeel);
 
     addAndMakeVisible(faceplate);
+    // Input cluster (task 042). Binding the keys/wheel to pages and LCD
+    // fields is tasks 045/045b — only placement + rendering here.
+    addAndMakeVisible(softKeyBar);
+    addAndMakeVisible(jogWheel);
 
     lcd.setSpec(faceplate.spec());
     showMockupTimeStretchPage(lcd);
@@ -61,6 +65,19 @@ void PluginEditor::resized()
     lcd.setBounds(ui::scaledRegion(ui::geometry::kLcd, getWidth(), getHeight())
                       .reduced(7.0f * scale)
                       .toNearestInt());
+
+    // §1 mockup positions via the shared geometry constants. The SoftKeyBar
+    // owns BOTH the soft-key row and the cursor/ENT cluster (ui-design §2),
+    // so its bounds are the union of the two frames; the transparent band in
+    // between does not intercept clicks (the waveform region 043 sits there).
+    namespace geo = ui::geometry;
+    const auto keysTop = ui::scaledRegion(geo::kSoftKeys, getWidth(), getHeight());
+    const auto cursorBottom =
+        ui::scaledRegion(geo::kCursorKeys, getWidth(), getHeight());
+    softKeyBar.setBounds(keysTop.getUnion(cursorBottom).toNearestInt());
+
+    jogWheel.setBounds(
+        ui::scaledRegion(geo::kJogWheel, getWidth(), getHeight()).toNearestInt());
 }
 
 } // namespace mws::plugin
