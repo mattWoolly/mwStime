@@ -9,6 +9,7 @@ add_executable(mwstime_tests
     unit/test_butterworth.cpp
     unit/test_modelspec.cpp
     unit/test_movinglpf.cpp
+    unit/test_quantizer.cpp
     unit/test_wavio.cpp
     unit/test_resampler.cpp
 )
