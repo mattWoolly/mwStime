@@ -26,6 +26,12 @@ target_link_libraries(mwstime_tests
 
 catch_discover_tests(mwstime_tests)
 
+# JUCE-linked plugin tests (tests/plugin/ — harness created by task 028 and
+# reused by every later tests/plugin/ task). Only built when the plugin is.
+if(MWS_BUILD_PLUGIN AND TARGET juce::juce_audio_processors)
+    add_subdirectory(plugin)
+endif()
+
 # License-header convention check (docs/CONTRIBUTING.md). Every committed C++
 # source under libs/ plugin/ tools/ tests/ must carry the SPDX header; every
 # later task inherits this gate automatically.

@@ -10,7 +10,9 @@ namespace mws::plugin {
 PluginProcessor::PluginProcessor()
     : juce::AudioProcessor(BusesProperties()
                                .withInput("Input", juce::AudioChannelSet::stereo(), true)
-                               .withOutput("Output", juce::AudioChannelSet::stereo(), true))
+                               .withOutput("Output", juce::AudioChannelSet::stereo(), true)),
+      apvts(*this, nullptr, "PARAMETERS", createParameterLayout()),
+      params(apvts)
 {
 }
 
@@ -65,7 +67,7 @@ void PluginProcessor::changeProgramName(int index, const juce::String& newName)
 
 void PluginProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    // No parameters/state yet (task 028+).
+    // State serialization/versioning is task 029.
     juce::ignoreUnused(destData);
 }
 

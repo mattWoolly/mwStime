@@ -5,11 +5,14 @@
 
 #include <juce_audio_utils/juce_audio_utils.h>
 
+#include "state/Parameters.h"
+
 namespace mws::plugin {
 
-/// Passthrough plugin shell (task 027). Stereo in/out, MIDI input accepted
-/// but ignored for now; no allocation in processBlock. Parameters, state and
-/// the engine arrive in tasks 028+.
+/// Passthrough plugin shell (task 027) + the full APVTS parameter layout
+/// (task 028, dsp-engine.md §2). Stereo in/out, MIDI input accepted but
+/// ignored for now; no allocation in processBlock. Non-parameter state /
+/// versioning is task 029; the engine arrives in tasks 030+.
 class PluginProcessor final : public juce::AudioProcessor
 {
 public:
@@ -39,7 +42,19 @@ public:
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
+    /// The unified §2 parameter set (fixed superset ranges, task 028).
+    juce::AudioProcessorValueTreeState& parameterState() noexcept { return apvts; }
+
+    /// Audio-thread snapshot bridge (plain atomic loads, architecture.md §4).
+    [[nodiscard]] mws::engine::ParamSnapshot makeParamSnapshot() const noexcept
+    {
+        return params.makeSnapshot();
+    }
+
 private:
+    juce::AudioProcessorValueTreeState apvts;
+    Parameters params;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginProcessor)
 };
 
