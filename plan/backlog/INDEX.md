@@ -19,7 +19,7 @@ Deferred to v1.1 by ADR (no tasks here beyond reserved slots): INTELL engine
 | 2 | 027 | JUCE 8 plugin skeleton (all v1 formats, COPY_PLUGIN_AFTER_BUILD) | infra | M | 001 | done |
 | 3 | 003 | WavIo (JUCE-free WAV read/write) | dsp | M | 002 | done |
 | 3 | 004 | Resampler (windowed-sinc + linear) | dsp | M | 002 | done |
-| 3 | 005 | Butterworth 6th-order tracking LP | dsp | M | 002 | todo |
+| 3 | 005 | Butterworth 6th-order tracking LP | dsp | M | 002 | done |
 | 3 | 006 | MovingLpf 3rd-order voice filter | dsp | S | 002 | todo |
 | 3 | 007 | Quantizer (12/16-bit + TPDF) | dsp | S | 002 | todo |
 | 3 | 008 | AutoCorr period estimator | dsp | S | 002 | todo |
