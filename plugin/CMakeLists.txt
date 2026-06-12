@@ -46,6 +46,7 @@ target_sources(mwStime
         ui/LcdPageModel.cpp
         ui/JogWheel.cpp
         ui/SoftKeyBar.cpp
+        ui/WaveformView.cpp
         ui/lookandfeel/SeriesLookAndFeel.cpp
 )
 

@@ -1,7 +1,7 @@
 ---
 id: 043
 title: WaveformView — peaks cache, drop zone, stretch-zone handles, A/B overlay, FX scope
-status: todo
+status: in-review
 depends-on: [039]
 component: ui
 estimated-size: M
