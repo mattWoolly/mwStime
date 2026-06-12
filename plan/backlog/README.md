@@ -40,6 +40,14 @@ research citations (docs/research/...), relevant ADRs (plan/decisions/...).
 Exact commands the agent must run and see pass before opening a PR.
 ```
 
+## Test-selection rules (silent-pass prevention)
+
+- Every `ctest ... -R <word>` / `-L <label>` verification command MUST carry
+  `--no-tests=error` (ctest exits 0 when a selector matches nothing — a silent pass).
+- Catch2 test case names must begin with the task's tag word (e.g. `buffer: zero-init`
+  for tag `[buffer]`) so `ctest -R` name selectors actually match what
+  `catch_discover_tests` registers (it registers test-case *names*, not tags).
+
 ## Workflow per task
 
 1. Claim: set `status: in-progress` (committed on your branch, not main).
