@@ -67,13 +67,31 @@ void PluginProcessor::changeProgramName(int index, const juce::String& newName)
 
 void PluginProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    // State serialization/versioning is task 029.
-    juce::ignoreUnused(destData);
+    // APVTS + versioned non-parameter tree (task 029). The trailing nullptr
+    // is the task-032 extension point: once the file loader caches a
+    // pre-encoded FLAC blob, it is passed here verbatim — never encoded on
+    // this (message) thread (architecture.md §6).
+    state::writePluginState(apvts.copyState(), stateTree, destData,
+                            /*embeddedAudioBlob=*/nullptr);
 }
 
 void PluginProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
-    juce::ignoreUnused(data, sizeInBytes);
+    const auto restored = state::readPluginState(data, sizeInBytes);
+    if (!restored.valid)
+        return;
+
+    if (restored.apvtsState.isValid() && restored.apvtsState.hasType(apvts.state.getType()))
+        apvts.replaceState(restored.apvtsState);
+
+    stateTree = restored.stateTree; // already migrated + defaults-filled
+
+    // Re-render-on-load (architecture.md §6 determinism rule): render
+    // metadata present means a render existed — request a deterministic
+    // re-render instead of restoring stored output. The worker that services
+    // this arrives in task 030; the callback defaults to a no-op.
+    if (state::hasRenderMetadata(stateTree) && onReRenderRequested)
+        onReRenderRequested();
 }
 
 } // namespace mws::plugin

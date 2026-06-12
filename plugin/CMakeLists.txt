@@ -39,6 +39,8 @@ target_sources(mwStime
         src/PluginProcessor.cpp
         src/PluginEditor.cpp
         src/state/Parameters.cpp
+        src/state/StateTree.cpp
+        src/state/Migrations.cpp
         ui/Faceplate.cpp
         ui/lookandfeel/SeriesLookAndFeel.cpp
 )

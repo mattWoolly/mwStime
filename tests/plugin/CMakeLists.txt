@@ -19,7 +19,10 @@ target_sources(mwstime_plugin_tests
     PRIVATE
         test_parameters.cpp
         test_faceplatespec.cpp
+        test_state.cpp
         "${CMAKE_SOURCE_DIR}/plugin/src/state/Parameters.cpp"
+        "${CMAKE_SOURCE_DIR}/plugin/src/state/StateTree.cpp"
+        "${CMAKE_SOURCE_DIR}/plugin/src/state/Migrations.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/ui/Faceplate.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/ui/lookandfeel/SeriesLookAndFeel.cpp"
 )
