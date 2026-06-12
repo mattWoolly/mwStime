@@ -1,7 +1,7 @@
 ---
 id: 005
 title: mws::core::Butterworth — 6th-order LP (3 cascaded biquads) with retunable cutoff
-status: todo
+status: in-review
 depends-on: [002]
 component: dsp
 estimated-size: M
