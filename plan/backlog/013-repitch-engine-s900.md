@@ -1,7 +1,7 @@
 ---
 id: 013
 title: RepitchEngine — S900 varispeed (no timestretch), ZOH read
-status: in-review
+status: done
 depends-on: [002]
 component: dsp
 estimated-size: S

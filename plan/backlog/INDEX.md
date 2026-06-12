@@ -24,7 +24,7 @@ Deferred to v1.1 by ADR (no tasks here beyond reserved slots): INTELL engine
 | 3 | 007 | Quantizer (12/16-bit + TPDF) | dsp | S | 002 | done |
 | 3 | 008 | AutoCorr period estimator | dsp | S | 002 | done |
 | 3 | 010 | CyclicEngine CLASSIC + SpliceCal | dsp | M | 002 | done |
-| 3 | 013 | RepitchEngine (S900 varispeed) | dsp | S | 002 | todo |
+| 3 | 013 | RepitchEngine (S900 varispeed) | dsp | S | 002 | done |
 | 3 | 021 | TempoMap (sync math, window boundaries incl. time-sig numerator) | engine | S | 009 | todo |
 | 3 | 028 | APVTS parameter layout (+ autoCycle trigger, tests/plugin harness) | plugin | M | 009, 027 | todo |
 | 3 | 039 | SeriesLookAndFeel + FaceplateSpec + Faceplate | ui | M | 027 | todo |
