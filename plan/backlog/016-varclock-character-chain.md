@@ -1,7 +1,7 @@
 ---
 id: 016
 title: Variable-clock chain (S900/S950) — oversampled ZOH + tracking Butterworth (early-risk prototype)
-status: todo
+status: in-review
 depends-on: [004, 005, 007]
 component: dsp
 estimated-size: M
