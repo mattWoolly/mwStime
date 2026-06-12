@@ -41,10 +41,12 @@ target_sources(mwStime
         src/state/Parameters.cpp
         src/state/StateTree.cpp
         src/state/Migrations.cpp
+        ui/ControlPanel.cpp
         ui/Faceplate.cpp
         ui/LcdDisplay.cpp
         ui/LcdPageModel.cpp
         ui/JogWheel.cpp
+        ui/ModelSelector.cpp
         ui/SoftKeyBar.cpp
         ui/WaveformView.cpp
         ui/lookandfeel/SeriesLookAndFeel.cpp
