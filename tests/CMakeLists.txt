@@ -5,6 +5,7 @@ include(Catch)
 
 add_executable(mwstime_tests
     unit/SmokeTests.cpp
+    unit/test_buffer.cpp
 )
 
 target_link_libraries(mwstime_tests
