@@ -42,6 +42,7 @@ target_sources(mwStime
         src/state/StateTree.cpp
         src/state/Migrations.cpp
         ui/Faceplate.cpp
+        ui/LcdDisplay.cpp
         ui/lookandfeel/SeriesLookAndFeel.cpp
 )
 

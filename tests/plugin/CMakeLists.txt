@@ -20,10 +20,12 @@ target_sources(mwstime_plugin_tests
         test_parameters.cpp
         test_faceplatespec.cpp
         test_state.cpp
+        test_lcdfont.cpp
         "${CMAKE_SOURCE_DIR}/plugin/src/state/Parameters.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/state/StateTree.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/state/Migrations.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/ui/Faceplate.cpp"
+        "${CMAKE_SOURCE_DIR}/plugin/ui/LcdDisplay.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/ui/lookandfeel/SeriesLookAndFeel.cpp"
 )
 
