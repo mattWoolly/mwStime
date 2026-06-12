@@ -1,7 +1,7 @@
 ---
 id: 010
 title: CyclicEngine CLASSIC — integer-hop two-grain scheduler + SpliceCal
-status: in-review
+status: done
 depends-on: [002]
 component: dsp
 estimated-size: M
