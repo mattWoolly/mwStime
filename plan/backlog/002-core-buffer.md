@@ -1,7 +1,7 @@
 ---
 id: 002
 title: mws::core Buffer — owning AudioBuffer + non-owning AudioView
-status: in-review
+status: done
 depends-on: [001]
 component: dsp
 estimated-size: S
