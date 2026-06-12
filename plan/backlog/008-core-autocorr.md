@@ -1,7 +1,7 @@
 ---
 id: 008
 title: mws::core::AutoCorr — normalized autocorrelation period estimator
-status: todo
+status: in-review
 depends-on: [002]
 component: dsp
 estimated-size: S

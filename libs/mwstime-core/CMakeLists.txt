@@ -6,6 +6,7 @@
 # (docs/design/architecture.md §2, plan/decisions/001-dsp-engine-architecture.md).
 
 add_library(mwstime_core STATIC
+    src/core/AutoCorr.cpp
     src/core/Butterworth.cpp
     src/core/MovingLpf.cpp
     src/core/Quantizer.cpp
