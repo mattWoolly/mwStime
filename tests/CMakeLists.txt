@@ -15,6 +15,7 @@ add_executable(mwstime_tests
     unit/test_wavio.cpp
     unit/test_resampler.cpp
     unit/test_repitch.cpp
+    unit/test_tempomap.cpp
 )
 
 target_link_libraries(mwstime_tests

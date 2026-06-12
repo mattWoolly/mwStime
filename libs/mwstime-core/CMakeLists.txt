@@ -14,6 +14,7 @@ add_library(mwstime_core STATIC
     src/core/Version.cpp
     src/core/WavIo.cpp
     src/model/ModelSpec.cpp
+    src/engine/TempoMap.cpp
     src/stretch/CyclicEngine.cpp
     src/stretch/RepitchEngine.cpp
 )
