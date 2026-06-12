@@ -7,6 +7,7 @@
 
 add_library(mwstime_core STATIC
     src/core/Version.cpp
+    src/model/ModelSpec.cpp
 )
 
 target_include_directories(mwstime_core
