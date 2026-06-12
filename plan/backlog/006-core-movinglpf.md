@@ -1,7 +1,7 @@
 ---
 id: 006
 title: mws::core::MovingLpf — S1000/S1100 3rd-order Butterworth voice filter
-status: todo
+status: in-review
 depends-on: [002]
 component: dsp
 estimated-size: S
