@@ -1,7 +1,7 @@
 ---
 id: 004
 title: mws::core::Resampler — windowed-sinc and linear-interp resamplers
-status: in-review
+status: done
 depends-on: [002]
 component: dsp
 estimated-size: M
