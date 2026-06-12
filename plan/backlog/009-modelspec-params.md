@@ -1,7 +1,7 @@
 ---
 id: 009
 title: mws::model — ModelId, ModelSpec tables, ParamSnapshot + engine-side clamping
-status: in-review
+status: done
 depends-on: [001]
 component: dsp
 estimated-size: M
