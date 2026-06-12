@@ -1,7 +1,7 @@
 ---
 id: 017
 title: S1000/S1100 fixed-rate 16-bit character chain (+ S1100 dither delta)
-status: in-review
+status: done
 depends-on: [004, 006, 007]
 component: dsp
 estimated-size: M
