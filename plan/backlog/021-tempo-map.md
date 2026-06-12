@@ -1,7 +1,7 @@
 ---
 id: 021
 title: TempoMap — tempo-synced time factor + window boundary math
-status: in-review
+status: done
 depends-on: [009]
 component: engine
 estimated-size: S
