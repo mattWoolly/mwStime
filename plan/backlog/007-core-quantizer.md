@@ -1,7 +1,7 @@
 ---
 id: 007
 title: mws::core::Quantizer — 12/16-bit mid-tread quantization + TPDF dither
-status: todo
+status: in-review
 depends-on: [002]
 component: dsp
 estimated-size: S

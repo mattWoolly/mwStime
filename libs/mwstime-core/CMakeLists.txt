@@ -8,6 +8,7 @@
 add_library(mwstime_core STATIC
     src/core/Butterworth.cpp
     src/core/MovingLpf.cpp
+    src/core/Quantizer.cpp
     src/core/Resampler.cpp
     src/core/Version.cpp
     src/core/WavIo.cpp
