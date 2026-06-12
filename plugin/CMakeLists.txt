@@ -38,7 +38,10 @@ target_sources(mwStime
     PRIVATE
         src/PluginProcessor.cpp
         src/PluginEditor.cpp
+        src/state/Parameters.cpp
 )
+
+target_include_directories(mwStime PRIVATE src)
 
 target_compile_definitions(mwStime
     PUBLIC
