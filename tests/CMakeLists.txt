@@ -14,6 +14,7 @@ add_executable(mwstime_tests
     unit/test_quantizer.cpp
     unit/test_wavio.cpp
     unit/test_resampler.cpp
+    unit/test_repitch.cpp
 )
 
 target_link_libraries(mwstime_tests
