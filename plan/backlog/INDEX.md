@@ -64,7 +64,7 @@ Deferred to v1.1 by ADR (no tasks here beyond reserved slots): INTELL engine
 | 11 | 045b | Editor interactions — soft keys, drop/drag, FX greying, a11y | ui | M | 036, 037, 045 | done |
 | 12 | 046 | Model switching (cross-fade, clamp memory, PDC) | ui | M | 029, 045b | done |
 | 12 | 047 | Resizable editor + persisted scale + full hamburger menu | ui | S | 029, 045b | done |
-| 12 | 048 | pluginval/auval/clap-validator scripts (macOS) | qa | S | 045b | todo |
+| 12 | 048 | pluginval/auval/clap-validator scripts (macOS) | qa | S | 045b | done |
 | 13 | 047b | UI golden screenshot regression harness (macOS-arm64 gate) | qa | M | 046, 047 | todo |
 | 13 | 048b | Host smoke test matrix (host-matrix.md + macOS host runs) | qa | M | 046, 048 | todo |
 | 13 | 049 | Linux build bring-up + LV2 validators + Carla/Ardour smoke | infra | M | 026, 048 | todo |

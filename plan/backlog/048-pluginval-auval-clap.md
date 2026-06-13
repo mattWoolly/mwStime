@@ -1,7 +1,7 @@
 ---
 id: 048
 title: Format validation scripts (macOS) — pluginval VST3/AU, auval, clap-validator
-status: in-review
+status: done
 depends-on: [045b]
 component: qa
 estimated-size: S
