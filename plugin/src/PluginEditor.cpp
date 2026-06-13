@@ -183,8 +183,36 @@ PluginEditor::PluginEditor(PluginProcessor& owner)
     }
     refreshLcd();
 
-    // 1000×380 base canvas (ui-design §1, §5); resizability is task 047.
-    setSize(ui::geometry::kBaseWidth, ui::geometry::kBaseHeight);
+    // Fixed-aspect resizability (task 047, ui-design §5): the editor scales from
+    // the 1000×380 base with the 1000/380 aspect locked between 0.6× and 2.0×
+    // (600×228 / 2000×760). Vector rendering is resolution-independent (ADR-005),
+    // so each cached layer (Faceplate/LCD/waveform) re-renders at the new scale
+    // automatically on the resized() bounds change.
+    ui::resize::configureConstrainer(constrainer);
+    setConstrainer(&constrainer);
+    // Host may resize the window (true); we manage our OWN corner grip (false)
+    // so it is driven by the scale-persisting constrainer and positioned by
+    // resized() at every scale — avoids two overlapping grips that
+    // setResizable(true, true) would create alongside the explicit corner
+    // (scope: setResizable + explicit ResizableCornerComponent).
+    setResizable(/*allowHostToResize*/ true, /*useBottomRightCornerResizer*/ false);
+    resizerCorner = std::make_unique<juce::ResizableCornerComponent>(this, &constrainer);
+    addAndMakeVisible(*resizerCorner);
+
+    // Restore the persisted scale (architecture.md §6 UI state). The size is
+    // derived from the saved scale (clamped to the legal range); resized() lays
+    // every child out proportionally. Suppress persistence during this initial
+    // setSize so the restore can never round-trip-overwrite the saved value.
+    {
+        const auto& tree = processor.nonParameterState();
+        const auto ui = tree.getChildWithName(state::id::uiState);
+        const double savedScale = ui::resize::clampScale(static_cast<double>(
+            ui.getProperty(state::id::scaleFactor, state::defaults::scaleFactor)));
+
+        const juce::ScopedValueSetter<bool> guard(suppressScalePersist_, true);
+        setSize(ui::resize::widthForScale(savedScale),
+                ui::resize::heightForScale(savedScale));
+    }
 
     // 30 Hz UI poll (architecture.md §4 render-done / progress / LCD updates).
     startTimerHz(kPollHz);
@@ -678,6 +706,126 @@ void PluginEditor::resized()
     controlPanel.setBounds(
         ui::scaledRegion(geo::kModelSelector, getWidth(), getHeight())
             .getSmallestIntegerContainer());
+
+    // Bottom-right corner grip (task 047). Sized proportionally so it stays a
+    // sensible target at every scale.
+    if (resizerCorner != nullptr)
+    {
+        const int grip = juce::jmax(12, getWidth() / 50);
+        resizerCorner->setBounds(getWidth() - grip, getHeight() - grip, grip, grip);
+        resizerCorner->toFront(false);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Scale persistence + the §1 region-1 hamburger menu (task 047, ui-design §5)
+// ---------------------------------------------------------------------------
+
+void PluginEditor::persistScale()
+{
+    if (suppressScalePersist_)
+        return;
+
+    const double scale = ui::resize::clampScale(
+        ui::resize::scaleForWidth(getWidth()));
+
+    auto& tree = processor.nonParameterState();  // message thread only
+    auto ui = tree.getChildWithName(state::id::uiState);
+    if (! ui.isValid())
+    {
+        ui = juce::ValueTree(state::id::uiState);
+        tree.appendChild(ui, nullptr);
+    }
+    ui.setProperty(state::id::scaleFactor, scale, nullptr);
+}
+
+void PluginEditor::applyScale(double scale)
+{
+    const double clamped = ui::resize::clampScale(scale);
+    setSize(ui::resize::widthForScale(clamped), ui::resize::heightForScale(clamped));
+    persistScale();  // setSize's resized() does not persist; do it explicitly
+}
+
+void PluginEditor::mouseDown(const juce::MouseEvent& event)
+{
+    // Clicking the §1 region-1 hamburger glyph opens the menu (about / manual /
+    // scale). The glyph is drawn by the Faceplate at the header's right edge;
+    // mirror that hit region here (geometry is single-authority — kHeader).
+    namespace geo = ui::geometry;
+    const auto header = ui::scaledRegion(geo::kHeader, getWidth(), getHeight());
+    const float scale = (float) getWidth() / (float) geo::kBaseWidth;
+
+    // The Faceplate insets the header by 4×scale then takes a (height*1.1) box
+    // off the right for the menu; reconstruct that rectangle.
+    const auto inset = header.reduced(4.0f * scale, 2.0f * scale);
+    const float menuW = inset.getHeight() * 1.1f;
+    const juce::Rectangle<float> menu(inset.getRight() - menuW, inset.getY(),
+                                      menuW, inset.getHeight());
+
+    if (menu.contains(event.position))
+        showHamburgerMenu();
+}
+
+void PluginEditor::showHamburgerMenu()
+{
+    juce::PopupMenu menu;
+
+    // "about" — version, AGPLv3 notice, credits (ui-design §1 region 1). Shown
+    // as a modal info box so the entries below stay a flat action list.
+    menu.addItem(1, "About mwStime…");
+
+    // "manual" — opens the project manual / URL.
+    menu.addItem(2, "Manual…");
+
+    // "scale" submenu — 75/100/150/200% (ui-design §1 region 1). A tick marks
+    // the entry nearest the current scale.
+    const double current = ui::resize::scaleForWidth(getWidth());
+    juce::PopupMenu scaleMenu;
+    struct ScaleEntry { int id; const char* label; double scale; };
+    static constexpr ScaleEntry kScales[] = {
+        { 100, "75%", 0.75 }, { 101, "100%", 1.0 },
+        { 102, "150%", 1.5 }, { 103, "200%", 2.0 },
+    };
+    for (const auto& s : kScales)
+        scaleMenu.addItem(s.id, s.label, /*enabled*/ true,
+                          /*ticked*/ std::abs(current - s.scale) < 0.05);
+    menu.addSubMenu("Scale", scaleMenu);
+
+    menu.showMenuAsync(
+        juce::PopupMenu::Options().withTargetComponent(this),
+        [this](int result) {
+            switch (result)
+            {
+                case 0: break;  // dismissed
+                case 1:         // About
+                {
+                    const juce::String about =
+                        juce::String("mwStime ") + JucePlugin_VersionString + "\n\n"
+                        + "Akai S-series timestretch emulation.\n"
+                        + "Copyright (C) 2026 mattWoolly.\n\n"
+                        + "Free software under the GNU Affero General Public "
+                          "License v3 (AGPLv3) or later. This program comes with "
+                          "ABSOLUTELY NO WARRANTY. Source: "
+                          "https://github.com/mattWoolly/mwStime\n\n"
+                        + "Credits: built on JUCE 8; clean-room vector UI "
+                          "evoking the S900/S950/S1000/S1100 (no Akai assets).";
+                    juce::NativeMessageBox::showMessageBoxAsync(
+                        juce::MessageBoxIconType::InfoIcon, "About mwStime", about,
+                        this);
+                    break;
+                }
+                case 2:  // Manual
+                    juce::URL("https://github.com/mattWoolly/mwStime/blob/main/"
+                              "docs/design/ui-design.md")
+                        .launchInDefaultBrowser();
+                    break;
+                case 100: applyScale(0.75); break;
+                case 101: applyScale(1.0); break;
+                case 102: applyScale(1.5); break;
+                case 103: applyScale(2.0); break;
+                default: break;
+            }
+        });
 }
 
 } // namespace mws::plugin
