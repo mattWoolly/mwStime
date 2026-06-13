@@ -1,7 +1,7 @@
 ---
 id: 026
 title: Golden-render harness — inputs, cases.json, comparer, bless target, blessed goldens
-status: in-review
+status: done
 depends-on: [025]
 component: qa
 estimated-size: M
