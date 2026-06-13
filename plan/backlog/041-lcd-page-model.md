@@ -1,7 +1,7 @@
 ---
 id: 041
 title: LcdPageModel — headless page content, hardware units, clamp feedback, visibility
-status: todo
+status: in-review
 depends-on: [010, 028]
 component: ui
 estimated-size: M

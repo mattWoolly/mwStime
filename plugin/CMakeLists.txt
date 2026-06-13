@@ -43,6 +43,7 @@ target_sources(mwStime
         src/state/Migrations.cpp
         ui/Faceplate.cpp
         ui/LcdDisplay.cpp
+        ui/LcdPageModel.cpp
         ui/lookandfeel/SeriesLookAndFeel.cpp
 )
 
