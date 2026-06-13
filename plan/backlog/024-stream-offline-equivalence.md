@@ -1,7 +1,7 @@
 ---
 id: 024
 title: Stream/offline equivalence test — one core, two front-ends, falsifiable
-status: todo
+status: in-review
 depends-on: [020, 022]
 component: qa
 estimated-size: S
