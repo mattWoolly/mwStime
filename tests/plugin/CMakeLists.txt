@@ -122,3 +122,53 @@ set_tests_properties(
     "qa-adversarial: Wave 1 DSP adversaries (labelled set)"
     PROPERTIES LABELS qa-adversarial
 )
+
+# ---------------------------------------------------------------------------
+# Format validators (task 048; testing-strategy.md §5, architecture.md §3/§7,
+# plan/decisions/002). macOS-only here: pluginval (VST3+AU, strictness 10),
+# auval (-v aumf MwS1 MwSt), and clap-validator (CLAP). LV2 is task 049.
+#
+# Each script self-skips with exit 77 when its tool can't be fetched (offline)
+# or when no built artifact is present, so SKIP_RETURN_CODE 77 makes
+# `ctest --preset default` GREEN offline. The scripts download PINNED releases
+# into build/ (never committed). LABEL `validators` lets the task's command
+#   ctest --preset default -L validators --no-tests=error
+# select exactly these; the `validators:`-prefixed names also satisfy a
+# `ctest -R validators` name selector (backlog/README silent-pass rule).
+#
+# MWS_BUILD_DIR is passed so the scripts locate the artefacts regardless of the
+# ctest working directory. These run only on APPLE (the AU/auval paths are
+# macOS-only); on other platforms they are simply not registered (task 049/051
+# own Linux/CI). DISABLED is left OFF (acceptance criterion) — the self-skip is
+# the gate, not a CTest DISABLED flag.
+if(APPLE)
+    set(MWS_VALIDATOR_SCRIPT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+
+    add_test(
+        NAME "validators: pluginval VST3+AU (strictness 10)"
+        COMMAND "${MWS_VALIDATOR_SCRIPT_DIR}/run_pluginval.sh"
+    )
+    add_test(
+        NAME "validators: auval -v aumf MwS1 MwSt"
+        COMMAND "${MWS_VALIDATOR_SCRIPT_DIR}/run_auval.sh"
+    )
+    add_test(
+        NAME "validators: clap-validator CLAP"
+        COMMAND "${MWS_VALIDATOR_SCRIPT_DIR}/run_clap_validator.sh"
+    )
+
+    set_tests_properties(
+        "validators: pluginval VST3+AU (strictness 10)"
+        "validators: auval -v aumf MwS1 MwSt"
+        "validators: clap-validator CLAP"
+        PROPERTIES
+            LABELS validators
+            SKIP_RETURN_CODE 77
+            # pluginval --repeat 3 --randomise at strictness 10 + the auval
+            # render matrix can take a while; give them generous headroom.
+            TIMEOUT 1200
+            # Pass the active build dir so the scripts find the artefacts no
+            # matter what directory ctest invokes them from.
+            ENVIRONMENT "MWS_BUILD_DIR=${CMAKE_BINARY_DIR}"
+    )
+endif()
