@@ -42,6 +42,13 @@ add_subdirectory(tools/golden_compare)
 # its `calibrate` ctest recovers planted SpliceCal values from synthetic ones.
 add_subdirectory(tools/calibrate)
 
+# Akaizer secondary cross-check — task 026c. LOCAL-ONLY, NEVER CI, NOT a golden
+# gate (closed payware refuted 0-3; hardware captures are the oracle —
+# testing-strategy.md §7/§8). Builds the JUCE-free `akaizer-crosscheck` driver
+# and its synthetic-data self-test `akzcheck` (the only Akaizer-related ctest,
+# needs no Akaizer binary). Registered here, not in tests/CMakeLists.txt.
+add_subdirectory(tools/akaizer_crosscheck)
+
 # JUCE plugin — task 027. Guarded: the directory may not exist yet. JUCE and
 # clap-juce-extensions (both pinned tags) are fetched only when the plugin is
 # actually being built.
