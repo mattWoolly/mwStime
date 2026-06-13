@@ -46,6 +46,7 @@ target_sources(mwStime
         src/state/StateTree.cpp
         src/state/StateBlobCache.cpp
         src/state/Migrations.cpp
+        src/state/FactoryPresets.cpp
         ui/ControlPanel.cpp
         ui/Faceplate.cpp
         ui/LcdDisplay.cpp
