@@ -1,7 +1,7 @@
 ---
 id: 036
 title: Drag-out export — render to WAV, drag to host/desktop
-status: todo
+status: in-review
 depends-on: [003, 034]
 component: plugin
 estimated-size: S
