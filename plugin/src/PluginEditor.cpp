@@ -62,6 +62,13 @@ PluginEditor::PluginEditor(PluginProcessor& owner)
     // only ever sees live keys.
     softKeyBar.onSoftKey = [this](int index) { handleSoftKey(index); };
 
+    // F8 ABORT is a hold gesture, NOT a tap (ui-design §1 region 3 / §6.3 step
+    // 2: "hold F8 to abort", hold >= 600 ms (PI)). The editor owns this wiring
+    // explicitly so an accidental F8 tap can never kill a running GO render —
+    // requestAbort() fires from the SoftKeyBar's onSoftKey ONLY after the hold
+    // completes (the bar's own 30 Hz timer drives updateHoldProgress while held).
+    softKeyBar.setKeyRequiresHold(ui::softkey::kAbort, ui::SoftKeyBar::kAbortHoldMs);
+
     // Jog wheel edits the focused field with the hardware step (fine on Shift).
     jogWheel.onDelta = [this](int steps, bool fine) {
         fieldEditor.applyJog(steps, fine);
@@ -316,6 +323,14 @@ void PluginEditor::refreshLcd()
     // §6.2.3): FX greys GO/PLAY/A-B, the S950 reads AUTO-D, the S900 greys the
     // stretch-only autC/ZONE.
     refreshSoftKeys(snapshot);
+
+    // Accessibility: the LCD's screen-reader name is the focused field's label
+    // (ui-design §7: "screen-reader names = LCD field labels"). The field map
+    // drives it, so it tracks the cursor across pages/models every poll.
+    if (const ui::LcdField* focused = fieldEditor.focusedField())
+        lcd.setTitle("LCD: " + juce::String(ui::fieldLabel(*focused)));
+    else
+        lcd.setTitle("LCD");
 
     ui::renderPage(page, lcd, fieldEditor.focusedIndex());
 }

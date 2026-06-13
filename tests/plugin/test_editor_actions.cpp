@@ -166,48 +166,58 @@ TEST_CASE("editor: F8 ABORT raises the engine abort flag only after the 600 ms "
           "[editor]")
 {
     juce::ScopedJuceInitialiser_GUI juceInit;
+
+    // GUARD against the silent-pass that an earlier revision had: do NOT
+    // re-configure the hold here. The bar is constructed exactly as the
+    // PluginEditor constructs its softKeyBar member (a default SoftKeyBar) and
+    // the editor calls setKeyRequiresHold(kAbort, kAbortHoldMs) at construction.
+    // We assert the bar SHIPS F8 as a >= 600 ms hold key, so if either the
+    // SoftKeyBar default OR the editor's wiring regressed to a tap, this fails.
     SoftKeyBar bar;
+    REQUIRE(bar.keyHoldMs(sk::kAbort) == SoftKeyBar::kAbortHoldMs);
 
     juce::int64 now = 0;
     bar.setTimeSource([&] { return now; });
-    bar.setKeyRequiresHold(sk::kAbort, SoftKeyBar::kAbortHoldMs);
 
-    // The exact PluginEditor wiring shape: F8 fires requestAbort() through the
-    // single onSoftKey dispatcher; only the abort branch is exercised here.
+    // The exact PluginEditor dispatch path: F8 fires requestAbort() through the
+    // single onSoftKey dispatcher, and we observe the ENGINE's real abort flag
+    // (EngineHost::abortRequested) rather than a local counter — the production
+    // side effect handleSoftKey(kAbort) produces.
     mws::plugin::EngineHost host;
-    int aborts = 0;
     bar.onSoftKey = [&](int index) {
         if (index == sk::kAbort)
-        {
             host.requestAbort();
-            ++aborts;
-        }
     };
 
     bar.pressKey(sk::kAbort);
-    CHECK(aborts == 0);  // hold keys never fire on press
+    CHECK_FALSE(host.abortRequested());  // hold keys never fire on press
 
     now = 599;
     bar.updateHoldProgress();
-    CHECK(aborts == 0);  // 599 ms: not yet
+    CHECK_FALSE(host.abortRequested());  // 599 ms: not yet
 
     now = 600;
     bar.updateHoldProgress();
-    CHECK(aborts == 1);  // 600 ms: fires exactly once
+    CHECK(host.abortRequested());  // 600 ms: the abort flag is finally raised
 
-    now = 5000;
-    bar.updateHoldProgress();
-    CHECK(aborts == 1);  // continuing to hold must not re-fire
+    // A press RELEASED before the threshold does NOT abort. Use a fresh host so
+    // the flag starts clear (the first host stays latched).
+    mws::plugin::EngineHost host2;
+    bar.onSoftKey = [&](int index) {
+        if (index == sk::kAbort)
+            host2.requestAbort();
+    };
+    bar.releaseKey(sk::kAbort);  // end the first (completed) hold
 
-    // A press released before the threshold does NOT abort.
-    bar.releaseKey(sk::kAbort);
-    bar.pressKey(sk::kAbort);
-    now = 5300;
+    now = 1000;
+    bar.pressKey(sk::kAbort);  // new press arms the hold at t=1000
+    now = 1400;                // held only 400 ms (< 600) ...
     bar.updateHoldProgress();
-    bar.releaseKey(sk::kAbort);
-    now = 6000;
+    CHECK_FALSE(host2.abortRequested());
+    bar.releaseKey(sk::kAbort);  // ... then released: the hold is cancelled
+    now = 5000;                  // even long after, a cancelled hold cannot fire
     bar.updateHoldProgress();
-    CHECK(aborts == 1);
+    CHECK_FALSE(host2.abortRequested());
 }
 
 // ---------------------------------------------------------------------------
@@ -418,4 +428,47 @@ TEST_CASE("editor: switching to FX mode swaps the LCD to the TIME-STRETCH "
     auto fx = snap(ModelId::S1000, PluginMode::Fx);
     const auto fxPage = LcdPageModel::build(fx, ModelSpec::get(ModelId::S1000), {}, {});
     CHECK(fxPage.textJoined().find(LcdPageModel::kFxPageTitle) != std::string::npos);
+}
+
+// ---------------------------------------------------------------------------
+// Accessibility: screen-reader names = LCD field labels (ui-design §7)
+// ---------------------------------------------------------------------------
+
+TEST_CASE("editor: every LCD field maps to a human-readable screen-reader label "
+          "(ui-design §7), and refreshLcd would surface the focused field's name",
+          "[editor]")
+{
+    using mws::ui::fieldLabel;
+    using mws::ui::LcdField;
+    using mws::ui::LcdFieldKind;
+    using mws::ui::LcdPageModel;
+
+    // The non-parameter field kinds carry their own descriptive labels.
+    CHECK(fieldLabel({ LcdFieldKind::ZoneStart }) == "STRETCH ZONE START");
+    CHECK(fieldLabel({ LcdFieldKind::ZoneEnd }) == "STRETCH ZONE END");
+    CHECK(fieldLabel({ LcdFieldKind::NewName }) == "NEW SAMPLE NAME");
+
+    // A bound parameter field resolves to its parameter's name.
+    LcdField cyc;
+    cyc.kind = LcdFieldKind::Param;
+    cyc.param = mws::engine::ParamId::CycleLen;
+    CHECK(fieldLabel(cyc) == "CYCLE LENGTH");
+
+    // EVERY editable field on EVERY built page must produce a non-empty,
+    // specific label — refreshLcd sets exactly this string as the LCD's
+    // accessible name for the focused field, so a missing mapping would leave a
+    // screen reader announcing nothing (the §7 requirement the PR claimed).
+    for (auto model : { ModelId::S900, ModelId::S950, ModelId::S1000, ModelId::S1100 })
+        for (auto mode : { PluginMode::Sample, PluginMode::Fx })
+        {
+            const auto page = LcdPageModel::build(snap(model, mode),
+                                                  ModelSpec::get(model), {}, {});
+            for (const auto& f : page.fields)
+                if (f.editable)
+                {
+                    const auto label = fieldLabel(f);
+                    CHECK_FALSE(label.empty());
+                    CHECK(label != "LCD FIELD");  // never the generic fallback
+                }
+        }
 }
