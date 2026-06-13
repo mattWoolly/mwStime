@@ -1,7 +1,7 @@
 ---
 id: 040
 title: LCD pixel font + LcdDisplay component (character-cell grid, glow, both layouts)
-status: in-review
+status: done
 depends-on: [039]
 component: ui
 estimated-size: M
