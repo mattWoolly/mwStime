@@ -1,7 +1,7 @@
 ---
 id: 037
 title: Host tempo sync — SYNC parameter wiring, source BPM, filename guess
-status: in-review
+status: done
 depends-on: [021, 029, 033]
 component: plugin
 estimated-size: S
