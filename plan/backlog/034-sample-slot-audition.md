@@ -1,7 +1,7 @@
 ---
 id: 034
 title: SAMPLE mode — sample slot, GO render flow, SamplePlayer, zone preview
-status: todo
+status: in-review
 depends-on: [022, 028, 029, 030, 031]
 component: plugin
 estimated-size: M

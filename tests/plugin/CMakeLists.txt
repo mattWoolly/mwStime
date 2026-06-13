@@ -29,6 +29,8 @@ target_sources(mwstime_plugin_tests
         test_enginehost.cpp
         test_enginehost_fx.cpp
         test_fileloader.cpp
+        test_sample_mode.cpp
+        test_alloc_counter.cpp
         "${CMAKE_SOURCE_DIR}/plugin/src/EngineHost.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/FileLoader.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/state/Parameters.cpp"
@@ -50,6 +52,9 @@ target_include_directories(mwstime_plugin_tests
     PRIVATE
         "${CMAKE_SOURCE_DIR}/plugin/src"
         "${CMAKE_SOURCE_DIR}/plugin"
+        # TestAllocationCounter.h (shared global new-counter, task 005) so the
+        # SAMPLE-mode audio-path no-allocation tests (task 034) can assert it.
+        "${CMAKE_SOURCE_DIR}/tests/unit"
 )
 
 target_compile_definitions(mwstime_plugin_tests

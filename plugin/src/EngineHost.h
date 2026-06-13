@@ -48,6 +48,11 @@ class ScopeFifo; // FX input-scope feed; declared in plugin/ui/WaveformView.h (c
 
 namespace mws::plugin {
 
+class SamplePlayer; // SAMPLE-mode playback voice (SamplePlayer.h includes this
+                    // header for RenderedSample, so it is forward-declared here
+                    // and held by unique_ptr to break the cycle).
+enum class AuditionSource : std::uint8_t; // A (original) / B (render)
+
 /// An immutable, published render result. Once published it is never mutated;
 /// the audio thread holds a shared_ptr<const RenderedSample> for the duration
 /// of a block (architecture.md §4 ownership/publication protocol).
@@ -111,11 +116,28 @@ public:
     /// it is itself handed off race-free (architecture.md §4).
     void setSource(std::shared_ptr<const mws::core::AudioBuffer> source);
 
+    /// A render zone — the slice of the source the GO render covers, as
+    /// normalized [0, 1] fractions of the source length (the state tree's
+    /// zoneStart/zoneEnd fields, task 029). The worker converts them to source
+    /// frames against the published source length. The full-source request is
+    /// the default {0, 1} (start >= end renders nothing — an empty result).
+    struct Zone {
+        double start = 0.0;
+        double end = 1.0;
+    };
+
     /// Enqueue a render request (message thread). Returns the assigned request
     /// id (monotone), or 0 if the request FIFO is momentarily full. The worker
     /// wakes and services it; progress and the final outcome arrive on the UI
-    /// FIFO; on success a RenderedSample is published.
+    /// FIFO; on success a RenderedSample is published. Renders the FULL source.
     std::uint64_t requestRender(mws::engine::ParamSnapshot params);
+
+    /// GO render of a ZONE slice (ui-design.md §6.3 step 2): builds the request
+    /// from `params` + the normalized `zone` and enqueues it. The worker slices
+    /// the published source to the zone (off the audio thread) before running
+    /// the OfflineRenderer, so the published render covers exactly the selection.
+    /// Returns the request id (0 if the FIFO is momentarily full).
+    std::uint64_t requestRender(mws::engine::ParamSnapshot params, Zone zone);
 
     /// Raise/lower the abort flag (message thread). Hold-F8 semantics arrive in
     /// the UI tasks; here it is the plain atomic the worker polls at stage
@@ -217,13 +239,85 @@ public:
     /// Test accessor: the FX engine wrapper (model rate / clamp flag / dirty).
     [[nodiscard]] FxEngine& fxEngine() noexcept { return fx_; }
 
+    // --- SAMPLE path (task 034) -----------------------------------------------
+    //
+    // SAMPLE mode is the authentic GO -> render -> audition pipeline (ADR-006
+    // SAMPLE-mode bullet; ui-design.md §6.3). PLAY/A-B drive the SamplePlayer
+    // (audio thread plays the published RenderedSample (B) or the loaded source
+    // (A)); the ZONE soft key loops the selected zone through a preview
+    // RealtimeStretcher (CYCLIC models only). The worker render path
+    // (requestRender) and its publication are shared with task 030 above.
+
+    /// One-block crossfade length applied when switching process paths FX<->
+    /// SAMPLE, in fraction of a block — a NAMED TUNABLE flagged for the PI audit
+    /// (task 034b): the design specifies a one-block crossfade only for MODEL
+    /// switches (ui-design.md §6.5); applying it to MODE switches is our
+    /// invention. The fade covers exactly one block (the processor cross-fades
+    /// the old path's last output against the new path's first output).
+    static constexpr int kModeSwitchFadeBlocks = 1;
+
+    /// prepareToPlay (message thread): prepare the SAMPLE-mode playback voice
+    /// and the ZONE-preview stretcher for `hostRate`/`maxBlockFrames`/channels.
+    /// Allocates here (off the audio thread). Idempotent across prepareToPlay.
+    void prepareSample(double hostRate, int maxBlockFrames, std::size_t numChannels,
+                       const mws::engine::ParamSnapshot& params);
+
+    /// Set the ORIGINAL (A) audio for A/B audition (message thread). This is the
+    /// loaded source the worker also renders from; published race-free. A
+    /// convenience alias of setSource so the SAMPLE half reads one source.
+    void setAuditionSource(std::shared_ptr<const mws::core::AudioBuffer> source)
+    {
+        setSource(std::move(source));
+    }
+
+    /// PLAY / stop the SAMPLE audition (message thread, F5 PLAY soft key).
+    void startSamplePlayback() noexcept;
+    void stopSamplePlayback() noexcept;
+    [[nodiscard]] bool isSamplePlaying() const noexcept;
+
+    /// A/B audition source toggle (message thread, F6 A/B soft key): play the
+    /// published render (B) or the loaded original (A).
+    void setAuditionSource(AuditionSource mode) noexcept;
+    [[nodiscard]] AuditionSource auditionSource() const noexcept;
+
+    /// Toggle the ZONE live preview on/off (message thread, F3 ZONE soft key).
+    /// When ON, processSampleBlock loops the selected zone through the preview
+    /// RealtimeStretcher at the current params (CYCLIC models only —
+    /// ui-design.md §6.3; the S900 varispeed model has no stretch so ZONE
+    /// preview is inert there and the call is a no-op for it). `zone` is the
+    /// normalized selection from the state tree; `params` supplies the current
+    /// stretch settings.
+    void setZonePreview(bool enabled, Zone zone,
+                        const mws::engine::ParamSnapshot& params) noexcept;
+    [[nodiscard]] bool zonePreviewActive() const noexcept
+    {
+        return zonePreviewOn_.load(std::memory_order_acquire);
+    }
+
+    /// Audio thread: render one SAMPLE-mode block in place over the JUCE channel
+    /// pointers. When ZONE preview is ON it loops the selected zone through the
+    /// preview stretcher; otherwise it plays the audition buffer (PLAY/A-B)
+    /// through the SamplePlayer. Either way outTrim is applied (dsp-engine.md §2
+    /// OUTPUT "Applies to: all"). Acquires the published render (B) and source
+    /// (A) once per block (RCU) and retires them. Allocation/lock/IO-free.
+    void processSampleBlock(float* const* channelData, int numChannels,
+                            int numFrames,
+                            const mws::engine::ParamSnapshot& params) noexcept;
+
+    /// Test accessor: the SAMPLE-mode playback voice.
+    [[nodiscard]] SamplePlayer& samplePlayer() noexcept { return *player_; }
+
 private:
     /// A queued render request (POD). The source buffer is NOT carried here —
     /// the worker reads the latest published source — so the request stays
-    /// trivially copyable through the lock-free FIFO.
+    /// trivially copyable through the lock-free FIFO. `zoneStart`/`zoneEnd` are
+    /// the normalized [0, 1] slice the worker crops the source to before
+    /// rendering (full source = {0, 1}).
     struct RenderRequest {
         std::uint64_t id = 0;
         mws::engine::ParamSnapshot params{};
+        double zoneStart = 0.0;
+        double zoneEnd = 1.0;
     };
 
     /// The worker thread body: block on the wake event, drain the request FIFO
@@ -291,6 +385,44 @@ private:
     // The FX input-scope FIFO (heap so EngineHost.h need not include the GUI
     // header that declares ScopeFifo). Allocated in prepareFx (message thread).
     std::unique_ptr<mws::ui::waveform::ScopeFifo> scopeFifo_{};
+
+    // --- SAMPLE path (task 034) -----------------------------------------------
+    //
+    // The playback voice (heap so SamplePlayer.h, which includes this header for
+    // RenderedSample, need only be included from EngineHost.cpp — breaks the
+    // include cycle). Allocated in the constructor; never reallocated.
+    std::unique_ptr<SamplePlayer> player_;
+
+    // The ZONE live-preview stretcher (CYCLIC models only — ui-design.md §6.3).
+    // Prepared on the message thread (its 30 s history ring allocates there);
+    // driven on the audio thread by looping the selected zone of the source
+    // through it. A scratch input buffer (sized in prepareSample) lets the loop
+    // feed the stretcher without allocating per block.
+    mws::engine::RealtimeStretcher zonePreview_{};
+    mws::core::AudioBuffer zoneScratch_{}; // numChannels x maxBlock (message-thread sized)
+    std::atomic<bool> zonePreviewOn_{ false };
+    std::atomic<bool> zonePreviewSupported_{ false }; // false for the S900 (no stretch)
+    // Normalized zone selection (message thread writes, audio thread reads —
+    // plain doubles published atomically). The audio thread converts to source
+    // frames against the per-block source length.
+    std::atomic<double> zoneStartNorm_{ 0.0 };
+    std::atomic<double> zoneEndNorm_{ 1.0 };
+    // The looped read head into the zone, in SOURCE frames (audio-thread owned).
+    double zoneReadPos_ = 0.0;
+
+    // Per-block channel-view scratch for the SAMPLE path (sized in prepareSample
+    // so processSampleBlock allocates nothing).
+    std::vector<mws::core::ConstAudioView> sampleIns_{};
+    std::vector<mws::core::AudioView> sampleOuts_{};
+
+    double sampleHostRate_ = 0.0;
+    int sampleMaxBlock_ = 0;
+    std::size_t sampleChannels_ = 0;
+
+    /// Apply an OUTPUT trim (dB) to a JUCE channel-pointer block in place; 0 dB
+    /// short-circuits so verbatim playback stays bit-exact (dsp-engine.md §2).
+    static void applyOutTrimChannels(float* const* channelData, std::size_t numChannels,
+                                     std::size_t numFrames, double trimDb) noexcept;
 };
 
 } // namespace mws::plugin
