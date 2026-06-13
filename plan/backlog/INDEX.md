@@ -58,7 +58,7 @@ Deferred to v1.1 by ADR (no tasks here beyond reserved slots): INTELL engine
 | 9 | 037 | Host tempo sync + source BPM | plugin | S | 021, 029, 033 | done |
 | 10 | 034b | Adversarial DSP QA — NaN/denormals, rate matrix, soak, (PI) audit | qa | M | 033, 034 | done |
 | 10 | 035 | MIDI repitch voice (mono, filter retune) | plugin | M | 016, 034 | done |
-| 10 | 036 | Drag-out export | plugin | S | 003, 034 | todo |
+| 10 | 036 | Drag-out export | plugin | S | 003, 034 | done |
 | 10 | 038 | Factory presets (dsp-engine §9) | plugin | S | 026, 029, 034 | todo |
 | 10 | 045 | PluginEditor assembly — layout, LCD binding, field editing | ui | M | 033, 034, 040, 041, 042, 043, 044 | todo |
 | 11 | 045b | Editor interactions — soft keys, drop/drag, FX greying, a11y | ui | M | 036, 037, 045 | todo |
