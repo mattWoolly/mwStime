@@ -1,7 +1,7 @@
 ---
 id: 035
 title: MIDI repitch voice — monophonic real-time variable-rate playback with per-note filter retune
-status: in-review
+status: done
 depends-on: [016, 034]
 component: plugin
 estimated-size: M
