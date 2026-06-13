@@ -10,6 +10,7 @@ add_executable(mwstime_tests
     unit/test_buffer.cpp
     unit/test_butterworth.cpp
     unit/test_cyclic_classic.cpp
+    unit/test_cyclic_properties.cpp
     unit/test_cyclic_revised.cpp
     unit/test_modelspec.cpp
     unit/test_movinglpf.cpp

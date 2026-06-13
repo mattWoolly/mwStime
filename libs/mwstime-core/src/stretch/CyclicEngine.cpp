@@ -225,7 +225,8 @@ struct GrainR
 /// loop never breaks on input exhaustion: it runs to the sample-exact
 /// `outLen = round(N·T)` length, with reads past the end returning 0.
 core::AudioBuffer renderRevised(core::ConstAudioView src, const RevisedSchedule& s,
-                                FadeShape shape)
+                                FadeShape shape,
+                                const GrainLaunchObserver* onGrainLaunch)
 {
     core::AudioBuffer outBuffer(1, static_cast<std::size_t>(s.outLen));
     if (s.outLen == 0)
@@ -235,6 +236,11 @@ core::AudioBuffer renderRevised(core::ConstAudioView src, const RevisedSchedule&
     GrainR a{ /*off*/ 0.0, /*pos*/ 0, /*active*/ true };
     GrainR b;
     std::int64_t outIdx = 0;
+
+    // Test-observation hook (plan/backlog/012): the initial grain launches at
+    // output index 0, input offset 0. Observation never alters the render.
+    if (onGrainLaunch != nullptr && *onGrainLaunch)
+        (*onGrainLaunch)(GrainLaunch{ 0, 0.0 });
 
     while (outIdx < s.outLen)
     {
@@ -264,6 +270,9 @@ core::AudioBuffer renderRevised(core::ConstAudioView src, const RevisedSchedule&
             b.off = a.off + s.hopIn; // REVISED: fractional grain start
             b.pos = 0;
             b.active = true;
+            // B's first sample plays at the CURRENT outIdx (next iteration).
+            if (onGrainLaunch != nullptr && *onGrainLaunch)
+                (*onGrainLaunch)(GrainLaunch{ outIdx, b.off });
         }
 
         if (a.pos >= s.c)
@@ -282,15 +291,15 @@ core::AudioBuffer renderRevised(core::ConstAudioView src, const RevisedSchedule&
 } // namespace
 
 core::AudioBuffer CyclicEngine::render(core::ConstAudioView src, int cycleLenSamples,
-                                       double timeFactorPct,
-                                       engine::HopMode mode) const
+                                       double timeFactorPct, engine::HopMode mode,
+                                       const GrainLaunchObserver* onGrainLaunch) const
 {
     if (mode == engine::HopMode::Revised)
         return renderRevised(
             src,
             makeRevisedSchedule(static_cast<std::int64_t>(src.size()), cycleLenSamples,
                                 timeFactorPct, cal_),
-            cal_.shape);
+            cal_.shape, onGrainLaunch);
 
     const ClassicSchedule s =
         makeClassicSchedule(static_cast<std::int64_t>(src.size()), cycleLenSamples,
@@ -306,6 +315,11 @@ core::AudioBuffer CyclicEngine::render(core::ConstAudioView src, int cycleLenSam
     Grain a{ /*off*/ 0, /*pos*/ 0, /*active*/ true };
     Grain b;
     std::int64_t outIdx = 0;
+
+    // Test-observation hook (plan/backlog/012): the initial grain launches at
+    // output index 0, input offset 0. Observation never alters the render.
+    if (onGrainLaunch != nullptr && *onGrainLaunch)
+        (*onGrainLaunch)(GrainLaunch{ 0, 0.0 });
 
     while (outIdx < outLen)
     {
@@ -339,6 +353,9 @@ core::AudioBuffer CyclicEngine::render(core::ConstAudioView src, int cycleLenSam
             b.off = a.off + s.hopIn; // CLASSIC: integer grain start
             b.pos3232 = 0;
             b.active = true;
+            // B's first sample plays at the CURRENT outIdx (next iteration).
+            if (onGrainLaunch != nullptr && *onGrainLaunch)
+                (*onGrainLaunch)(GrainLaunch{ outIdx, static_cast<double>(b.off) });
         }
 
         if (intPos(a.pos3232) >= s.c)
