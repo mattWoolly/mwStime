@@ -9,6 +9,7 @@
 
 #include "EngineHost.h"
 #include "state/Parameters.h"
+#include "state/StateBlobCache.h"
 #include "state/StateTree.h"
 
 namespace mws::plugin {
@@ -76,6 +77,12 @@ public:
     /// reach the render worker, the FX scope FIFO, etc. through here.
     [[nodiscard]] EngineHost& engineHost() noexcept { return engine; }
 
+    /// The embedded-audio state-blob cache (task 032). The FileLoader (owned by
+    /// the editor/load-flow tasks) installs blobCache().sampleChangedHook() so
+    /// the FLAC blob is pre-encoded off the message thread; getStateInformation
+    /// only memcpys it (architecture.md §6).
+    [[nodiscard]] state::StateBlobCache& blobCache() noexcept { return blobCache_; }
+
 private:
     /// APVTS listener (message thread): a non-automatable, latency-relevant
     /// change (model/bandwidth/FS/character) reconfigures the FX engine and
@@ -92,6 +99,7 @@ private:
     std::function<void()> onReRenderRequested;
 
     EngineHost engine;
+    state::StateBlobCache blobCache_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginProcessor)
 };
