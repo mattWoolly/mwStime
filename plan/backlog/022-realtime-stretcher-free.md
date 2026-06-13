@@ -1,7 +1,7 @@
 ---
 id: 022
 title: RealtimeStretcher FREE mode — history ring, latency formula, T=100% null, clamps
-status: in-review
+status: done
 depends-on: [009, 011, 012, 013, 019]
 component: engine
 estimated-size: M

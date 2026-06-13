@@ -43,7 +43,7 @@ Deferred to v1.1 by ADR (no tasks here beyond reserved slots): INTELL engine
 | 5 | 018 | Transpose stage (sinc + clock-modulation) | dsp | M | 004, 009, 016 | done |
 | 5 | 019 | CharacterChain unified API + bypass | dsp | M | 009, 016, 017 | done |
 | 6 | 020 | OfflineRenderer (cap, norm, progress/abort) | engine | M | 009, 011, 013, 015, 018, 019 | done |
-| 6 | 022 | RealtimeStretcher FREE + latency + null (multichannel, shared schedule) | engine | M | 009, 011, 012, 013, 019 | todo |
+| 6 | 022 | RealtimeStretcher FREE + latency + null (multichannel, shared schedule) | engine | M | 009, 011, 012, 013, 019 | done |
 | 7 | 023 | RealtimeStretcher SYNC windows | engine | M | 021, 022 | todo |
 | 7 | 024 | Stream/offline equivalence (+ host-rate matrix, FX stereo) | qa | S | 020, 022 | todo |
 | 7 | 025 | mwstime-render CLI | engine | M | 003, 020 | todo |
