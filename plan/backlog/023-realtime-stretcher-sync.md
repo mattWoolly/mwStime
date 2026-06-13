@@ -1,7 +1,7 @@
 ---
 id: 023
 title: RealtimeStretcher SYNC mode — window capture, boundary resync, compression+silence
-status: in-review
+status: done
 depends-on: [021, 022]
 component: engine
 estimated-size: M
