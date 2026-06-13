@@ -1,7 +1,7 @@
 ---
 id: 045
 title: PluginEditor assembly — layout, LCD page binding, field cursor/jog/double-click editing
-status: in-review
+status: done
 depends-on: [033, 034, 040, 041, 042, 043, 044]
 component: ui
 estimated-size: M
