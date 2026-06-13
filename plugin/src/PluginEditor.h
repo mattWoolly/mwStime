@@ -145,6 +145,20 @@ private:
     // it exists so the waveform's FX scope draws — ui-design §6.4).
     bool scopeFifoAttached_ = false;
 
+    // --- model-switch behavior (ui-design §6.5, task 046) --------------------
+    /// Apply a model switch: clamp-memory restore/remember on the timeFactor
+    /// parameter (writing the new model's clamped value to the host param),
+    /// faceplate palette cross-fade, LCD layout swap + page rebuild. Mirrors the
+    /// clamp map to/from the task-029 state-tree `clampMemory` field so it
+    /// survives save/reload.
+    void handleModelSwitch(mws::model::ModelId newModel);
+
+    /// Per-model pre-clamp timeFactor memory (ui-design §6.5 (PI)). Seeded from
+    /// the state tree on construction; updated on every switch and mirrored back.
+    ui::ClampMemory clampMemory_;
+    /// The model the editor last styled, so a switch knows what it is leaving.
+    mws::model::ModelId currentModel_ = mws::model::ModelId::S1000;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginEditor)
 };
 

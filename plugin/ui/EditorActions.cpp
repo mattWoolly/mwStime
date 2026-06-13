@@ -117,6 +117,79 @@ double tapTempoBpm(const std::vector<double>& tapTimesMs) noexcept
     return 60000.0 / meanIntervalMs;
 }
 
+// ---------------------------------------------------------------------------
+// Model-switch clamp memory (ui-design §6.5 (PI), task 046)
+// ---------------------------------------------------------------------------
+
+namespace {
+
+/// Clamp a bare timeFactor value into a model's engine range via the single
+/// clamping authority (ModelSpec::clamp). A SAMPLE-mode snapshot is used so the
+/// ADR-006 FX-FREE causality clamp (low end 100%) is NOT applied here — model
+/// switching remembers the user's dialed value, which the FX clamp would
+/// otherwise floor independently of the model.
+double clampTimeFactorForModel(model::ModelId model, double timeFactorPct) noexcept
+{
+    engine::ParamSnapshot p;
+    p.model = model;
+    p.pluginMode = engine::PluginMode::Sample;
+    p.timeFactor = timeFactorPct;
+    return model::ModelSpec::get(model).clamp(p).timeFactor;
+}
+
+} // namespace
+
+void ClampMemory::remember(model::ModelId model, double timeFactorPct) noexcept
+{
+    const auto i = static_cast<std::size_t>(model);
+    if (i >= kCount)
+        return;
+    values_[i] = timeFactorPct;
+    set_[i] = true;
+}
+
+double ClampMemory::recall(model::ModelId model, double fallback) const noexcept
+{
+    const auto i = static_cast<std::size_t>(model);
+    return (i < kCount && set_[i]) ? values_[i] : fallback;
+}
+
+bool ClampMemory::has(model::ModelId model) const noexcept
+{
+    const auto i = static_cast<std::size_t>(model);
+    return i < kCount && set_[i];
+}
+
+void ClampMemory::forget(model::ModelId model) noexcept
+{
+    const auto i = static_cast<std::size_t>(model);
+    if (i < kCount)
+        set_[i] = false;
+}
+
+double applyModelSwitchTimeFactor(ClampMemory& memory, model::ModelId oldModel,
+                                  model::ModelId newModel,
+                                  double currentHostTimeFactor) noexcept
+{
+    // (1) Remember the value effective on the model we are LEAVING, but only
+    // when that model did not itself clamp it — a clamped old value is the
+    // ceiling, not a fresh user intent, so storing it would overwrite a genuine
+    // pre-clamp value (e.g. 1500 dialed on the S1000) with the cap.
+    const double oldClamped = clampTimeFactorForModel(oldModel, currentHostTimeFactor);
+    const bool oldWasClamped =
+        (oldClamped < currentHostTimeFactor) || (currentHostTimeFactor < oldClamped);
+    if (!oldWasClamped)
+        memory.remember(oldModel, currentHostTimeFactor);
+
+    // (2) The new model's candidate is its remembered pre-clamp value if any,
+    // else the current value carried across (the host range is the fixed
+    // superset, so the value travels with us). Remember the candidate as the
+    // new model's pre-clamp memory, then clamp it for the host/engine.
+    const double candidate = memory.recall(newModel, currentHostTimeFactor);
+    memory.remember(newModel, candidate);
+    return clampTimeFactorForModel(newModel, candidate);
+}
+
 double TapTempo::tap(double nowMs) noexcept
 {
     // A long gap since the previous tap means a fresh measurement.

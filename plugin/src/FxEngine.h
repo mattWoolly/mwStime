@@ -65,11 +65,13 @@
 
 #pragma once
 
+#include <algorithm>
 #include <atomic>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 #include "mws/core/Buffer.h"
 #include "mws/engine/Params.h"
@@ -152,6 +154,14 @@ public:
         maxBlock_ = maxBlockFrames;
         channels_ = numChannels;
         activeKey_ = keyOf(params);
+
+        // Preallocate the model-switch cross-fade scratch (ui-design §6.5, task
+        // 046): one block of the OUTGOING engine's output, blended against the
+        // incoming engine's first block. Sized here, off the audio thread, so
+        // processBlock's fade allocates nothing.
+        fadeScratch_.resize(numChannels,
+                            static_cast<std::size_t>(std::max(1, maxBlockFrames)));
+        fadeViews_.assign(numChannels, mws::core::AudioView{});
 
         auto prepared = buildPrepared(params);
         latencyHost_.store(realizedLatencyOf(*prepared),
@@ -238,15 +248,56 @@ public:
                       const mws::engine::RealtimeStretcher::TransportInfo& transport) noexcept
     {
         // (1) Adopt a pending reconfiguration, if any. atomic_exchange the
-        // pending slot to null so we adopt each publication exactly once; retire
-        // the engine we were running to the graveyard (freed on the message
-        // thread). Wait-free; allocates nothing.
+        // pending slot to null so we adopt each publication exactly once. Wait-
+        // free; allocates nothing. The OLD engine is NOT retired yet — when a
+        // reconfiguration is adopted we run it once more for this block so its
+        // output can be cross-faded against the incoming engine (ui-design §6.5
+        // model-switch one-block fade, task 046); it is retired after the fade.
         std::shared_ptr<PreparedFx> incoming = std::atomic_exchange_explicit(
             &pending_, std::shared_ptr<PreparedFx>{}, std::memory_order_acq_rel);
+        const bool reconfigured = static_cast<bool>(incoming);
+
+        if (reconfigured && active_
+            && numChannels <= fadeScratch_.numChannels()
+            && numChannels <= fadeViews_.size())
+        {
+            // (1a) Run the OUTGOING engine for this block into the fade scratch,
+            // so its tail can be cross-faded against the incoming engine's first
+            // block (no hard step when the fresh engine's history ring is empty).
+            const std::size_t n = numChannels > 0 ? outputs[0].numFrames() : 0;
+            for (std::size_t ch = 0; ch < numChannels; ++ch)
+                fadeViews_[ch] = mws::core::AudioView{ fadeScratch_.channel(ch).data(), n };
+
+            runEngine(*active_, inputs, fadeViews_.data(), numChannels, params, transport);
+            graveyard_.retire(active_);       // outgoing engine freed on msg thread
+            active_ = std::move(incoming);
+
+            // (1b) Run the INCOMING engine in place, then a one-block linear
+            // cross-fade: old fades out, new fades in. Click-free.
+            runEngine(*active_, inputs, outputs, numChannels, params, transport);
+            for (std::size_t ch = 0; ch < numChannels; ++ch)
+            {
+                float* out = outputs[ch].data();
+                const float* old = fadeScratch_.channel(ch).data();
+                const std::size_t len = outputs[ch].numFrames();
+                for (std::size_t i = 0; i < len; ++i)
+                {
+                    const float t = (len > 1)
+                                        ? static_cast<float>(i) / static_cast<float>(len - 1)
+                                        : 1.0f;
+                    out[i] = old[i] * (1.0f - t) + out[i] * t;
+                }
+            }
+            applyOutTrim(outputs, numChannels, params.outTrim);
+            return;
+        }
+
         if (incoming)
         {
+            // Adopt without a fade (no prior active engine, or a degenerate
+            // channel/scratch mismatch — fall back to the plain swap).
             if (active_)
-                graveyard_.retire(active_); // never freed here
+                graveyard_.retire(active_);
             active_ = std::move(incoming);
         }
 
@@ -257,26 +308,8 @@ public:
             return;
         }
 
-        // (2) Build the effective snapshot: automatable fields from the live
-        // block snapshot, non-automatable (model/bandwidth/FS/character) from the
-        // ACTIVE engine's own config — so setParams never sees a model it was not
-        // prepared for (a transient APVTS/engine mismatch during reconfiguration).
-        mws::engine::ParamSnapshot effective = params;
-        effective.model = active_->config.model;
-        effective.bandwidth = active_->config.bandwidth;
-        effective.sampleRateSel = active_->config.sampleRateSel;
-        effective.character = active_->config.character;
-
-        // (3) Stage the per-block automatable snapshot (grain-boundary applied).
-        active_->stretcher.setParams(effective);
-
-        // (4) Transport for SYNC mode (ignored in FREE; cheap).
-        active_->stretcher.setTransport(transport);
-
-        // (5) Stretch (FREE + SYNC, dual-mono shared schedule).
-        active_->stretcher.process(inputs, outputs, numChannels);
-
-        // (6) outTrim output gain (dB → linear; 0 dB short-circuits).
+        // (2..6) Run the active engine in place + outTrim.
+        runEngine(*active_, inputs, outputs, numChannels, params, transport);
         applyOutTrim(outputs, numChannels, params.outTrim);
     }
 
@@ -311,6 +344,29 @@ public:
     }
 
 private:
+    /// Audio thread: run one prepared engine over the channel views (steps 2–5
+    /// of the legacy processBlock body — effective-snapshot build, setParams,
+    /// transport, stretch). outTrim is applied by the caller (so the cross-fade
+    /// runs on the pre-trim outputs and trims the blended result once).
+    static void runEngine(PreparedFx& engine, const mws::core::ConstAudioView* inputs,
+                          mws::core::AudioView* outputs, std::size_t numChannels,
+                          const mws::engine::ParamSnapshot& params,
+                          const mws::engine::RealtimeStretcher::TransportInfo& transport) noexcept
+    {
+        // Effective snapshot: automatable fields from the live block, non-
+        // automatable (model/bandwidth/FS/character) from THIS engine's own
+        // config — so setParams never sees a model it was not prepared for.
+        mws::engine::ParamSnapshot effective = params;
+        effective.model = engine.config.model;
+        effective.bandwidth = engine.config.bandwidth;
+        effective.sampleRateSel = engine.config.sampleRateSel;
+        effective.character = engine.config.character;
+
+        engine.stretcher.setParams(effective);
+        engine.stretcher.setTransport(transport);
+        engine.stretcher.process(inputs, outputs, numChannels);
+    }
+
     /// Message thread: allocate + prepare a PreparedFx for `params` (the 30 s
     /// history-ring allocation happens here, off the audio thread).
     [[nodiscard]] std::shared_ptr<PreparedFx>
@@ -384,6 +440,13 @@ private:
     int maxBlock_ = 0;
     std::size_t channels_ = 0;
     ConfigKey activeKey_{}; // last configured non-automatable key (message thread)
+
+    // Model-switch one-block cross-fade scratch (ui-design §6.5, task 046):
+    // the outgoing engine's block output, blended against the incoming engine's
+    // first block. Sized in prepare() (off the audio thread); the view array
+    // points into it each block. processBlock allocates nothing.
+    mws::core::AudioBuffer fadeScratch_{};
+    std::vector<mws::core::AudioView> fadeViews_{};
 
     // Reported latency + a one-shot dirty flag the processor consumes.
     std::atomic<int> latencyHost_{ 0 };

@@ -24,9 +24,24 @@ PluginEditor::PluginEditor(PluginProcessor& owner)
       fieldEditor(owner.parameterState())
 {
     // Sync the faceplate to the model parameter the panel restored/holds.
-    faceplate.setModel(controlPanel.modelSelector().selectedModel());
+    currentModel_ = controlPanel.modelSelector().selectedModel();
+    faceplate.setModel(currentModel_);
     lookAndFeel.setSpec(faceplate.spec());
     setLookAndFeel(&lookAndFeel);
+
+    // Seed the per-model clamp memory from the persisted state-tree field
+    // (task 029 schema, ui-design §6.5 (PI) — survives save/reload). A model
+    // with no stored value stays unset (the live host value carries across).
+    {
+        const auto& tree = processor.nonParameterState();
+        for (const auto modelId : mws::model::kAllModels)
+        {
+            constexpr double kNoMemory = -1.0;  // no valid timeFactor is negative
+            const double stored = mws::plugin::state::getClampMemory(tree, modelId, kNoMemory);
+            if (stored > 0.0)
+                clampMemory_.remember(modelId, stored);
+        }
+    }
 
     addAndMakeVisible(faceplate);
     addAndMakeVisible(waveform);
@@ -118,15 +133,10 @@ PluginEditor::PluginEditor(PluginProcessor& owner)
     // (and the overlay text editor, while open) re-derive.
     fieldEditor.onChanged = [this] { refreshLcd(); };
 
-    // Instant restyle on model switch (cross-fade + clamp-restore is task 046).
+    // Model switch (ui-design §6.5, task 046): clamp-memory restore/remember +
+    // 150 ms faceplate palette cross-fade + LCD layout swap + page rebuild.
     controlPanel.onModelChanged = [this](mws::model::ModelId id) {
-        faceplate.setModel(id);
-        lcd.setSpec(faceplate.spec());
-        waveform.setSpec(faceplate.spec());
-        lookAndFeel.setSpec(faceplate.spec());
-        sendLookAndFeelChange();
-        refreshLcd();
-        repaint();
+        handleModelSwitch(id);
     };
 
     // --- waveform interactions (ui-design §6.1 drop / §6.3 audition + drag-out)
@@ -190,6 +200,51 @@ PluginEditor::~PluginEditor()
 const model::ModelSpec& PluginEditor::activeSpec() const noexcept
 {
     return model::ModelSpec::get(processor.makeParamSnapshot().model);
+}
+
+// ---------------------------------------------------------------------------
+// Model switch (ui-design §6.5, task 046)
+// ---------------------------------------------------------------------------
+
+void PluginEditor::handleModelSwitch(mws::model::ModelId newModel)
+{
+    const auto oldModel = currentModel_;
+
+    // (1) Clamp memory (ui-design §6.5 (PI)): remember the value effective on the
+    // model we are leaving, restore the new model's pre-clamp value, and write
+    // the new model's CLAMPED value to the (range-fixed) host parameter so the
+    // engine/host see the value actually in effect (e.g. S1000 1500 -> S950 999).
+    if (auto* tf = processor.parameterState().getParameter(paramid::timeFactor))
+    {
+        const double current = static_cast<double>(tf->convertFrom0to1(tf->getValue()));
+        const double next = ui::applyModelSwitchTimeFactor(clampMemory_, oldModel,
+                                                           newModel, current);
+        if ((next < current) || (current < next))  // -Wfloat-equal-clean
+            tf->setValueNotifyingHost(tf->convertTo0to1(static_cast<float>(next)));
+
+        // Mirror the updated clamp map back into the task-029 state tree so it
+        // survives save/reload (the schema is owned by 029; this only writes the
+        // two models the switch touched).
+        auto& tree = processor.nonParameterState();
+        for (const auto m : { oldModel, newModel })
+            if (clampMemory_.has(m))
+                mws::plugin::state::setClampMemory(tree, m,
+                                                   clampMemory_.recall(m, current));
+    }
+
+    currentModel_ = newModel;
+
+    // (2) Faceplate palette cross-fade over 150 ms (ui-design §6.5) + the
+    // dependent LCD/waveform/LookAndFeel spec swap (instant — the chassis blend
+    // is purely cosmetic; the LCD re-layout (S950_2LINE <-> S1000_PAGE) and the
+    // LcdPageModel rebuild happen on the next refreshLcd).
+    faceplate.crossfadeToModel(newModel);
+    lcd.setSpec(faceplate.spec());
+    waveform.setSpec(faceplate.spec());
+    lookAndFeel.setSpec(faceplate.spec());
+    sendLookAndFeelChange();
+    refreshLcd();
+    repaint();
 }
 
 // ---------------------------------------------------------------------------

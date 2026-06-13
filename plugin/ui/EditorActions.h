@@ -99,6 +99,71 @@ softKeyLabels(const engine::ParamSnapshot& params, const model::ModelSpec& spec)
 /// pure averaging math the QA fleet can pin.
 [[nodiscard]] double tapTempoBpm(const std::vector<double>& tapTimesMs) noexcept;
 
+// ---------------------------------------------------------------------------
+// Model-switch clamp memory (ui-design §6.5 (PI), task 046).
+//
+// The host-facing timeFactor range never changes (25–2000% always —
+// architecture.md §6); the active model clamps at the engine (e.g. the S950
+// caps at 999%). When the user switches to a model that clamps their dialed
+// value, we (1) remember the pre-clamp value for the model they are LEAVING so
+// returning to it restores their intent, and (2) write the new model's clamped
+// value to the host parameter so the host/engine see the value actually in
+// effect. Per-model pre-clamp memory is persisted in the task-029 state tree's
+// `clampMemory` field (the editor mirrors this map to/from it on switch and
+// save/reload — the schema is owned by 029).
+//
+// HEADLESS: this is pure value math on a fixed-size per-model array so the QA
+// fleet can pin the round-trip (S1000 T=1500 → S950 [→999] → S1000 [→1500])
+// without a window. The editor bridges it to the APVTS timeFactor parameter
+// and the JUCE ValueTree.
+// ---------------------------------------------------------------------------
+
+/// Per-model pre-clamp timeFactor memory (ui-design §6.5 (PI)). A fixed array
+/// indexed by ModelId; each slot is "unset" until a value is remembered. The
+/// editor mirrors it to/from the state-tree `clampMemory` field (task 029).
+class ClampMemory
+{
+public:
+    /// Remember `timeFactorPct` as the pre-clamp value for `model`.
+    void remember(model::ModelId model, double timeFactorPct) noexcept;
+
+    /// The remembered pre-clamp value for `model`, or `fallback` if none.
+    [[nodiscard]] double recall(model::ModelId model, double fallback) const noexcept;
+
+    /// Whether `model` has a remembered value.
+    [[nodiscard]] bool has(model::ModelId model) const noexcept;
+
+    /// Drop `model`'s remembered value (back to unset).
+    void forget(model::ModelId model) noexcept;
+
+private:
+    static constexpr std::size_t kCount = model::kModelCount;
+    std::array<double, kCount> values_{};
+    std::array<bool, kCount> set_{};
+};
+
+/// Compute the host timeFactor to write when switching `oldModel` → `newModel`,
+/// updating the clamp memory in place (ui-design §6.5 (PI), task 046).
+///
+/// `currentHostTimeFactor` is the value the host/APVTS parameter holds right now
+/// (it carries across models — the range is the fixed superset). The returned
+/// value is what the editor should write to the timeFactor parameter so the
+/// engine/host see the NEW model's clamped value. The memory is updated so that:
+///   · the value effective on `oldModel` is remembered ONLY when `oldModel` did
+///     not itself clamp it (a clamped old value is not a fresh user intent), so
+///     a genuine pre-clamp value (e.g. 1500 on S1000) is never overwritten by a
+///     later visit to the clamping model;
+///   · `newModel`'s candidate is its remembered pre-clamp value if any, else the
+///     carried-over current value, and that candidate is stored as `newModel`'s
+///     pre-clamp memory before clamping.
+///
+/// Example: S1000 holds 1500 → switch to S950 returns 999 (S950 caps at 999%)
+/// and remembers 1500 under S1000; switching back to S1000 returns 1500.
+[[nodiscard]] double applyModelSwitchTimeFactor(ClampMemory& memory,
+                                                model::ModelId oldModel,
+                                                model::ModelId newModel,
+                                                double currentHostTimeFactor) noexcept;
+
 /// A small fixed-capacity ring of tap timestamps with the averaging built in
 /// (the editor's F7-tap state). A tap that arrives more than `kResetGapMs`
 /// after the previous one starts a fresh measurement (a new tempo, not a

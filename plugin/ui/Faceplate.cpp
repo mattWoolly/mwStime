@@ -306,17 +306,68 @@ Faceplate::Faceplate()
     setInterceptsMouseClicks(false, true);  // static chassis; children interact
 }
 
+Faceplate::~Faceplate()
+{
+    stopTimer();
+}
+
 void Faceplate::setModel(model::ModelId id)
 {
     if (modelId == id)
         return;
+    // An explicit instant switch ends any in-flight cross-fade.
+    crossfading = false;
+    fadeFrom = juce::Image();
+    stopTimer();
     modelId = id;
     repaint();  // cache key mismatch forces a rebuild on the next paint
 }
 
+void Faceplate::crossfadeToModel(model::ModelId id)
+{
+    if (modelId == id)
+        return;
+
+    // Capture the OUTGOING static layer as the fade-FROM image. rebuildCacheIfNeeded
+    // makes `cache` the current model's layer at the current size; copy it so the
+    // upcoming model swap's cache rebuild does not clobber the fade source.
+    rebuildCacheIfNeeded();
+    fadeFrom = cache.createCopy();
+
+    modelId = id;        // the next paint rebuilds `cache` as the fade-TO layer
+    crossfading = true;
+    fadeStartMs = juce::Time::getMillisecondCounterHiRes();
+    startTimerHz(60);    // smooth 150 ms blend
+    repaint();
+}
+
 void Faceplate::resized()
 {
-    // Cache is keyed on size — the next paint rebuilds it (ui-design §4).
+    // Cache is keyed on size — the next paint rebuilds it (ui-design §4). A
+    // resize mid-fade abandons the (now wrong-size) fade-FROM image and snaps.
+    if (crossfading)
+    {
+        crossfading = false;
+        fadeFrom = juce::Image();
+        stopTimer();
+    }
+}
+
+void Faceplate::timerCallback()
+{
+    if (!crossfading)
+    {
+        stopTimer();
+        return;
+    }
+    const double elapsed = juce::Time::getMillisecondCounterHiRes() - fadeStartMs;
+    if (elapsed >= (double) kCrossfadeMs)
+    {
+        crossfading = false;
+        fadeFrom = juce::Image();
+        stopTimer();
+    }
+    repaint();
 }
 
 void Faceplate::rebuildCacheIfNeeded()
@@ -348,7 +399,24 @@ void Faceplate::paint(juce::Graphics& g)
     const auto t0 = juce::Time::getMillisecondCounterHiRes();
 #endif
 
-    g.drawImageAt(cache, 0, 0);
+    if (crossfading && fadeFrom.isValid()
+        && fadeFrom.getWidth() == getWidth() && fadeFrom.getHeight() == getHeight())
+    {
+        // Palette cross-fade (ui-design §6.5): the new layer is opaque underneath
+        // and the old layer fades out on top over kCrossfadeMs. Linear fraction
+        // is fine for a 150 ms chassis blend (the LCD/controls re-layout instantly).
+        const double elapsed = juce::Time::getMillisecondCounterHiRes() - fadeStartMs;
+        const float t = juce::jlimit(
+            0.0f, 1.0f, (float) (elapsed / (double) kCrossfadeMs));
+        g.drawImageAt(cache, 0, 0);                 // fade-TO (new) underneath
+        g.setOpacity(1.0f - t);
+        g.drawImageAt(fadeFrom, 0, 0);              // fade-FROM (old) on top
+        g.setOpacity(1.0f);
+    }
+    else
+    {
+        g.drawImageAt(cache, 0, 0);
+    }
 
 #if JUCE_DEBUG
     // ui-design §4 budget: cached static-layer repaint < 2 ms at 1.0 scale.
