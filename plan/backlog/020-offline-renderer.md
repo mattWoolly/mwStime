@@ -1,7 +1,7 @@
 ---
 id: 020
 title: OfflineRenderer — full authentic pipeline with norm, memory cap, progress/abort
-status: todo
+status: in-review
 depends-on: [009, 011, 013, 015, 018, 019]
 component: engine
 estimated-size: M
