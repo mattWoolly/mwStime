@@ -9,6 +9,7 @@ add_executable(mwstime_tests
     unit/test_autocycle.cpp
     unit/test_buffer.cpp
     unit/test_butterworth.cpp
+    unit/test_characterchain.cpp
     unit/test_cyclic_classic.cpp
     unit/test_cyclic_properties.cpp
     unit/test_cyclic_revised.cpp

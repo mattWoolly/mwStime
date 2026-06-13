@@ -13,6 +13,7 @@ add_library(mwstime_core STATIC
     src/core/Resampler.cpp
     src/core/Version.cpp
     src/core/WavIo.cpp
+    src/model/CharacterChain.cpp
     src/model/FixedRateChain.cpp
     src/model/ModelSpec.cpp
     src/model/VarClockChain.cpp
