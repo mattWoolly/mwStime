@@ -31,6 +31,7 @@ target_sources(mwstime_plugin_tests
         test_temposync.cpp
         test_fileloader.cpp
         test_sample_mode.cpp
+        test_dsp_adversarial.cpp
         test_alloc_counter.cpp
         "${CMAKE_SOURCE_DIR}/plugin/src/EngineHost.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/FileLoader.cpp"
@@ -77,3 +78,20 @@ target_link_libraries(mwstime_plugin_tests
 )
 
 catch_discover_tests(mwstime_plugin_tests)
+
+# Adversarial DSP QA (test_dsp_adversarial.cpp — task 034b). catch_discover_tests
+# above already registers each "qa-adversarial: ..." case individually (so
+# `ctest -R qa-adversarial` selects them — README test-selection rules), but
+# Catch2 3.x does not map tags to CTest LABELS. Register the [qa-adversarial]-
+# tagged set as one labelled CTest so `ctest -L qa-adversarial` selects exactly
+# Wave 1 of the adversarial fleet (testing-strategy.md §7). The `[.soak]` 30-min
+# case carries Catch2's hidden `[.]` prefix, so neither this entry nor the bare
+# tag run drives it — it is invoked explicitly by tag (see the file header).
+add_test(
+    NAME "qa-adversarial: Wave 1 DSP adversaries (labelled set)"
+    COMMAND mwstime_plugin_tests "[qa-adversarial]"
+)
+set_tests_properties(
+    "qa-adversarial: Wave 1 DSP adversaries (labelled set)"
+    PROPERTIES LABELS qa-adversarial
+)
