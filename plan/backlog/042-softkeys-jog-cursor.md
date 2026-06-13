@@ -1,7 +1,7 @@
 ---
 id: 042
 title: SoftKeyBar (F1–F8 + cursor/ENT) and JogWheel components
-status: todo
+status: in-review
 depends-on: [039]
 component: ui
 estimated-size: M
