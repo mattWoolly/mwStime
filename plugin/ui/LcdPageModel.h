@@ -73,6 +73,14 @@ struct LcdField {
     const char* hint = nullptr;  ///< e.g. "INTELL only" for greyed qual/width
 };
 
+/// The human-readable LCD label for a field — the printed-on-the-screen name of
+/// the value the cursor is on ("TIME FACTOR", "CYCLE LENGTH", "STRETCH ZONE
+/// START", "NEW SAMPLE NAME", …). The PluginEditor surfaces this as the focused
+/// field's screen-reader name so "screen-reader names = LCD field labels"
+/// (ui-design §7) holds verbatim. JUCE-free (std::string); the editor wraps it
+/// in a JUCE accessibility title.
+[[nodiscard]] std::string fieldLabel(const LcdField& field);
+
 /// A complete LCD page: rows of {text, perCellStyle} plus the field map in
 /// cursor-navigation order.
 struct LcdPage {

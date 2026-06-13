@@ -4,6 +4,7 @@
 #pragma once
 
 #include "../ui/ControlPanel.h"
+#include "../ui/EditorActions.h"
 #include "../ui/Faceplate.h"
 #include "../ui/JogWheel.h"
 #include "../ui/LcdDisplay.h"
@@ -12,7 +13,10 @@
 #include "../ui/SoftKeyBar.h"
 #include "../ui/WaveformView.h"
 #include "../ui/lookandfeel/SeriesLookAndFeel.h"
+#include "ExportService.h"
+#include "FileLoader.h"
 #include "PluginProcessor.h"
+#include "SamplePlayer.h"  // AuditionSource
 
 namespace mws::plugin {
 
@@ -29,9 +33,14 @@ namespace mws::plugin {
 /// focused field with hardware steps (fine on Shift), and double-clicking a
 /// field opens direct text entry (no numeric keypad — ADR-005); ENT commits.
 ///
-/// Soft-key *actions*, drop-in/drag-out, click-to-audition, FX-mode greying
-/// and keyboard-only accessibility are task 045b; this assembly stubs the
-/// soft-key actions as no-ops except cursor/ENT field editing.
+/// Task 045b completes the interaction flows (ui-design §6.1–§6.4, §7): the
+/// eight TIME-page soft keys execute their actions through the 042 callback
+/// interface (TIME/autC/ZONE/GO/PLAY/A-B/SYNC/ABORT), drop-in routes to the
+/// FileLoader and drag-out to the ExportService, the waveform click auditions
+/// through the SamplePlayer (architecture.md §7), FX mode greys/re-pages the
+/// right things, and the editor is keyboard-only operable with JUCE
+/// accessibility handlers (screen-reader names = LCD field labels). The
+/// per-mode/per-model decision logic lives headless in ui::EditorActions.
 class PluginEditor final : public juce::AudioProcessorEditor, private juce::Timer
 {
 public:
@@ -63,6 +72,26 @@ private:
     void openFieldTextEditor();
     void closeFieldTextEditor(bool commit);
 
+    // --- soft-key actions (ui-design §6.1–§6.4) ------------------------------
+    /// Dispatch a soft-key press to its action (TIME/autC/ZONE/GO/PLAY/A-B/
+    /// SYNC/ABORT). Disabled keys never reach here (SoftKeyBar gates them).
+    void handleSoftKey(int index);
+    void doAutoCycle();             ///< F2: run the detector → write cycleLen
+    void doGoRender();              ///< F4: enqueue an offline render of the zone
+    void doPlay();                  ///< F5: audition the render (B)
+    void doAbToggle();              ///< F6: flip the A/B audition source
+    void doSyncEntry();             ///< F7: source-BPM entry (typed / tap)
+    /// Push the current page's captions + per-mode enable matrix onto the bar
+    /// (FX greys GO/PLAY/A-B; S950 reads AUTO-D — ui-design §6.4 / §6.2.3).
+    void refreshSoftKeys(const mws::engine::ParamSnapshot& snapshot);
+
+    /// Drain the FileLoader UI FIFO: a finished load bridges the decoded source
+    /// into the engine + waveform + export name + filename BPM auto-guess.
+    void pollFileLoader();
+
+    /// The normalized [0,1] render zone from the WaveformView selection.
+    [[nodiscard]] EngineHost::Zone currentZone() const noexcept;
+
     PluginProcessor& processor;
 
     ui::SeriesLookAndFeel lookAndFeel;
@@ -76,6 +105,20 @@ private:
 
     ui::LcdFieldEditor fieldEditor;  // cursor/jog/text editing (ui-design §6.2)
 
+    // UI-flow services owned by the editor (message thread): off-thread decode
+    // (drop-in, ui-design §6.1) and the drag-out / save-as WAV export
+    // (ui-design §6.3 step 4). Both bridge to the processor's EngineHost.
+    FileLoader fileLoader;
+    ExportService exportService;
+
+    // F7 SYNC tap-tempo state (ui-design §6.2 step 4: "typed or tap"). Taps
+    // average into a source BPM through ui::TapTempo; the source-BPM text
+    // entry overlay is the typed path.
+    ui::TapTempo tapTempo;
+    std::unique_ptr<juce::TextEditor> syncTextEditor;
+    void openSyncTextEditor();
+    void closeSyncTextEditor(bool commit);
+
     // Direct-text-entry overlay (double-click a field; ADR-005 no keypad). Lazy
     // — present only while editing; positioned over the focused field's cells.
     std::unique_ptr<juce::TextEditor> fieldTextEditor;
@@ -88,6 +131,19 @@ private:
     // and be fed back into the sample info (else the edit is silently dropped).
     // Empty -> the page model falls back to the "<name>*ST" default.
     std::string newSampleName_;
+
+    // The loaded source's display name + length, captured when the FileLoader
+    // finishes a decode (ui-design §6.1 step 2: LCD top line shows the name).
+    std::string loadedSampleName_;
+    std::int64_t loadedSampleFrames_ = 0;
+
+    // The id of the most recent load() we are awaiting, so the poll only
+    // bridges its OWN finished decode (latest-wins; older loads post Superseded).
+    std::uint64_t pendingLoadId_ = 0;
+
+    // The attached FX input-scope FIFO (the processor owns it; attached once
+    // it exists so the waveform's FX scope draws — ui-design §6.4).
+    bool scopeFifoAttached_ = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginEditor)
 };

@@ -392,6 +392,41 @@ std::string LcdPage::textJoined() const
 }
 
 // ---------------------------------------------------------------------------
+// Field labels (ui-design §7: screen-reader names = LCD field labels)
+// ---------------------------------------------------------------------------
+
+std::string fieldLabel(const LcdField& field)
+{
+    switch (field.kind)
+    {
+        case LcdFieldKind::ZoneStart: return "STRETCH ZONE START";
+        case LcdFieldKind::ZoneEnd:   return "STRETCH ZONE END";
+        case LcdFieldKind::NewName:   return "NEW SAMPLE NAME";
+        case LcdFieldKind::Param:
+            switch (field.param)
+            {
+                case ParamId::TimeFactor:    return "TIME FACTOR";
+                case ParamId::CycleLen:      return "CYCLE LENGTH";
+                case ParamId::StretchMode:   return "STRETCH MODE";
+                case ParamId::HopMode:       return "HOP MODE";
+                case ParamId::Transpose:     return "TRANSPOSE";
+                case ParamId::Qual:          return "QUALITY";
+                case ParamId::Width:         return "WIDTH";
+                case ParamId::Material:      return "MATERIAL";
+                case ParamId::Bandwidth:     return "BANDWIDTH";
+                case ParamId::SampleRateSel: return "SAMPLE RATE";
+                case ParamId::Character:     return "CHARACTER";
+                case ParamId::Norm:          return "NORMALIZE";
+                case ParamId::TempoSync:     return "TEMPO SYNC";
+                case ParamId::FxWindow:      return "FX WINDOW";
+                case ParamId::OutTrim:       return "OUTPUT TRIM";
+            }
+            break;
+    }
+    return "LCD FIELD";
+}
+
+// ---------------------------------------------------------------------------
 // LcdPageModel
 // ---------------------------------------------------------------------------
 

@@ -48,6 +48,7 @@ target_sources(mwStime
         src/state/Migrations.cpp
         src/state/FactoryPresets.cpp
         ui/ControlPanel.cpp
+        ui/EditorActions.cpp
         ui/Faceplate.cpp
         ui/LcdDisplay.cpp
         ui/LcdFieldEditor.cpp

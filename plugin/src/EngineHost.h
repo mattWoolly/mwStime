@@ -145,6 +145,14 @@ public:
     /// boundaries. Cleared automatically at the start of each new request.
     void requestAbort() noexcept { abortFlag_.store(true, std::memory_order_release); }
 
+    /// Whether the abort flag is currently raised (message thread / tests). Lets
+    /// the editor-action tests assert that a sub-threshold F8 press does NOT
+    /// abort through the real onSoftKey dispatch (ui-design §6.3 step 2).
+    [[nodiscard]] bool abortRequested() const noexcept
+    {
+        return abortFlag_.load(std::memory_order_acquire);
+    }
+
     /// Drain one worker event from the UI FIFO (message thread, timer poll).
     /// Returns false when the FIFO is empty.
     bool popEvent(WorkerEvent& out) noexcept;

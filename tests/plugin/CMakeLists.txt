@@ -37,6 +37,7 @@ target_sources(mwstime_plugin_tests
         test_export.cpp
         test_alloc_counter.cpp
         test_editor_wiring.cpp
+        test_editor_actions.cpp
         "${CMAKE_SOURCE_DIR}/plugin/src/EngineHost.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/MidiVoice.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/ExportService.cpp"
@@ -53,6 +54,7 @@ target_sources(mwstime_plugin_tests
         "${CMAKE_SOURCE_DIR}/tools/mwstime-render/Args.cpp"
         "${CMAKE_SOURCE_DIR}/tools/mwstime-render/Json.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/ui/ControlPanel.cpp"
+        "${CMAKE_SOURCE_DIR}/plugin/ui/EditorActions.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/ui/Faceplate.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/ui/LcdDisplay.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/ui/LcdFieldEditor.cpp"

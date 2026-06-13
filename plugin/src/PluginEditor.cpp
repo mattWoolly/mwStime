@@ -48,17 +48,26 @@ PluginEditor::PluginEditor(PluginProcessor& owner)
         refreshLcd();
     };
 
-    // ENT commits an in-flight text entry (else it is a soft-action no-op at
-    // 045 — wired in 045b).
+    // ENT commits an in-flight text entry (the LCD field overlay or the F7
+    // source-BPM overlay); otherwise it is a soft-action no-op.
     softKeyBar.onEnter = [this] {
-        if (fieldEditor.isEditingText())
+        if (syncTextEditor != nullptr)
+            closeSyncTextEditor(/*commit*/ true);
+        else if (fieldEditor.isEditingText())
             closeFieldTextEditor(/*commit*/ true);
     };
 
-    // Soft keys F1–F8: captions render from the active page; the actions are
-    // stubbed no-ops here (task 045b wires TIME/autC/ZONE/GO/PLAY/A-B/SYNC/
-    // ABORT). Cursor/ENT field editing above is the only live behavior.
-    softKeyBar.onSoftKey = [](int /*index*/) { /* actions: task 045b */ };
+    // Soft keys F1–F8 execute their TIME-page actions (ui-design §6.1–§6.4).
+    // The SoftKeyBar gates disabled keys (FX-mode grey state), so handleSoftKey
+    // only ever sees live keys.
+    softKeyBar.onSoftKey = [this](int index) { handleSoftKey(index); };
+
+    // F8 ABORT is a hold gesture, NOT a tap (ui-design §1 region 3 / §6.3 step
+    // 2: "hold F8 to abort", hold >= 600 ms (PI)). The editor owns this wiring
+    // explicitly so an accidental F8 tap can never kill a running GO render —
+    // requestAbort() fires from the SoftKeyBar's onSoftKey ONLY after the hold
+    // completes (the bar's own 30 Hz timer drives updateHoldProgress while held).
+    softKeyBar.setKeyRequiresHold(ui::softkey::kAbort, ui::SoftKeyBar::kAbortHoldMs);
 
     // Jog wheel edits the focused field with the hardware step (fine on Shift).
     jogWheel.onDelta = [this](int steps, bool fine) {
@@ -120,6 +129,42 @@ PluginEditor::PluginEditor(PluginProcessor& owner)
         repaint();
     };
 
+    // --- waveform interactions (ui-design §6.1 drop / §6.3 audition + drag-out)
+
+    // Drop-in: forward the dropped file(s) to the off-thread FileLoader; the
+    // 30 Hz poll bridges the decoded sample into the engine + view + export
+    // name + filename-BPM auto-guess (pollFileLoader).
+    waveform.onFilesDropped = [this](const juce::StringArray& files) {
+        if (! files.isEmpty())
+            pendingLoadId_ = fileLoader.load(juce::File(files[0]));
+    };
+
+    // Click-to-audition (architecture.md §7: audition is always available from
+    // the UI / waveform click). A body click auditions the loaded ORIGINAL (A)
+    // from the head; PLAY (F5) auditions the render (B).
+    waveform.onAudition = [this](std::int64_t /*frame*/) {
+        auto& host = processor.engineHost();
+        host.setAuditionSource(mws::plugin::AuditionSource::Original);
+        host.startSamplePlayback();
+        waveform.setRenderProminent(false);
+    };
+
+    // Drag-out: initiate the external WAV drag of the published render through
+    // the ExportService (ui-design §6.3 step 4 / §1 floppy slot).
+    waveform.onDragExport = [this] { exportService.startDrag(waveform); };
+
+    // --- file loader / export service wiring ---------------------------------
+    exportService.attach(&processor.engineHost());
+    fileLoader.startThread();
+
+    // Keyboard-only operability (ui-design §7): the editor is a focus
+    // container; arrows/Enter mirror cursor/ENT through the SoftKeyBar, and
+    // Tab traverses every control. Screen-reader names = LCD field labels are
+    // set per-poll in refreshLcd (the field map drives them).
+    setWantsKeyboardFocus(true);
+    setFocusContainerType(juce::Component::FocusContainerType::keyboardFocusContainer);
+    setTitle("mwStime editor");
+
     // Adopt the active page's field map and draw the first frame.
     {
         const auto snapshot = processor.makeParamSnapshot();
@@ -138,6 +183,7 @@ PluginEditor::PluginEditor(PluginProcessor& owner)
 PluginEditor::~PluginEditor()
 {
     stopTimer();
+    fileLoader.stop();  // joins the decode thread deterministically
     setLookAndFeel(nullptr);
 }
 
@@ -153,7 +199,59 @@ const model::ModelSpec& PluginEditor::activeSpec() const noexcept
 void PluginEditor::timerCallback()
 {
     pollEngine();
+    pollFileLoader();
     refreshLcd();
+}
+
+void PluginEditor::pollFileLoader()
+{
+    auto& host = processor.engineHost();
+
+    // Drain load outcomes (ui-design §6.1 step 3: errors surface on the LCD).
+    LoadEvent ev;
+    while (fileLoader.popEvent(ev))
+    {
+        if (ev.kind != LoadEvent::Kind::Finished)
+            continue;
+
+        // Only the load we are awaiting; an older decode posts Superseded.
+        if (pendingLoadId_ != 0 && ev.requestId != pendingLoadId_
+            && ev.outcome != LoadOutcome::Loaded)
+            continue;
+
+        if (ev.outcome == LoadOutcome::Loaded)
+        {
+            renderInfo_.loadError = ui::LcdLoadError::None;
+            if (auto source = fileLoader.currentSource())
+            {
+                // Bridge the decoded source into the engine (audition A + the
+                // worker's render source) and the waveform view (peaks + zone).
+                auto buffer =
+                    std::make_shared<const mws::core::AudioBuffer>(source->audio);
+                host.setAuditionSource(buffer);
+                waveform.setSourceSample(buffer);
+
+                loadedSampleName_ = source->name.toStdString();
+                loadedSampleFrames_ = source->numFrames;
+                newSampleName_.clear();  // new render name falls back to "*ST"
+
+                // Export name stem + filename `_174bpm` BPM auto-guess (never
+                // clobbers a user value — ui-design §6.2 step 4).
+                exportService.setSampleName(source->name);
+                host.guessSourceBpmFromFilename(source->name.toStdString());
+            }
+        }
+        else if (ev.outcome == LoadOutcome::UnsupportedFormat)
+        {
+            renderInfo_.loadError = ui::LcdLoadError::UnsupportedFormat;
+        }
+        else if (ev.outcome == LoadOutcome::ReadFailure)
+        {
+            renderInfo_.loadError = ui::LcdLoadError::ReadFailure;
+        }
+    }
+
+    fileLoader.collectGarbage();
 }
 
 void PluginEditor::pollEngine()
@@ -190,11 +288,12 @@ void PluginEditor::refreshLcd()
     const auto snapshot = processor.makeParamSnapshot();
     const auto& spec = specForSnapshot(snapshot);
 
-    // The sample/name slot fills in with the FileLoader flow (task 045b); at
-    // 045 the page model renders the "no sample" state. Mono-sum is engine
-    // feedback already available for the S900/S950 page notice.
+    // The loaded sample slot (FileLoader flow, ui-design §6.1 step 2). Mono-sum
+    // is engine feedback for the S900/S950 page notice.
     ui::LcdSampleInfo sample;
     sample.monoSummed = processor.engineHost().fxMonoSummed();
+    sample.name = loadedSampleName_;
+    sample.lengthFrames = loadedSampleFrames_;
 
     // Live stretch zone from the WaveformView (the field editor's zone callbacks
     // write it there), and the persisted render-destination name, so the LCD
@@ -210,10 +309,45 @@ void PluginEditor::refreshLcd()
     fieldEditor.setPage(page);
 
     // FX mode turns the waveform region into the live input scope (ui-design
-    // §6.4); the grey-out of GO/PLAY/A-B soft keys is task 045b.
-    waveform.setFxScopeMode(snapshot.pluginMode == mws::engine::PluginMode::Fx);
+    // §6.4). Attach the processor's scope FIFO once it exists (after prepareFx).
+    const bool fx = snapshot.pluginMode == mws::engine::PluginMode::Fx;
+    waveform.setFxScopeMode(fx);
+    if (! scopeFifoAttached_)
+        if (auto* fifo = processor.engineHost().scopeFifo())
+        {
+            waveform.attachScopeFifo(fifo);
+            scopeFifoAttached_ = true;
+        }
+
+    // Soft-key captions + per-mode/per-model enable matrix (ui-design §6.4 /
+    // §6.2.3): FX greys GO/PLAY/A-B, the S950 reads AUTO-D, the S900 greys the
+    // stretch-only autC/ZONE.
+    refreshSoftKeys(snapshot);
+
+    // Accessibility: the LCD's screen-reader name is the focused field's label
+    // (ui-design §7: "screen-reader names = LCD field labels"). The field map
+    // drives it, so it tracks the cursor across pages/models every poll.
+    if (const ui::LcdField* focused = fieldEditor.focusedField())
+        lcd.setTitle("LCD: " + juce::String(ui::fieldLabel(*focused)));
+    else
+        lcd.setTitle("LCD");
 
     ui::renderPage(page, lcd, fieldEditor.focusedIndex());
+}
+
+// ---------------------------------------------------------------------------
+// Soft-key captions + enable matrix (ui-design §6.1–§6.4; ui::EditorActions)
+// ---------------------------------------------------------------------------
+
+void PluginEditor::refreshSoftKeys(const mws::engine::ParamSnapshot& snapshot)
+{
+    const auto& spec = specForSnapshot(snapshot);
+    const auto labels = ui::softKeyLabels(snapshot, spec);
+    for (int i = 0; i < ui::softkey::kCount; ++i)
+    {
+        softKeyBar.setKeyLabel(i, juce::String(labels[(std::size_t) i]));
+        softKeyBar.setKeyEnabled(i, ui::softKeyEnabled(i, snapshot, spec));
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -249,6 +383,11 @@ void PluginEditor::mouseDoubleClick(const juce::MouseEvent& event)
             return;
         }
     }
+
+    // Double-clicking the LCD away from an editable field opens the typed
+    // source-BPM entry (the "typed" half of the SYNC flow, ui-design §6.2.4 —
+    // the F7 soft key is the tap half).
+    openSyncTextEditor();
 }
 
 void PluginEditor::openFieldTextEditor()
@@ -299,6 +438,155 @@ void PluginEditor::closeFieldTextEditor(bool commit)
     else
         fieldEditor.cancelText();
 
+    refreshLcd();
+}
+
+// ---------------------------------------------------------------------------
+// Soft-key actions (ui-design §6.1–§6.4)
+// ---------------------------------------------------------------------------
+
+EngineHost::Zone PluginEditor::currentZone() const noexcept
+{
+    const auto total = waveform.sourceFrames();
+    if (total <= 0)
+        return {};  // {0, 1}: full source (no selection yet)
+
+    EngineHost::Zone z;
+    z.start = juce::jlimit(0.0, 1.0,
+                           (double) waveform.zoneStart() / (double) total);
+    z.end = juce::jlimit(0.0, 1.0, (double) waveform.zoneEnd() / (double) total);
+    return z;
+}
+
+void PluginEditor::handleSoftKey(int index)
+{
+    switch (index)
+    {
+        case ui::softkey::kTime:  grabKeyboardFocus(); break;  // F1: page focus
+        case ui::softkey::kAutC:  doAutoCycle(); break;        // F2: auto cycle
+        case ui::softkey::kZone:                               // F3: ZONE preview
+        {
+            const auto snapshot = processor.makeParamSnapshot();
+            const bool on = ! processor.engineHost().zonePreviewActive();
+            processor.engineHost().setZonePreview(on, currentZone(), snapshot);
+            break;
+        }
+        case ui::softkey::kGo:    doGoRender(); break;         // F4: GO render
+        case ui::softkey::kPlay:  doPlay(); break;             // F5: PLAY
+        case ui::softkey::kAb:    doAbToggle(); break;         // F6: A/B
+        case ui::softkey::kSync:  doSyncEntry(); break;        // F7: SYNC
+        case ui::softkey::kAbort:                              // F8: ABORT (hold)
+            processor.engineHost().requestAbort();
+            break;
+        default: break;
+    }
+    refreshLcd();
+}
+
+void PluginEditor::doAutoCycle()
+{
+    // F2 autC / AUTO-D: run the task-014 detector over the selected zone (on
+    // this message thread — AutoCycle allocates, not RT-safe) and land the
+    // result in the cycleLen parameter (ui-design §6.2 step 3). The autoCycle
+    // trigger parameter is the §2 momentary signal: set it, consume, reset.
+    auto* trigger = processor.parameterState().getParameter(paramid::autoCycle);
+    if (trigger != nullptr)
+        trigger->setValueNotifyingHost(1.0f);
+
+    // Detect over the loaded source's selected zone (nullptr → documented
+    // fallback). The loader holds the published source; we read it directly.
+    std::shared_ptr<const mws::core::AudioBuffer> source;
+    if (auto loaded = fileLoader.currentSource())
+        source = std::make_shared<const mws::core::AudioBuffer>(loaded->audio);
+
+    const int detected =
+        ui::autoCycleForZone(source, waveform.zoneStart(), waveform.zoneEnd());
+
+    if (auto* cycleParam = processor.parameterState().getParameter(paramid::cycleLen))
+        cycleParam->setValueNotifyingHost(
+            cycleParam->convertTo0to1(static_cast<float>(detected)));
+
+    // Consume + self-reset the momentary trigger.
+    if (trigger != nullptr)
+        trigger->setValueNotifyingHost(0.0f);
+}
+
+void PluginEditor::doGoRender()
+{
+    // F4 GO: enqueue an offline render of the selected zone (ui-design §6.3
+    // step 2). Progress / refusal / done arrive on the worker FIFO (pollEngine).
+    const auto snapshot = processor.makeParamSnapshot();
+    exportService.setRenderParams(snapshot);
+    processor.engineHost().requestRender(snapshot, currentZone());
+}
+
+void PluginEditor::doPlay()
+{
+    // F5 PLAY: audition the render (B) from its head (ui-design §6.3 step 3).
+    auto& host = processor.engineHost();
+    host.setAuditionSource(mws::plugin::AuditionSource::Render);
+    host.startSamplePlayback();
+    waveform.setRenderProminent(true);
+}
+
+void PluginEditor::doAbToggle()
+{
+    // F6 A/B: flip the audition source and the waveform's prominent layer
+    // (ui-design §6.3 step 3).
+    auto& host = processor.engineHost();
+    const bool toRender = host.auditionSource() == mws::plugin::AuditionSource::Original;
+    host.setAuditionSource(toRender ? mws::plugin::AuditionSource::Render
+                                    : mws::plugin::AuditionSource::Original);
+    waveform.setRenderProminent(toRender);
+}
+
+void PluginEditor::doSyncEntry()
+{
+    // F7 SYNC: source-BPM entry (ui-design §6.2 step 4 — "typed or tap"). Each
+    // F7 press is a tap; the running tap average sets the source BPM. A
+    // double-click on the sync LCD line opens the typed overlay (openSync...).
+    const double bpm = tapTempo.tap((double) juce::Time::getMillisecondCounter());
+    if (bpm > 0.0)
+        processor.engineHost().setSourceBpm(bpm, /*userSet=*/true);
+}
+
+void PluginEditor::openSyncTextEditor()
+{
+    // Typed source-BPM entry overlay (the "typed" half of ui-design §6.2.4).
+    syncTextEditor = std::make_unique<juce::TextEditor>("syncBpmEntry");
+    syncTextEditor->setText(juce::String(processor.engineHost().sourceBpm(), 1),
+                            juce::dontSendNotification);
+    syncTextEditor->setJustification(juce::Justification::centredLeft);
+    syncTextEditor->setSelectAllWhenFocused(true);
+    syncTextEditor->setTitle("Source BPM");
+    syncTextEditor->onReturnKey = [this] { closeSyncTextEditor(/*commit*/ true); };
+    syncTextEditor->onEscapeKey = [this] { closeSyncTextEditor(/*commit*/ false); };
+    syncTextEditor->onFocusLost = [this] { closeSyncTextEditor(/*commit*/ true); };
+
+    // Anchor the overlay over the LCD glass (the SYNC readout line region).
+    addAndMakeVisible(*syncTextEditor);
+    auto cells = lcd.getBounds().reduced(lcd.getWidth() / 4, lcd.getHeight() / 3);
+    syncTextEditor->setBounds(cells);
+    syncTextEditor->grabKeyboardFocus();
+}
+
+void PluginEditor::closeSyncTextEditor(bool commit)
+{
+    if (syncTextEditor == nullptr)
+        return;
+
+    const juce::String typed = syncTextEditor->getText().trim();
+
+    auto editor = std::move(syncTextEditor);
+    syncTextEditor.reset();
+    editor.reset();
+
+    if (commit)
+    {
+        const double bpm = typed.getDoubleValue();
+        if (bpm > 0.0)
+            processor.engineHost().setSourceBpm(bpm, /*userSet=*/true);
+    }
     refreshLcd();
 }
 
