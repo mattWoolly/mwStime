@@ -1,7 +1,7 @@
 ---
 id: 047
 title: Resizable editor — fixed aspect 0.6×–2.0×, scale persisted in state
-status: todo
+status: in-review
 depends-on: [029, 045b]
 component: ui
 estimated-size: S

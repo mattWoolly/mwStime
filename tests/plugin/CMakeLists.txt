@@ -39,6 +39,7 @@ target_sources(mwstime_plugin_tests
         test_editor_wiring.cpp
         test_editor_actions.cpp
         test_modelswitch.cpp
+        test_resize.cpp
         "${CMAKE_SOURCE_DIR}/plugin/src/EngineHost.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/MidiVoice.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/ExportService.cpp"

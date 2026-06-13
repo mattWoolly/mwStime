@@ -5,6 +5,7 @@
 
 #include "../ui/ControlPanel.h"
 #include "../ui/EditorActions.h"
+#include "../ui/EditorResize.h"
 #include "../ui/Faceplate.h"
 #include "../ui/JogWheel.h"
 #include "../ui/LcdDisplay.h"
@@ -49,8 +50,33 @@ public:
 
     void resized() override;
     void mouseDoubleClick(const juce::MouseEvent& event) override;
+    void mouseDown(const juce::MouseEvent& event) override;
 
 private:
+    /// Persist the current scale (width / base width, clamped) into the
+    /// processor's non-parameter state tree (uiState/scaleFactor) so a host
+    /// session save/reload restores the editor size (architecture.md §6;
+    /// ui-design §5). Called on resize-end (corner drag) and on a menu scale
+    /// pick.
+    void persistScale();
+
+    /// Resize the editor to a fixed scale multiple of the base canvas (the
+    /// 75/100/150/200% hamburger entries) and persist it.
+    void applyScale(double scale);
+
+    /// Show the §1 region-1 hamburger menu (about / manual / scale).
+    void showHamburgerMenu();
+
+    /// Constrainer that persists the scale when the user finishes a corner drag
+    /// (JUCE calls resizeEnd at the end of an interactive resize). Programmatic
+    /// resizes (menu picks, restore-on-open) persist explicitly via applyScale.
+    struct ScaleConstrainer final : juce::ComponentBoundsConstrainer
+    {
+        explicit ScaleConstrainer(PluginEditor& ownerEditor) : owner(ownerEditor) {}
+        void resizeEnd() override { owner.persistScale(); }
+        PluginEditor& owner;
+    };
+
     /// UI poll rate (architecture.md §4 FIFO → timer poll). 30 Hz (PI).
     static constexpr int kPollHz = 30;
 
@@ -158,6 +184,17 @@ private:
     ui::ClampMemory clampMemory_;
     /// The model the editor last styled, so a switch knows what it is leaving.
     mws::model::ModelId currentModel_ = mws::model::ModelId::S1000;
+
+    // Fixed-aspect 0.6×–2.0× resize (task 047, ui-design §5). The constrainer
+    // locks the 1000/380 aspect + 600×228 / 2000×760 limits and persists the
+    // scale on corner-drag end; the corner grip is the bottom-right handle.
+    ScaleConstrainer constrainer{ *this };
+    std::unique_ptr<juce::ResizableCornerComponent> resizerCorner;
+
+    // Guards persistScale() from firing during the restore-on-open setSize and
+    // during a programmatic applyScale (we persist those explicitly), so an
+    // intermediate JUCE resized() can never overwrite the value we are setting.
+    bool suppressScalePersist_ = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginEditor)
 };

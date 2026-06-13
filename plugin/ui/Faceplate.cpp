@@ -118,7 +118,9 @@ void drawHeader(juce::Graphics& g, const FaceplateSpec& spec,
                    juce::Justification::centredBottom);
     }
 
-    // Hamburger menu placeholder (about/scale/manual — wired later).
+    // Hamburger menu glyph (about/scale/manual). The PluginEditor hit-tests this
+    // same header-right region on mouseDown and opens the PopupMenu (task 047);
+    // the glyph itself is drawn here so the cached static layer carries it.
     {
         auto menu = area.removeFromRight(area.getHeight() * 1.1f).reduced(3.0f * scale);
         g.setColour(spec.legend.withAlpha(0.18f));
