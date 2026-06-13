@@ -20,6 +20,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 
 #include "mws/core/Buffer.h"
 #include "mws/engine/Params.h"
@@ -35,6 +36,23 @@ enum class FadeShape : std::uint8_t { Linear };
 
 /// Rounding rule for the CLASSIC integer input hop (dsp-engine.md §3.1).
 enum class HopRounding : std::uint8_t { RoundNearest };
+
+/// One grain launch of the §3.4 scheduler, reported through the optional
+/// test-observation hook (plan/backlog/012 — stereo coherence: stereo runs two
+/// linked instances with an identical, shared hop schedule, dsp-engine.md §3
+/// intro / §3.4 stereo edge rule, so the launch schedule must be observable).
+struct GrainLaunch
+{
+    std::int64_t outIndex = 0; ///< output sample index where the grain starts playing
+    double srcOffset = 0.0;    ///< input start offset (integer-valued in CLASSIC,
+                               ///< fractional in REVISED)
+};
+
+/// Observation hook over the hop schedule. Test-only instrumentation: the
+/// default (nullptr) path performs no observation and stays allocation-free;
+/// when present it is invoked once per grain launch and MUST NOT change the
+/// rendered output (testing-strategy.md §3.6 determinism).
+using GrainLaunchObserver = std::function<void(const GrainLaunch&)>;
 
 /// The cyclic timestretch engine (offline, mono). Stateless across renders:
 /// the same (input, parameters) always yields bit-identical output.
@@ -83,10 +101,17 @@ public:
     /// Parameter-range clamping (superset/model) is NOT done here — ModelSpec
     /// is the single clamping authority. The engine only enforces its own
     /// arithmetic safety (hop_in >= 1, C >= 1, T >= 1%).
+    ///
+    /// `onGrainLaunch` (optional, default off) observes the hop schedule for
+    /// tests (plan/backlog/012): invoked once per grain launch, including the
+    /// initial grain at {0, 0}. Passing nullptr (the default) keeps the render
+    /// path allocation-free and unchanged; the observer never alters output.
     [[nodiscard]] core::AudioBuffer render(core::ConstAudioView src,
                                            int cycleLenSamples,
                                            double timeFactorPct,
-                                           engine::HopMode mode) const;
+                                           engine::HopMode mode,
+                                           const GrainLaunchObserver* onGrainLaunch
+                                           = nullptr) const;
 
     /// Output length the scheduler will produce, derived from the §3.4
     /// schedule (used by the LCD later):
