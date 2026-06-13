@@ -23,6 +23,7 @@ target_sources(mwstime_plugin_tests
         test_lcdfont.cpp
         test_lcdpagemodel.cpp
         test_inputcluster.cpp
+        test_waveformview.cpp
         "${CMAKE_SOURCE_DIR}/plugin/src/state/Parameters.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/state/StateTree.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/state/Migrations.cpp"
@@ -31,6 +32,7 @@ target_sources(mwstime_plugin_tests
         "${CMAKE_SOURCE_DIR}/plugin/ui/LcdPageModel.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/ui/JogWheel.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/ui/SoftKeyBar.cpp"
+        "${CMAKE_SOURCE_DIR}/plugin/ui/WaveformView.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/ui/lookandfeel/SeriesLookAndFeel.cpp"
 )
 
