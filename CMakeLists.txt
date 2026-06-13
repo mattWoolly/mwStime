@@ -20,10 +20,15 @@ option(MWS_BUILD_PLUGIN "Build the JUCE plugin (plugin/ — task 027)" ON)
 
 include(cmake/FetchCatch2.cmake)
 
+# Enable testing BEFORE any add_subdirectory so catch_discover_tests in the
+# tools/ tree (task 025) registers there too — CTest registration needs testing
+# active in the current/parent scope at the call site.
+enable_testing()
+
 add_subdirectory(libs/mwstime-core)   # mwstime_core (static, JUCE-free)
 
-# CLI golden-render driver — task 025:
-# add_subdirectory(tools/mwstime-render)
+# CLI golden-render driver — task 025 (links only mwstime_core, no JUCE):
+add_subdirectory(tools/mwstime-render)
 
 # JUCE plugin — task 027. Guarded: the directory may not exist yet. JUCE and
 # clap-juce-extensions (both pinned tags) are fetched only when the plugin is
@@ -34,5 +39,4 @@ if(MWS_BUILD_PLUGIN AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/plugin/CMakeLists.tx
     add_subdirectory(plugin)
 endif()
 
-enable_testing()
 add_subdirectory(tests)
