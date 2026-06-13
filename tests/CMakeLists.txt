@@ -32,6 +32,12 @@ add_executable(mwstime_tests
     # JUCE-free core test binary because Published.h depends only on the C++20
     # standard library — so it builds and runs cleanly under the `tsan` preset.
     plugin/test_publication.cpp
+    # FX history-reconfiguration handoff + processor-level null / automation-spam
+    # (task 033). Lives here (not in the JUCE plugin test binary) because
+    # FxEngine.h is JUCE-free — so the FX reconfiguration TSan path runs under the
+    # `tsan` preset, which has MWS_BUILD_PLUGIN=OFF (testing-strategy.md §3.6
+    # names this path explicitly).
+    unit/test_enginehost_fx_reconfig.cpp
 )
 
 target_include_directories(mwstime_tests
@@ -68,6 +74,20 @@ add_test(
 )
 set_tests_properties(
     "publication: tsan-labelled concurrency (publish/swap + graveyard)"
+    PROPERTIES LABELS tsan
+)
+
+# FX history reconfiguration TSan path (task 033 deliverable: "the model/
+# bandwidth/FS reconfiguration handoff test carries CTest label `tsan` and runs
+# under the task-030 `tsan` preset" — testing-strategy.md §3.6). The name begins
+# with "enginehost" so `ctest -R enginehost` selects it too, and `ctest -L tsan`
+# selects exactly the [tsan]-tagged FX-reconfig concurrency case.
+add_test(
+    NAME "enginehost: tsan-labelled FX history reconfiguration handoff"
+    COMMAND mwstime_tests "[enginehost][tsan]"
+)
+set_tests_properties(
+    "enginehost: tsan-labelled FX history reconfiguration handoff"
     PROPERTIES LABELS tsan
 )
 

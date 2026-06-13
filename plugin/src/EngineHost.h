@@ -26,8 +26,10 @@
 #pragma once
 
 #include <atomic>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <vector>
 
 #include <juce_audio_basics/juce_audio_basics.h> // juce::AbstractFifo
 #include <juce_core/juce_core.h>                  // juce::Thread, juce::WaitableEvent
@@ -35,8 +37,14 @@
 #include "mws/core/Buffer.h"
 #include "mws/engine/OfflineRenderer.h"
 #include "mws/engine/Params.h"
+#include "mws/engine/RealtimeStretcher.h"
 
+#include "FxEngine.h"
 #include "Published.h"
+
+namespace mws::ui::waveform {
+class ScopeFifo; // FX input-scope feed; declared in plugin/ui/WaveformView.h (consumer 043/045b)
+}
 
 namespace mws::plugin {
 
@@ -149,6 +157,66 @@ public:
         (void) published_.retire(ptr);
     }
 
+    // --- FX path (task 033) ---------------------------------------------------
+    //
+    // FX mode runs RealtimeStretcher (FREE + SYNC) directly in processBlock via
+    // the FxEngine wrapper. prepareToPlay computes/reports the latency; the
+    // message thread reconfigures the engine (and re-reports latency) when a
+    // non-automatable, latency-relevant input (model/bandwidth/FS/character)
+    // changes — through the same RCU/graveyard publication protocol as renders.
+
+    /// Decimation stride for the FX input scope feed (architecture.md §4
+    /// FIFO→timer-poll; ui-design §6.4). One in `kScopeDecimation` input samples
+    /// (channel 0) is pushed — enough for a rolling scope without flooding the
+    /// FIFO.
+    static constexpr int kScopeDecimation = 8;
+
+    /// prepareToPlay (message thread): allocate + prepare the FX engine for
+    /// `params` at `hostRate`. Returns the reported FX latency in host samples
+    /// (the caller passes it to setLatencySamples).
+    int prepareFx(double hostRate, int maxBlockFrames, std::size_t numChannels,
+                  const mws::engine::ParamSnapshot& params);
+
+    /// Message thread (APVTS-change / timer poll): reconfigure the FX engine if a
+    /// non-automatable, latency-relevant input changed. Returns true iff the
+    /// latency was re-reported (so the processor calls setLatencySamples). No-op
+    /// when only automatable params (timeFactor/cycleLen/hopMode) changed.
+    bool reconfigureFxIfNeeded(const mws::engine::ParamSnapshot& params);
+
+    /// Reported FX latency in host samples (dsp-engine.md §7.4). Message thread.
+    [[nodiscard]] int fxLatencySamples() const noexcept { return fx_.latencySamples(); }
+
+    /// Audio thread: process one FX block in place over the JUCE channel
+    /// pointers. Snapshots params -> feeds transport -> RealtimeStretcher -> out
+    /// trim, and pushes the decimated channel-0 input into the scope FIFO. Pass a
+    /// transport for SYNC mode (FREE ignores it). Allocation/lock/IO-free.
+    void processFxBlock(float* const* channelData, int numChannels, int numFrames,
+                        const mws::engine::ParamSnapshot& params,
+                        const mws::engine::RealtimeStretcher::TransportInfo& transport) noexcept;
+
+    /// Message thread: free retired FX engines HERE (folded into the same timer
+    /// poll that drains the render graveyard).
+    std::size_t collectFxGarbage() noexcept { return fx_.collectGarbage(); }
+
+    /// The FX-mode input-scope FIFO (the producer is processFxBlock; the consumer
+    /// is WaveformView, wired in 043/045b). Owned here; non-owning pointer handed
+    /// to the view. nullptr until prepareFx() has run.
+    [[nodiscard]] mws::ui::waveform::ScopeFifo* scopeFifo() const noexcept
+    {
+        return scopeFifo_.get();
+    }
+
+    /// LCD feedback (task 041 consumer): the ADR-006 FREE causality clamp is
+    /// engaged (`FX MIN 100%`).
+    [[nodiscard]] bool fxClampActive() const noexcept { return fx_.clampActive(); }
+
+    /// LCD feedback (task 041 consumer): the S900/S950 mono-sum flag
+    /// (dsp-engine.md §5).
+    [[nodiscard]] bool fxMonoSummed() const noexcept { return fx_.monoSummed(); }
+
+    /// Test accessor: the FX engine wrapper (model rate / clamp flag / dirty).
+    [[nodiscard]] FxEngine& fxEngine() noexcept { return fx_; }
+
 private:
     /// A queued render request (POD). The source buffer is NOT carried here —
     /// the worker reads the latest published source — so the request stays
@@ -211,6 +279,18 @@ private:
 
     juce::WaitableEvent wake_{};
     Worker worker_{ *this };
+
+    // --- FX path (task 033) ---------------------------------------------------
+    FxEngine fx_{};
+
+    // Scratch channel-view arrays so processFxBlock allocates nothing per block
+    // (sized to the prepared channel count in prepareFx).
+    std::vector<mws::core::ConstAudioView> fxIns_{};
+    std::vector<mws::core::AudioView> fxOuts_{};
+
+    // The FX input-scope FIFO (heap so EngineHost.h need not include the GUI
+    // header that declares ScopeFifo). Allocated in prepareFx (message thread).
+    std::unique_ptr<mws::ui::waveform::ScopeFifo> scopeFifo_{};
 };
 
 } // namespace mws::plugin

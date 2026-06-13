@@ -26,6 +26,7 @@ target_sources(mwstime_plugin_tests
         test_waveformview.cpp
         test_controlpanel.cpp
         test_enginehost.cpp
+        test_enginehost_fx.cpp
         test_fileloader.cpp
         "${CMAKE_SOURCE_DIR}/plugin/src/EngineHost.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/FileLoader.cpp"

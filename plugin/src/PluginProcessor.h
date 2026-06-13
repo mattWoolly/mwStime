@@ -7,21 +7,24 @@
 
 #include <juce_audio_utils/juce_audio_utils.h>
 
+#include "EngineHost.h"
 #include "state/Parameters.h"
 #include "state/StateTree.h"
 
 namespace mws::plugin {
 
-/// Passthrough plugin shell (task 027) + the full APVTS parameter layout
-/// (task 028, dsp-engine.md §2) + versioned non-parameter state with
-/// migrations (task 029, architecture.md §6). Stereo in/out, MIDI input
-/// accepted but ignored for now; no allocation in processBlock. The engine
-/// arrives in tasks 030+.
-class PluginProcessor final : public juce::AudioProcessor
+/// The plugin shell (task 027) + the full APVTS parameter layout (task 028,
+/// dsp-engine.md §2) + versioned non-parameter state with migrations (task 029)
+/// + the FX-mode RealtimeStretcher path with latency reporting (task 033).
+/// Stereo in/out, MIDI input accepted but ignored for now; processBlock is
+/// allocation/lock/IO-free (architecture.md §4). SAMPLE-mode playback (034) is
+/// dry passthrough for now (explicit per ADR-006 mode default).
+class PluginProcessor final : public juce::AudioProcessor,
+                              private juce::AudioProcessorValueTreeState::Listener
 {
 public:
     PluginProcessor();
-    ~PluginProcessor() override = default;
+    ~PluginProcessor() override;
 
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
@@ -69,11 +72,26 @@ public:
         return params.makeSnapshot();
     }
 
+    /// The threading + FX engine backbone (tasks 030/033). Editor/UI tasks
+    /// reach the render worker, the FX scope FIFO, etc. through here.
+    [[nodiscard]] EngineHost& engineHost() noexcept { return engine; }
+
 private:
+    /// APVTS listener (message thread): a non-automatable, latency-relevant
+    /// change (model/bandwidth/FS/character) reconfigures the FX engine and
+    /// re-reports the latency. Automatable params never reach this path.
+    void parameterChanged(const juce::String& parameterID, float newValue) override;
+
+    /// Reads the host transport (AudioPlayHead) into the engine's plain
+    /// TransportInfo struct for SYNC mode (no JUCE inside the engine — §5.2).
+    [[nodiscard]] mws::engine::RealtimeStretcher::TransportInfo readTransport() noexcept;
+
     juce::AudioProcessorValueTreeState apvts;
     Parameters params;
     juce::ValueTree stateTree = state::createDefault();
     std::function<void()> onReRenderRequested;
+
+    EngineHost engine;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginProcessor)
 };

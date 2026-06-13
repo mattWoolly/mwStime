@@ -6,7 +6,14 @@
 
 #include "EngineHost.h"
 
+#include <algorithm>
 #include <utility>
+
+// ScopeFifo lives in the UI tree but its push/pushDecimated are the only
+// audio-thread code it carries (plugin/ui/WaveformView.cpp); EngineHost owns one
+// as the FX-scope producer. Included here (not in EngineHost.h) so the header
+// stays GUI-free and FxEngine.h compiles into the JUCE-free core test binary.
+#include "ui/WaveformView.h"
 
 namespace mws::plugin {
 
@@ -194,6 +201,68 @@ void EngineHost::pushFinished(std::uint64_t requestId, RenderOutcome outcome) no
 bool EngineHost::workerShouldExit() const noexcept
 {
     return worker_.shouldExit();
+}
+
+// --- FX path (task 033) ------------------------------------------------------
+
+int EngineHost::prepareFx(double hostRate, int maxBlockFrames,
+                          std::size_t numChannels,
+                          const mws::engine::ParamSnapshot& params)
+{
+    fx_.prepare(hostRate, maxBlockFrames, numChannels, params);
+
+    // Per-block channel-view scratch, sized once here so processFxBlock never
+    // allocates (architecture.md §4).
+    fxIns_.assign(numChannels, mws::core::ConstAudioView{});
+    fxOuts_.assign(numChannels, mws::core::AudioView{});
+
+    // The FX input scope FIFO (one rolling window of decimated samples). Sized
+    // generously: a worst-case block at the smallest decimation still fits with
+    // wide margin against the 30 Hz UI drain.
+    if (!scopeFifo_)
+        scopeFifo_ =
+            std::make_unique<mws::ui::waveform::ScopeFifo>(/*capacity=*/8192);
+
+    return fx_.latencySamples();
+}
+
+bool EngineHost::reconfigureFxIfNeeded(const mws::engine::ParamSnapshot& params)
+{
+    if (!fx_.requestReconfigure(params))
+        return false;
+    return fx_.consumeLatencyDirty();
+}
+
+void EngineHost::processFxBlock(
+    float* const* channelData, int numChannels, int numFrames,
+    const mws::engine::ParamSnapshot& params,
+    const mws::engine::RealtimeStretcher::TransportInfo& transport) noexcept
+{
+    if (numChannels <= 0 || numFrames <= 0)
+        return;
+
+    const auto chans = static_cast<std::size_t>(numChannels);
+    const auto frames = static_cast<std::size_t>(numFrames);
+
+    // The scratch arrays were sized in prepareFx to the prepared channel count;
+    // never grow them on the audio thread. If the host hands us more channels
+    // than prepared (should not happen with the fixed stereo bus), clamp.
+    const auto n = std::min<std::size_t>(chans, fxIns_.size());
+    if (n == 0)
+        return;
+
+    for (std::size_t ch = 0; ch < n; ++ch)
+    {
+        fxIns_[ch] = mws::core::ConstAudioView{ channelData[ch], frames };
+        fxOuts_[ch] = mws::core::AudioView{ channelData[ch], frames };
+    }
+
+    // FX input scope feed: push channel-0 decimated samples (architecture.md §4
+    // FIFO→timer poll). Producer-side decimation; drops when full (never blocks).
+    if (scopeFifo_ != nullptr)
+        scopeFifo_->pushDecimated(channelData[0], numFrames, kScopeDecimation);
+
+    fx_.processBlock(fxIns_.data(), fxOuts_.data(), n, params, transport);
 }
 
 } // namespace mws::plugin
