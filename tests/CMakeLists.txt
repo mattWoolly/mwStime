@@ -28,15 +28,48 @@ add_executable(mwstime_tests
     unit/test_tempomap.cpp
     unit/test_transpose.cpp
     unit/test_varclock.cpp
+    # Threading: RCU publication protocol stress / TSan (task 030). Lives in the
+    # JUCE-free core test binary because Published.h depends only on the C++20
+    # standard library — so it builds and runs cleanly under the `tsan` preset.
+    plugin/test_publication.cpp
 )
+
+target_include_directories(mwstime_tests
+    PRIVATE
+        # Published.h (the RCU publication mechanism, task 030) lives in the
+        # plugin tree but is deliberately JUCE-free; the core test binary
+        # includes it directly for the publication stress / TSan test.
+        "${CMAKE_SOURCE_DIR}/plugin/src"
+        # TestAllocationCounter.h (shared global new-counter, task 005) so the
+        # publication test can assert the audio-thread path allocates nothing.
+        "${CMAKE_CURRENT_SOURCE_DIR}/unit"
+)
+
+find_package(Threads REQUIRED)
 
 target_link_libraries(mwstime_tests
     PRIVATE
         mwstime_core
         Catch2::Catch2WithMain
+        Threads::Threads
 )
 
 catch_discover_tests(mwstime_tests)
+
+# Explicit CTest entry for the publish/swap concurrency subset so it carries the
+# `tsan` LABEL (task 030 deliverable: "the publish/swap and abort tests carry
+# CTest label `tsan` and run under that preset"). Catch2 3.7.x does not map tags
+# to CTest labels, so we register the [tsan]-tagged Catch cases as one labelled
+# test. The name begins with "publication" so `ctest -R publication` selects it
+# too, and `ctest -L tsan` selects exactly the concurrency cases.
+add_test(
+    NAME "publication: tsan-labelled concurrency (publish/swap + graveyard)"
+    COMMAND mwstime_tests "[tsan]"
+)
+set_tests_properties(
+    "publication: tsan-labelled concurrency (publish/swap + graveyard)"
+    PROPERTIES LABELS tsan
+)
 
 # JUCE-linked plugin tests (tests/plugin/ — harness created by task 028 and
 # reused by every later tests/plugin/ task). Only built when the plugin is.
