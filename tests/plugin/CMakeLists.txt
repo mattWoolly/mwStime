@@ -28,6 +28,7 @@ target_sources(mwstime_plugin_tests
         test_controlpanel.cpp
         test_enginehost.cpp
         test_enginehost_fx.cpp
+        test_temposync.cpp
         test_fileloader.cpp
         test_sample_mode.cpp
         test_alloc_counter.cpp

@@ -9,8 +9,12 @@
 #include "SamplePlayer.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cmath>
+#include <cstdlib>
 #include <utility>
+
+#include "mws/engine/TempoMap.h"
 
 // ScopeFifo lives in the UI tree but its push/pushDecimated are the only
 // audio-thread code it carries (plugin/ui/WaveformView.cpp); EngineHost owns one
@@ -316,7 +320,163 @@ void EngineHost::processFxBlock(
     if (scopeFifo_ != nullptr)
         scopeFifo_->pushDecimated(channelData[0], numFrames, kScopeDecimation);
 
-    fx_.processBlock(fxIns_.data(), fxOuts_.data(), n, params, transport);
+    // Host tempo sync (task 037): when tempoSync == HOST, derive the effective
+    // time factor from sourceBPM + hostBPM and OVERRIDE it on a snapshot copy —
+    // the caller's snapshot (and the APVTS automation value behind it) is never
+    // mutated (architecture.md §6 clamp/override pattern). SYNC OFF returns the
+    // snapshot unchanged.
+    const mws::engine::ParamSnapshot effective = applyTempoSync(params, transport);
+
+    fx_.processBlock(fxIns_.data(), fxOuts_.data(), n, effective, transport);
+}
+
+// --- Host tempo sync (task 037) ----------------------------------------------
+
+void EngineHost::setSourceBpm(double bpm, bool userSet) noexcept
+{
+    if (bpm > 0.0)
+    {
+        sourceBpm_.store(bpm, std::memory_order_release);
+        sourceBpmUserSet_.store(userSet, std::memory_order_release);
+    }
+    else
+    {
+        // Non-positive clears the value back to "unknown" and drops the
+        // user-set latch so a later filename guess can populate it.
+        sourceBpm_.store(0.0, std::memory_order_release);
+        sourceBpmUserSet_.store(false, std::memory_order_release);
+    }
+}
+
+bool EngineHost::guessSourceBpmFromFilename(const std::string& fileName) noexcept
+{
+    // Never clobber an explicit user/typed/tap value (ui-design §6.2 step 4).
+    if (sourceBpmUserSet_.load(std::memory_order_acquire))
+        return false;
+
+    // Scan for a `(\d+(?:\.\d+)?)bpm` tag, case-insensitive. Hand-rolled (no
+    // <regex> — it is heavyweight and this runs on the message thread on load):
+    // find each case-insensitive "bpm" and read the contiguous numeric run that
+    // immediately precedes it. The LAST such tag in the name wins (filenames
+    // put the tempo nearest the descriptive suffix, e.g. `amen_174bpm.wav`).
+    const auto lower = [](char c) {
+        return static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    };
+    double found = 0.0;
+    bool any = false;
+    const std::size_t n = fileName.size();
+    for (std::size_t i = 0; i + 3 <= n; ++i)
+    {
+        if (lower(fileName[i]) != 'b' || lower(fileName[i + 1]) != 'p'
+            || lower(fileName[i + 2]) != 'm')
+            continue;
+
+        // Walk backwards over an optional fractional number directly before it.
+        std::size_t end = i;          // one-past the last digit/dot
+        std::size_t start = i;        // first digit/dot
+        bool seenDigit = false;
+        bool seenDot = false;
+        while (start > 0)
+        {
+            const char c = fileName[start - 1];
+            if (c >= '0' && c <= '9')
+            {
+                seenDigit = true;
+                --start;
+            }
+            else if (c == '.' && !seenDot)
+            {
+                seenDot = true;
+                --start;
+            }
+            else
+            {
+                break;
+            }
+        }
+        if (!seenDigit || start >= end)
+            continue;
+
+        // Parse [start, end) as a decimal (guard a leading/lone '.').
+        const std::string token = fileName.substr(start, end - start);
+        char* endPtr = nullptr;
+        const double value = std::strtod(token.c_str(), &endPtr);
+        if (endPtr != token.c_str() && value > 0.0)
+        {
+            found = value;
+            any = true;
+        }
+    }
+
+    if (!any)
+        return false;
+
+    // Adopt as a NON-user value (still overridable by a future user entry).
+    sourceBpm_.store(found, std::memory_order_release);
+    sourceBpmUserSet_.store(false, std::memory_order_release);
+    return true;
+}
+
+mws::engine::ParamSnapshot EngineHost::applyTempoSync(
+    const mws::engine::ParamSnapshot& params,
+    const mws::engine::RealtimeStretcher::TransportInfo& transport) noexcept
+{
+    using mws::engine::TempoMap;
+
+    // Track the last positive host tempo for the no-transport fallback (mirrors
+    // the stretcher's own lastKnownBpm retention for the window math — here it
+    // keeps the effective FACTOR sensible when a block reports no tempo).
+    if (transport.bpm > 0.0)
+        lastKnownHostBpm_.store(transport.bpm, std::memory_order_release);
+
+    if (params.tempoSync != mws::engine::TempoSync::Host)
+    {
+        syncReadoutActive_.store(false, std::memory_order_release);
+        return params;
+    }
+
+    const double source = sourceBpm_.load(std::memory_order_acquire);
+    double host = transport.bpm;
+    if (host <= 0.0)
+        host = lastKnownHostBpm_.load(std::memory_order_acquire);
+
+    // No usable BPM pair: leave the time factor (the automation value) as-is and
+    // mark the readout inactive — sync cannot compute a meaningful factor yet.
+    if (source <= 0.0 || host <= 0.0)
+    {
+        syncReadoutActive_.store(false, std::memory_order_release);
+        return params;
+    }
+
+    // Effective T = 100 * source / host (dsp-engine.md §2, direction-corrected).
+    double effectiveT = TempoMap::syncedTimeFactor(source, host);
+    // CLASSIC coerces to an integer percent (the readout shows the achieved
+    // value; the engine applies the same integer rounding internally).
+    if (params.hopMode == mws::engine::HopMode::Classic)
+        effectiveT = static_cast<double>(TempoMap::quantizeClassic(effectiveT));
+
+    // OVERRIDE the snapshot copy only — the ADR-006 FREE/SYNC clamp is applied
+    // downstream in RealtimeStretcher::applyParams (FREE: max(T,100); SYNC:
+    // compression allowed). The APVTS automation value is never touched.
+    mws::engine::ParamSnapshot effective = params;
+    effective.timeFactor = effectiveT;
+
+    // Refresh the readout cache (LCD poll, task 041).
+    syncReadoutSource_.store(source, std::memory_order_release);
+    syncReadoutHost_.store(host, std::memory_order_release);
+    syncReadoutResult_.store(effectiveT, std::memory_order_release);
+    syncReadoutActive_.store(true, std::memory_order_release);
+    return effective;
+}
+
+EngineHost::SyncReadout EngineHost::fxSyncReadout() const noexcept
+{
+    SyncReadout r;
+    r.active = syncReadoutActive_.load(std::memory_order_acquire);
+    r.sourceBpm = syncReadoutSource_.load(std::memory_order_acquire);
+    r.hostBpm = syncReadoutHost_.load(std::memory_order_acquire);
+    r.resultPercent = syncReadoutResult_.load(std::memory_order_acquire);
+    return r;
 }
 
 // --- SAMPLE path (task 034) --------------------------------------------------

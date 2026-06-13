@@ -203,6 +203,11 @@ void PluginProcessor::changeProgramName(int index, const juce::String& newName)
 
 void PluginProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
+    // Persist the SYNC source BPM (task 037): the engine holds the live value
+    // (set by typed/tap entry or the filename auto-guess) — mirror it into the
+    // state tree so a reloaded session restores it (architecture.md §6 field).
+    stateTree.setProperty(state::id::sourceBPM, engine.sourceBpm(), nullptr);
+
     // APVTS + versioned non-parameter tree (task 029) + the task-032 embedded
     // FLAC blob. The blob was pre-encoded on the file-loader thread and is
     // merely MEMCPY'd here — getStateInformation NEVER encodes on this (message)
@@ -225,6 +230,15 @@ void PluginProcessor::setStateInformation(const void* data, int sizeInBytes)
 
     stateTree = restored.stateTree; // already migrated + defaults-filled
 
+    // Restore the SYNC source BPM into the engine (task 037). A persisted,
+    // non-zero value is an intentional user value, so it is marked user-set —
+    // a later filename auto-guess must never clobber it (ui-design §6.2 step 4).
+    const double restoredSourceBpm =
+        static_cast<double>(stateTree.getProperty(state::id::sourceBPM,
+                                                  state::defaults::sourceBPM));
+    if (restoredSourceBpm > 0.0)
+        engine.setSourceBpm(restoredSourceBpm, /*userSet=*/true);
+
     // Keep the blob cache's embed policy in step with the restored state-tree
     // flag (default ON ≤ 16 MB encoded, dsp-engine.md §2) before we restore.
     blobCache_.setEmbedEnabled(
@@ -235,7 +249,9 @@ void PluginProcessor::setStateInformation(const void* data, int sizeInBytes)
     // resolve the sourceFile path + verify its content hash; then fire the
     // deterministic re-render with the saved snapshot (architecture.md §6).
     // The processor's re-render hook is parameterless (task-029 contract); the
-    // saved ParamSnapshot is the just-restored APVTS snapshot.
+    // saved ParamSnapshot is the just-restored APVTS snapshot. This supersedes
+    // the pre-032 hasRenderMetadata direct trigger (task 032 carries the
+    // re-render through the restore callback).
     blobCache_.restore(restored.embeddedAudioBlob, stateTree, makeParamSnapshot(),
                        [this](const mws::engine::ParamSnapshot&) {
                            if (onReRenderRequested)

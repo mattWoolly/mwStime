@@ -29,6 +29,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <string>
 #include <vector>
 
 #include <juce_audio_basics/juce_audio_basics.h> // juce::AbstractFifo
@@ -236,6 +237,51 @@ public:
     /// (dsp-engine.md §5).
     [[nodiscard]] bool fxMonoSummed() const noexcept { return fx_.monoSummed(); }
 
+    // --- Host tempo sync (task 037) -------------------------------------------
+    //
+    // When tempoSync == HOST in FX mode the effective time factor is derived
+    // from sourceBPM + hostBPM via TempoMap and applied AT THE ENGINE (an
+    // override on the per-block snapshot copy, never on the APVTS automation
+    // value — architecture.md §6 clamp/override pattern). The host BPM comes
+    // from the per-block transport (AudioPlayHead glue lives in the processor);
+    // the last-known host tempo is retained so a momentary "no transport" block
+    // keeps a sensible factor. The sourceBPM is plugin state with a setter API
+    // and a filename `_174bpm`-style auto-guess that never clobbers a user value.
+
+    /// The computed sync readout for the LCD model (task 041): the inputs and
+    /// the resulting effective time factor (CLASSIC integer-quantized when the
+    /// snapshot's hopMode is CLASSIC — dsp-engine.md §2). `active` is false
+    /// unless tempoSync == HOST with a usable source + host BPM. Updated on the
+    /// audio thread each FX block; read on the message thread (plain atomics).
+    struct SyncReadout
+    {
+        bool active = false;        ///< tempoSync == HOST with usable BPMs
+        double sourceBpm = 0.0;     ///< the source loop tempo
+        double hostBpm = 0.0;       ///< the host tempo (or last-known fallback)
+        double resultPercent = 0.0; ///< effective time factor the engine uses
+    };
+
+    /// Set the source loop BPM (message thread). `userSet` marks an explicit
+    /// user/typed/tap value so a later filename auto-guess never clobbers it
+    /// (overridable, ui-design §6.2 step 4). A non-positive value clears it
+    /// (back to "unknown").
+    void setSourceBpm(double bpm, bool userSet) noexcept;
+
+    /// Parse a `_174bpm`-style tempo tag from a loaded file name (the regex
+    /// `(\d+(?:\.\d+)?)bpm`, case-insensitive — ui-design §6.2 step 4) and adopt
+    /// it as the source BPM, but ONLY when the user has not set a value (never
+    /// clobbers). Returns true iff a tag was found AND adopted. Message thread.
+    bool guessSourceBpmFromFilename(const std::string& fileName) noexcept;
+
+    /// The current source BPM (0 == unknown). Message thread / tests.
+    [[nodiscard]] double sourceBpm() const noexcept
+    {
+        return sourceBpm_.load(std::memory_order_acquire);
+    }
+
+    /// The computed SYNC readout (task 041 consumer). Message thread / tests.
+    [[nodiscard]] SyncReadout fxSyncReadout() const noexcept;
+
     /// Test accessor: the FX engine wrapper (model rate / clamp flag / dirty).
     [[nodiscard]] FxEngine& fxEngine() noexcept { return fx_; }
 
@@ -376,6 +422,30 @@ private:
 
     // --- FX path (task 033) ---------------------------------------------------
     FxEngine fx_{};
+
+    // --- Host tempo sync (task 037) -------------------------------------------
+    // sourceBPM is plugin state (set on the message thread); the audio thread
+    // reads it each block to compute the effective time factor. lastKnownHostBpm
+    // is updated on the audio thread (last positive transport tempo) and read as
+    // the fallback when a block reports no transport tempo. The readout cache is
+    // written on the audio thread and read on the message thread (LCD poll).
+    std::atomic<double> sourceBpm_{ 0.0 };       ///< source loop BPM (0 = unknown)
+    std::atomic<bool> sourceBpmUserSet_{ false };///< explicit user/typed/tap value
+    std::atomic<double> lastKnownHostBpm_{ 0.0 };///< last positive transport tempo
+
+    std::atomic<bool> syncReadoutActive_{ false };
+    std::atomic<double> syncReadoutSource_{ 0.0 };
+    std::atomic<double> syncReadoutHost_{ 0.0 };
+    std::atomic<double> syncReadoutResult_{ 0.0 };
+
+    /// Audio thread: derive the effective time factor for a HOST-synced FX
+    /// block and refresh the readout cache. Returns the snapshot with
+    /// `timeFactor` overridden when sync is engaged (the input snapshot — and
+    /// thus the APVTS automation value — is never mutated); otherwise returns
+    /// `params` unchanged and marks the readout inactive.
+    [[nodiscard]] mws::engine::ParamSnapshot applyTempoSync(
+        const mws::engine::ParamSnapshot& params,
+        const mws::engine::RealtimeStretcher::TransportInfo& transport) noexcept;
 
     // Scratch channel-view arrays so processFxBlock allocates nothing per block
     // (sized to the prepared channel count in prepareFx).
