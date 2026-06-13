@@ -3,9 +3,36 @@
 //
 // RealtimeStretcher — the streaming FX front-end over the ONE shared two-grain
 // scheduler (plan/decisions/006-fx-vs-sample-mode.md option C; dsp-engine.md
-// §3.5; architecture.md §5.2). This task (022) implements the FREE-mode
-// causality contract; SYNC window mode is task 023 and the JUCE
+// §3.5; architecture.md §5.2). Task 022 implements the FREE-mode causality
+// contract; task 023 adds SYNC window mode (below); the JUCE
 // processBlock/character wiring is task 033.
+//
+// SYNC-mode contract (ADR-006 SYNC column; dsp-engine.md §3.5 SYNC bullet;
+// task 023), engaged when ParamSnapshot::tempoSync == TempoSync::Host:
+//   - The host transport is supplied per block via setTransport(TransportInfo)
+//     — plain data, no JUCE here (the AudioPlayHead glue is task 033/037).
+//   - At every transport-aligned `fxWindow` window boundary (boundaries from
+//     TempoMap, task 021) the read head HARD-RESYNCS to the start of the
+//     just-captured window (writePos - windowLen) — "stretch the last bar".
+//     The window length follows `fxWindow` (1/4…8 bars, default 1 bar).
+//   - T > 100%: the captured window plays stretched and fills the whole next
+//     window (the read head, advancing at < 1 sample/sample, never reaches the
+//     write head before the boundary). T = 100%: a 1:1 replay of the window.
+//   - T < 100% (allowed in SYNC, NOT clamped — unlike FREE): the captured
+//     window plays COMPRESSED (read head advances at > 1 sample/sample),
+//     finishes before the boundary, then the engine outputs exactly SILENCE to
+//     the window boundary (PI; loop-fill is a possible later option).
+//   - Resyncs occur ONLY at window boundaries — never mid-window. The FREE
+//     history-exhaustion resync is superseded: in SYNC the window boundary IS
+//     the resync rule, so a window never outruns its own captured content
+//     (windowLen <= history by construction within the supported tempo range).
+//   - Tempo changes mid-play: the next boundary is recomputed from the new
+//     tempo on the next block (the window follows the host — testing-strategy
+//     §6 REAPER row).
+//   - No transport / not playing: a wall-clock window from TempoMap's fallback
+//     (last-known tempo, else 120 BPM (PI)) — Standalone has no bar grid.
+//   - SYNC reuses the same scheduler, geometry, latency and ring as FREE; only
+//     the read-head reset policy differs.
 //
 // FREE-mode contract (ADR-006, normative):
 //   - T = 100%: pure delay of exactly the reported latency (null-testable
@@ -62,6 +89,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 
 #include "mws/core/Buffer.h"
 #include "mws/engine/Params.h"
@@ -155,6 +183,45 @@ public:
         observer_ = observer;
     }
 
+    // --- SYNC mode (task 023) ----------------------------------------------
+
+    /// Host transport snapshot consumed per block in SYNC mode. Plain data —
+    /// the JUCE AudioPlayHead glue that fills it is task 033/037. `playing`
+    /// false (or a non-positive `bpm`) means "no transport": SYNC falls back to
+    /// the TempoMap wall-clock window (last-known tempo, else 120 BPM (PI)).
+    struct TransportInfo
+    {
+        bool playing = false;
+        double ppqPosition = 0.0;   ///< quarter-note position of the block start
+        double bpm = 0.0;           ///< host tempo; <= 0 ⇒ unknown
+        int timeSigNumerator = 4;   ///< 3/4 vs 4/4 change the bar length
+        int timeSigDenominator = 4;
+    };
+
+    /// Updates the transport for the NEXT process() call (SYNC mode only;
+    /// ignored when tempoSync == Off). Allocation-free; call once per block
+    /// before process(). A positive `bpm` is remembered as the last-known
+    /// tempo for the no-transport wall-clock fallback.
+    void setTransport(const TransportInfo& transport) noexcept;
+
+    /// A SYNC window-boundary hard resync, reported through the optional
+    /// observation hook (test instrumentation, mirrors the §3.6 grain-launch
+    /// hook: default nullptr observes nothing and never alters the output).
+    struct SyncResync
+    {
+        std::int64_t outIndex = 0;       ///< global output sample of the resync
+        std::int64_t windowLenModel = 0; ///< window length, model-rate samples
+        double windowStartPpq = 0.0;     ///< transport window start (0 in fallback)
+    };
+    using SyncResyncObserver = std::function<void(const SyncResync&)>;
+
+    /// Observe SYNC window-boundary resyncs (test-only). Not owned; nullptr
+    /// detaches. MUST NOT alter the rendered output (testing-strategy §3.6).
+    void setSyncResyncObserver(const SyncResyncObserver* observer) noexcept
+    {
+        resyncObserver_ = observer;
+    }
+
 private:
     void applyParams(const ParamSnapshot& raw) noexcept;
     void processCyclic(core::AudioView* outputs, std::size_t numChannels,
@@ -162,9 +229,23 @@ private:
     void processVarispeed(core::AudioView* outputs, std::size_t numChannels,
                           std::size_t numFrames);
 
+    /// SYNC (task 023): recompute the window length and the model-frame
+    /// countdown to the next transport-aligned boundary for the block about to
+    /// render (uses TempoMap; falls back to a free-running wall-clock window
+    /// when the transport is absent). No-op in FREE mode. Allocation-free.
+    void beginSyncBlock() noexcept;
+
+    /// SYNC (task 023): hard-resync the read head to the start of the
+    /// just-captured window (writePos - windowLen) and report it. Applies any
+    /// staged parameter change (the boundary is the param-change point) and
+    /// pins the readable region to the captured window so T<100% compression
+    /// runs out into silence instead of bleeding the next window.
+    void syncResyncReadHead() noexcept;
+
     /// Stream-position read with the streaming edge rules: positions before
-    /// the stream start return 0 (pre-roll), positions at/after the write
-    /// head return 0 (never scheduled — debug-asserted).
+    /// the stream start return 0 (pre-roll), positions at/beyond the readable
+    /// ceiling return 0 (FREE: the write head; SYNC: the captured-window end,
+    /// so compression decays to silence — task 023).
     [[nodiscard]] float ringAt(std::size_t channel, std::int64_t pos) const noexcept;
 
     /// Fractional stream-position read — the REVISED 2-point interpolation
@@ -191,6 +272,12 @@ private:
     std::int64_t written_ = 0;  ///< input samples absorbed (write head)
     std::int64_t produced_ = 0; ///< output samples emitted (global out index)
 
+    /// Readable ceiling: positions at/beyond it read as 0. FREE pins it to the
+    /// write head each block (positions past the write head are pre-roll/edge
+    /// silence); SYNC pins it to the captured-window end so compression decays
+    /// to silence to the boundary instead of bleeding the next window.
+    std::int64_t readCeil_ = 0;
+
     // --- cyclic scheduler (shared implementation, task 022 "no fork") -------
     // The streaming front-end always drives the RevisedGrainPolicy scheduler;
     // CLASSIC is served through it with integer-VALUED hops (same integer
@@ -212,7 +299,21 @@ private:
     bool clampActive_ = false;
     bool initialLaunchPending_ = false; ///< report prepare()'s grain on first block
 
+    // --- SYNC mode (task 023) ----------------------------------------------
+    bool syncActive_ = false;        ///< tempoSync == Host (captured at applyParams)
+    TransportInfo transport_{};      ///< last setTransport() snapshot
+    double lastKnownBpm_ = 0.0;      ///< most recent positive host tempo (fallback)
+    std::int64_t windowLenModel_ = 0;       ///< current window length, model frames
+    std::int64_t syncFramesToBoundary_ = 0; ///< model frames until the next boundary
+    double syncWindowStartPpq_ = 0.0;       ///< current window start (transport)
+    double nextBoundaryPpq_ = 0.0;          ///< next transport boundary to resync at
+    double ppqPerFrameModel_ = 0.0;         ///< ppq advance per rendered model frame
+    bool syncFallbackArmed_ = false;        ///< wall-clock countdown initialized
+    bool syncTransportStarted_ = false;     ///< first transport block consumed
+    bool syncFirstResyncDone_ = false;      ///< first window boundary reached
+
     const stretch::GrainLaunchObserver* observer_ = nullptr;
+    const SyncResyncObserver* resyncObserver_ = nullptr;
 };
 
 } // namespace mws::engine
