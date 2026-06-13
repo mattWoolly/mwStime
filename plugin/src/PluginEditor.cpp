@@ -66,6 +66,45 @@ PluginEditor::PluginEditor(PluginProcessor& owner)
         refreshLcd();
     };
 
+    // Stretch-zone / new-name fields are not parameters, so the field editor
+    // routes them back through these callbacks (ui-design §6.2 step 1: "jog
+    // wheel or direct typing edits it" — for every editable field).
+
+    // Jog: step the focused zone handle by the signed frame delta, relative to
+    // the WaveformView's current zone (clamped, start<end by setZone).
+    fieldEditor.onZoneJog = [this](ui::LcdFieldKind which, std::int64_t deltaFrames) {
+        const auto start = waveform.zoneStart();
+        const auto end = waveform.zoneEnd();
+        if (which == ui::LcdFieldKind::ZoneStart)
+            waveform.setZone(start + deltaFrames, end);
+        else
+            waveform.setZone(start, end + deltaFrames);
+        refreshLcd();
+    };
+
+    // Text commit: set the focused zone frame to the absolute typed value.
+    fieldEditor.onZoneCommit = [this](ui::LcdFieldKind which, std::int64_t frame) {
+        if (which == ui::LcdFieldKind::ZoneStart)
+            waveform.setZone(frame, waveform.zoneEnd());
+        else
+            waveform.setZone(waveform.zoneStart(), frame);
+        refreshLcd();
+    };
+
+    // currentFieldText() seeds the overlay/LCD with the live zone value rather
+    // than a hardcoded 0.
+    fieldEditor.zoneValueProvider = [this](ui::LcdFieldKind which) -> std::int64_t {
+        return which == ui::LcdFieldKind::ZoneStart ? waveform.zoneStart()
+                                                    : waveform.zoneEnd();
+    };
+
+    // Destination-name commit: persist the typed name in a member that survives
+    // the 30 Hz poll (refreshLcd feeds it back into the LcdSampleInfo).
+    fieldEditor.onNameCommit = [this](const juce::String& name) {
+        newSampleName_ = name.toStdString();
+        refreshLcd();
+    };
+
     // The field editor surfaces the live value text after any edit so the LCD
     // (and the overlay text editor, while open) re-derive.
     fieldEditor.onChanged = [this] { refreshLcd(); };
@@ -156,6 +195,13 @@ void PluginEditor::refreshLcd()
     // feedback already available for the S900/S950 page notice.
     ui::LcdSampleInfo sample;
     sample.monoSummed = processor.engineHost().fxMonoSummed();
+
+    // Live stretch zone from the WaveformView (the field editor's zone callbacks
+    // write it there), and the persisted render-destination name, so the LCD
+    // shows the edited values instead of a constant 0 / default.
+    sample.zoneStart = waveform.zoneStart();
+    sample.zoneEnd = waveform.zoneEnd();
+    sample.newName = newSampleName_;
 
     const ui::LcdPage page =
         ui::LcdPageModel::build(snapshot, spec, sample, renderInfo_);

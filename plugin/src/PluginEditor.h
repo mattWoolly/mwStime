@@ -83,6 +83,12 @@ private:
     // Engine feedback accumulated across timer polls (architecture.md §4).
     ui::LcdRenderInfo renderInfo_;
 
+    // The typed render-destination name (new-sample field). refreshLcd builds a
+    // fresh LcdSampleInfo every poll, so the committed name must survive here
+    // and be fed back into the sample info (else the edit is silently dropped).
+    // Empty -> the page model falls back to the "<name>*ST" default.
+    std::string newSampleName_;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginEditor)
 };
 

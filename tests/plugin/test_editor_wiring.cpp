@@ -42,6 +42,7 @@
 #include "ui/WaveformView.h"
 #include "ui/lookandfeel/SeriesLookAndFeel.h"
 
+#include "mws/core/Buffer.h"
 #include "mws/engine/Params.h"
 #include "mws/model/ModelSpec.h"
 
@@ -60,6 +61,7 @@ using mws::ui::LcdPage;
 using mws::ui::LcdPageModel;
 using mws::ui::LcdRenderInfo;
 using mws::ui::LcdSampleInfo;
+using mws::ui::WaveformView;
 namespace pid = mws::plugin::paramid;
 
 namespace {
@@ -260,6 +262,150 @@ TEST_CASE("editor: double-click text entry commits the typed value (ENT) and "
     // Committing while NOT editing is ignored (no stray writes).
     f.editor.commitText("999");
     CHECK(f.hostValue(pid::timeFactor) == Approx(150.0));
+}
+
+// ---------------------------------------------------------------------------
+// Zone / new-name editing — the non-parameter fields route through the
+// editor's callbacks (ui-design §6.2 step 1: "jog wheel or direct typing edits
+// it" applies to EVERY editable field, including stretch-zone and new-name).
+// The PluginEditor wires these to the WaveformView zone / the persisted name.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("editor: jog and text-commit on the stretch-zone fields fire the zone "
+          "callbacks with the right signed delta / absolute frame, and a real "
+          "WaveformView moves",
+          "[editor]")
+{
+    Fixture f;
+    f.editor.setPage(f.s1000Page());
+
+    // The zone value provider seeds currentFieldText() and the jog-relative
+    // base from live zone state (here a simple captured pair, exactly the
+    // PluginEditor wiring shape).
+    std::int64_t liveStart = 1000, liveEnd = 5000;
+    f.editor.zoneValueProvider = [&](LcdFieldKind which) -> std::int64_t {
+        return which == LcdFieldKind::ZoneStart ? liveStart : liveEnd;
+    };
+
+    LcdFieldKind jogWhich{};
+    std::int64_t jogDelta = 0;
+    int jogCalls = 0;
+    f.editor.onZoneJog = [&](LcdFieldKind which, std::int64_t delta) {
+        jogWhich = which;
+        jogDelta = delta;
+        ++jogCalls;
+    };
+    LcdFieldKind commitWhich{};
+    std::int64_t commitFrame = 0;
+    int commitCalls = 0;
+    f.editor.onZoneCommit = [&](LcdFieldKind which, std::int64_t frame) {
+        commitWhich = which;
+        commitFrame = frame;
+        ++commitCalls;
+    };
+
+    // Focus ZoneStart (index 0). currentFieldText() reflects the live value
+    // (not the hardcoded 0 the dangling provider used to return).
+    f.editor.focusField(0);
+    REQUIRE(f.editor.focusedField()->kind == LcdFieldKind::ZoneStart);
+    CHECK(f.editor.currentFieldText() == juce::String("1000"));
+
+    // Coarse jog: kZoneCoarseFrames per detent, signed.
+    f.editor.applyJog(3, /*fine*/ false);
+    CHECK(jogCalls == 1);
+    CHECK(jogWhich == LcdFieldKind::ZoneStart);
+    CHECK(jogDelta == 3 * LcdFieldEditor::kZoneCoarseFrames);
+
+    // Fine jog (Shift): kZoneFineFrames per detent, and reverse decrements.
+    f.editor.applyJog(-2, /*fine*/ true);
+    CHECK(jogCalls == 2);
+    CHECK(jogDelta == -2 * LcdFieldEditor::kZoneFineFrames);
+
+    // Text commit on ZoneEnd writes the absolute typed frame.
+    f.editor.focusField(1);
+    REQUIRE(f.editor.focusedField()->kind == LcdFieldKind::ZoneEnd);
+    CHECK(f.editor.currentFieldText() == juce::String("5000"));
+    f.editor.beginTextEntry();
+    f.editor.commitText("4096");
+    CHECK(commitCalls == 1);
+    CHECK(commitWhich == LcdFieldKind::ZoneEnd);
+    CHECK(commitFrame == 4096);
+
+    // Now prove the exact PluginEditor wiring against a REAL WaveformView: the
+    // jog steps the focused handle relative to the view's current zone, and the
+    // commit sets the absolute frame (clamped, start<end by setZone).
+    WaveformView wave;
+    auto source = std::make_shared<mws::core::AudioBuffer>(1u, std::size_t{ 10000 });
+    source->sampleRate = 44100.0;
+    wave.setSourceSample(source);  // zone defaults to full length [0, 10000]
+    CHECK(wave.zoneStart() == 0);
+    CHECK(wave.zoneEnd() == 10000);
+
+    f.editor.onZoneJog = [&](LcdFieldKind which, std::int64_t delta) {
+        const auto s = wave.zoneStart();
+        const auto e = wave.zoneEnd();
+        if (which == LcdFieldKind::ZoneStart)
+            wave.setZone(s + delta, e);
+        else
+            wave.setZone(s, e + delta);
+    };
+    f.editor.onZoneCommit = [&](LcdFieldKind which, std::int64_t frame) {
+        if (which == LcdFieldKind::ZoneStart)
+            wave.setZone(frame, wave.zoneEnd());
+        else
+            wave.setZone(wave.zoneStart(), frame);
+    };
+    f.editor.zoneValueProvider = [&](LcdFieldKind which) -> std::int64_t {
+        return which == LcdFieldKind::ZoneStart ? wave.zoneStart() : wave.zoneEnd();
+    };
+
+    // Coarse jog on ZoneStart advances the start handle by one detent's frames.
+    f.editor.focusField(0);
+    f.editor.applyJog(1, /*fine*/ false);
+    CHECK(wave.zoneStart() == LcdFieldEditor::kZoneCoarseFrames);
+
+    // Text commit on ZoneEnd sets the absolute end frame.
+    f.editor.focusField(1);
+    f.editor.beginTextEntry();
+    f.editor.commitText("6000");
+    CHECK(wave.zoneEnd() == 6000);
+}
+
+TEST_CASE("editor: committing the new-sample-name field lands the typed name",
+          "[editor]")
+{
+    Fixture f;
+    f.editor.setPage(f.s1000Page());
+
+    juce::String committed;
+    int nameCalls = 0;
+    f.editor.onNameCommit = [&](const juce::String& name) {
+        committed = name;
+        ++nameCalls;
+    };
+
+    // NewName is index 7 in the S1000 field map (after the greyed qual/width).
+    f.editor.focusField(7);
+    REQUIRE(f.editor.focusedField() != nullptr);
+    REQUIRE(f.editor.focusedField()->kind == LcdFieldKind::NewName);
+
+    f.editor.beginTextEntry();
+    f.editor.commitText("  CHOPPED  ");  // trimmed on commit
+    CHECK(nameCalls == 1);
+    CHECK(committed == juce::String("CHOPPED"));
+
+    // The persisted name survives a page-model rebuild (the bug being fixed:
+    // refreshLcd builds a fresh LcdSampleInfo each poll, so the editor keeps the
+    // name in a member and feeds it back). Model the same path here: the
+    // committed name flows into LcdSampleInfo.newName and the page renders it.
+    ParamSnapshot p;
+    p.model = ModelId::S1000;
+    p.pluginMode = PluginMode::Sample;
+    LcdSampleInfo sample;
+    sample.newName = committed.toStdString();
+    const LcdPage page =
+        LcdPageModel::build(p, ModelSpec::get(ModelId::S1000), sample, {});
+    CHECK(page.textJoined().find("CHOPPED") != std::string::npos);
 }
 
 // ---------------------------------------------------------------------------
