@@ -147,6 +147,51 @@ TEST_CASE("renderer: S1000 CLASSIC end-to-end length is schedule-derived",
 }
 
 // ---------------------------------------------------------------------------
+// ADR-006 SAMPLE-mode forcing: offline IS the SAMPLE-mode path, so compression
+// (T < 100%) renders even when the caller's snapshot still says FX FREE — the
+// one combination whose clamp floors timeFactor at 100% (ModelSpec::clamp,
+// ADR-006 causality rule). Pins dsp-engine.md §3.4 "T < 1 (compression) works
+// identically offline" and the `params.pluginMode = PluginMode::Sample` lines
+// in OfflineRenderer::render/predictedOutputFrames: remove them and the FX
+// FREE clamp turns T=50 into T=100, inflating the length to ~N.
+// ---------------------------------------------------------------------------
+TEST_CASE("renderer: offline compression forces SAMPLE mode past the FX FREE "
+          "clamp",
+          "[renderer]")
+{
+    const AudioBuffer source = makeSine(220.0, 44100);
+
+    ParamSnapshot params;
+    params.model = ModelId::S1000;
+    params.cycleLen = 1000;
+    params.timeFactor = 50.0;
+    params.fxWindow = mws::engine::FxWindow::Free;
+    // Deliberately NOT set: pluginMode stays at its FX default — the renderer
+    // itself must force SAMPLE mode (ADR-006) before clamping.
+    REQUIRE(params.pluginMode == mws::engine::PluginMode::Fx);
+
+    const OfflineRenderer renderer;
+    const RenderResult result = renderer.render(source, params);
+
+    REQUIRE(result.error == RenderError::None);
+    REQUIRE(result.ok());
+
+    // Independent §3.4 recompute at T=50: hop_out=800, hop_in=1600,
+    // G=27 => 26*800+1000 — genuinely compressed, well under N.
+    const std::int64_t expected = classicScheduleLength(44100, 1000, 50);
+    REQUIRE(expected == 21800); // sanity-pin the independent recompute
+    REQUIRE(expected < 44100);
+
+    REQUIRE(static_cast<std::int64_t>(result.out.numFrames()) == expected);
+    REQUIRE(result.info.outputFrames == expected);
+    REQUIRE(result.info.achievedTimeFactorPct < 100.0);
+
+    // The cap predictor mirrors render(): same SAMPLE-mode forcing, same
+    // compressed length.
+    REQUIRE(renderer.predictedOutputFrames(44100, kRate, params) == expected);
+}
+
+// ---------------------------------------------------------------------------
 // Memory cap (architecture.md §5.1; testing-strategy.md §3 item 10): the
 // schedule-predicted output length is checked against the 10-min model-rate
 // cap BEFORE any allocation; the cap math is unit-tested directly.
