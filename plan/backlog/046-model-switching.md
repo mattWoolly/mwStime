@@ -1,7 +1,7 @@
 ---
 id: 046
 title: Model switching behavior — faceplate cross-fade, clamp memory, audio cross-fade, PDC re-report
-status: in-review
+status: done
 depends-on: [029, 045b]
 component: ui
 estimated-size: M
