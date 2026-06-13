@@ -69,6 +69,36 @@ void requireBitIdentical(ConstAudioView a, ConstAudioView b)
         REQUIRE(a[k] == b[k]); // bit-identical (float equality is exact here)
     }
 }
+
+/// Non-asserting variant for negative checks (REQUIRE_FALSE(...)).
+bool isBitIdentical(ConstAudioView a, ConstAudioView b)
+{
+    if (a.size() != b.size())
+        return false;
+    for (std::size_t k = 0; k < a.size(); ++k)
+        if (a[k] != b[k])
+            return false;
+    return true;
+}
+
+/// Pitch-VARYING material for the per-grain re-snap pin: first half 220 Hz
+/// (period 200.4545... samples), second half 165 Hz (period 267.27...
+/// samples — inside the MON1 bestLagNear window [110, 330] for setC = 220
+/// at kMon1SearchFraction = 0.5).
+AudioBuffer makeTwoPitchSine(double freqA, double freqB, std::int64_t numFrames)
+{
+    AudioBuffer buffer(1, static_cast<std::size_t>(numFrames));
+    auto view = buffer.channel(0);
+    const std::int64_t half = numFrames / 2;
+    const double twoPi = 2.0 * 3.14159265358979323846;
+    for (std::int64_t n = 0; n < numFrames; ++n)
+    {
+        const double w = twoPi * (n < half ? freqA : freqB) / kSampleRate;
+        view[static_cast<std::size_t>(n)] =
+            static_cast<float>(std::sin(w * static_cast<double>(n)));
+    }
+    return buffer;
+}
 } // namespace
 
 TEST_CASE("s950: timeFactor 1500 behaves identically to 999 (engine clamp)",
@@ -152,6 +182,76 @@ TEST_CASE("s950: MON1 on a 220 Hz sine snaps C to the detected pitch period",
     const auto reference = cyclic.render(sine.channel(0), result.effectiveCycleLen,
                                          200.0, HopMode::Classic);
     requireBitIdentical(result.out.channel(0), reference.channel(0));
+}
+
+TEST_CASE("s950: MON1 re-snaps PER GRAIN on pitch-varying material", "[s950]")
+{
+    // The dsp-engine.md §5 MON1 row is PER-GRAIN: each grain launch re-snaps
+    // C from the source content at ITS input offset. On pitch-VARYING
+    // material the snap therefore changes mid-render — the output cannot
+    // equal any single fixed-C CLASSIC render. This test fails if the
+    // per-grain path is removed or stops re-snapping (one-shot snap +
+    // delegation degenerates to exactly the fixed-C reference below).
+    const std::int64_t n = 44100;
+    const auto src = makeTwoPitchSine(220.0, 165.0, n);
+
+    const S950Engine engine;
+    S950Params params;
+    params.material = Material::Mon1;
+    params.dTime = 220;
+    params.timeFactorPct = 200.0;
+    params.hopMode = HopMode::Classic;
+    const auto result = engine.render(src.channel(0), params);
+
+    // FIRST grain snaps to the 220 Hz period (200.4545... -> 200 or 201).
+    REQUIRE(result.effectiveCycleLen >= 200);
+    REQUIRE(result.effectiveCycleLen <= 201);
+
+    // Later grains land in the 165 Hz half and re-snap toward its period
+    // (267.27... samples), changing the schedule mid-render: the output
+    // diverges from the fixed-C CLASSIC render at the first grain's C
+    // (its length already differs — the integer hop schedule shifted).
+    const CyclicEngine cyclic;
+    const auto reference = cyclic.render(src.channel(0), result.effectiveCycleLen,
+                                         200.0, HopMode::Classic);
+    REQUIRE(result.out.numFrames() != reference.numFrames());
+}
+
+TEST_CASE("s950: MON1 + REVISED snaps once and delegates with the snapped C",
+          "[s950]")
+{
+    // MON1 under REVISED timing (S950Engine.cpp (PI simplification)): the
+    // snap is taken ONCE at the start of the material and the render
+    // delegates to CyclicEngine REVISED with that fixed C — NOT with the set
+    // D-TIME. This distinguishes snapped-C from set-C delegation: replacing
+    // the snap with the set C must fail here.
+    const auto sine = makeSine(220.0, 44100);
+    const S950Engine engine;
+
+    // The snapped C is what the MON1+CLASSIC path reports as effectiveCycleLen
+    // on the same input (steady tone => constant snap).
+    S950Params params;
+    params.material = Material::Mon1;
+    params.dTime = 220; // deliberately off the true period: the snap must move it
+    params.timeFactorPct = 200.0;
+    params.hopMode = HopMode::Classic;
+    const int snappedC =
+        engine.render(sine.channel(0), params).effectiveCycleLen;
+    REQUIRE(snappedC != 220);
+
+    params.hopMode = HopMode::Revised;
+    const auto result = engine.render(sine.channel(0), params);
+    REQUIRE(result.effectiveCycleLen == snappedC);
+
+    const CyclicEngine cyclic;
+    const auto snapped =
+        cyclic.render(sine.channel(0), snappedC, 200.0, HopMode::Revised);
+    requireBitIdentical(result.out.channel(0), snapped.channel(0));
+
+    // ...and NOT the un-snapped set-C delegation.
+    const auto unsnapped =
+        cyclic.render(sine.channel(0), 220, 200.0, HopMode::Revised);
+    REQUIRE_FALSE(isBitIdentical(result.out.channel(0), unsnapped.channel(0)));
 }
 
 TEST_CASE("s950: AUTO-D on a 100 Hz saw selects C = 441 +/- 1", "[s950]")
