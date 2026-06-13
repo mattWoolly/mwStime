@@ -1,7 +1,7 @@
 ---
 id: 045b
 title: Editor interactions — soft-key actions, drop-in/drag-out, FX-mode greying, keyboard & accessibility
-status: todo
+status: in-review
 depends-on: [036, 037, 045]
 component: ui
 estimated-size: M
