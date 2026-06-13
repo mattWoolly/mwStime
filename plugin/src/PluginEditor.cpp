@@ -30,9 +30,12 @@ void showMockupTimeStretchPage(ui::LcdDisplay& lcd)
 
 } // namespace
 
-PluginEditor::PluginEditor(PluginProcessor& processor)
-    : juce::AudioProcessorEditor(processor)
+PluginEditor::PluginEditor(PluginProcessor& owner)
+    : juce::AudioProcessorEditor(owner),
+      controlPanel(owner.parameterState())
 {
+    // Sync the faceplate to the model parameter the panel restored/holds.
+    faceplate.setModel(controlPanel.modelSelector().selectedModel());
     lookAndFeel.setSpec(faceplate.spec());
     setLookAndFeel(&lookAndFeel);
 
@@ -45,6 +48,17 @@ PluginEditor::PluginEditor(PluginProcessor& processor)
     lcd.setSpec(faceplate.spec());
     showMockupTimeStretchPage(lcd);
     addAndMakeVisible(lcd);
+
+    addAndMakeVisible(controlPanel);
+
+    // Instant restyle on model switch (cross-fade + clamp-restore is task 046).
+    controlPanel.onModelChanged = [this](mws::model::ModelId id) {
+        faceplate.setModel(id);
+        lcd.setSpec(faceplate.spec());
+        lookAndFeel.setSpec(faceplate.spec());
+        sendLookAndFeelChange();
+        repaint();
+    };
 
     // 1000×380 base canvas (ui-design §1, §5); resizability is task 047.
     setSize(ui::geometry::kBaseWidth, ui::geometry::kBaseHeight);
@@ -78,6 +92,10 @@ void PluginEditor::resized()
 
     jogWheel.setBounds(
         ui::scaledRegion(geo::kJogWheel, getWidth(), getHeight()).toNearestInt());
+
+    controlPanel.setBounds(
+        ui::scaledRegion(geo::kModelSelector, getWidth(), getHeight())
+            .getSmallestIntegerContainer());
 }
 
 } // namespace mws::plugin

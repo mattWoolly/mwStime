@@ -1,7 +1,7 @@
 ---
 id: 044
 title: ModelSelector + right-panel controls (MODE, TIMING, CHARACTER, WINDOW, OUTPUT)
-status: todo
+status: in-review
 depends-on: [028, 039]
 component: ui
 estimated-size: S
