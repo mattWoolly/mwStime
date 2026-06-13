@@ -34,7 +34,7 @@ Deferred to v1.1 by ADR (no tasks here beyond reserved slots): INTELL engine
 | 4 | 017 | S1000/S1100 fixed-rate chain | dsp | M | 004, 006, 007 | done |
 | 4 | 029 | State tree, stateVersion, migrations (incl. zone + clampMemory fields) | plugin | S | 028 | done |
 | 4 | 040 | LCD font + LcdDisplay | ui | M | 039 | done |
-| 4 | 041 | LcdPageModel (headless; load-error + embed-status lines) | ui | M | 010, 028 | todo |
+| 4 | 041 | LcdPageModel (headless; load-error + embed-status lines) | ui | M | 010, 028 | done |
 | 4 | 042 | SoftKeyBar + cursor/ENT + JogWheel | ui | M | 039 | todo |
 | 4 | 043 | WaveformView (+ click-to-audition event) | ui | M | 039 | todo |
 | 4 | 044 | ModelSelector + control panel | ui | S | 028, 039 | todo |
