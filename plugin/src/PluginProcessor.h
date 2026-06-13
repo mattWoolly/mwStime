@@ -41,8 +41,12 @@ public:
     bool isMidiEffect() const override { return false; }
     double getTailLengthSeconds() const override { return 0.0; }
 
-    int getNumPrograms() override { return 1; }
-    int getCurrentProgram() override { return 0; }
+    // Factory programs (task 038): program 0 is "Default", 1..N are the four
+    // documented dsp-engine.md §9 validation presets (FactoryPresets.h). Hosts
+    // expect ≥ 1 program; selecting one writes the preset's snapshot through the
+    // APVTS + the non-parameter mode atomically.
+    int getNumPrograms() override;
+    int getCurrentProgram() override { return currentProgram_; }
     void setCurrentProgram(int index) override;
     const juce::String getProgramName(int index) override;
     void changeProgramName(int index, const juce::String& newName) override;
@@ -104,6 +108,10 @@ private:
     Parameters params;
     juce::ValueTree stateTree = state::createDefault();
     std::function<void()> onReRenderRequested;
+
+    // Last-selected factory program (task 038). 0 = "Default"; persisted state
+    // restores params directly, so this is just the host's program cursor.
+    int currentProgram_ = 0;
 
     EngineHost engine;
     state::StateBlobCache blobCache_;

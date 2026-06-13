@@ -4,6 +4,7 @@
 #include "PluginProcessor.h"
 
 #include "PluginEditor.h"
+#include "state/FactoryPresets.h"
 
 namespace mws::plugin {
 
@@ -185,19 +186,34 @@ juce::AudioProcessorEditor* PluginProcessor::createEditor()
     return new PluginEditor(*this);
 }
 
+int PluginProcessor::getNumPrograms()
+{
+    return presets::numPrograms(); // "Default" + the four §9 presets (task 038)
+}
+
 void PluginProcessor::setCurrentProgram(int index)
 {
-    juce::ignoreUnused(index);
+    // Ignore out-of-range selections (some hosts probe with bad indices).
+    if (index < 0 || index >= presets::numPrograms())
+        return;
+
+    currentProgram_ = index;
+
+    // Apply the program's snapshot through the APVTS + mirror the non-parameter
+    // mode into the state tree (atomically — no partial state, task 038). The
+    // listener-driven FX reconfigure / latency re-report fires off the model/
+    // bandwidth/FS/character writes, exactly as a UI edit would.
+    presets::applyProgram(index, apvts, stateTree);
 }
 
 const juce::String PluginProcessor::getProgramName(int index)
 {
-    juce::ignoreUnused(index);
-    return {};
+    return presets::programName(index);
 }
 
 void PluginProcessor::changeProgramName(int index, const juce::String& newName)
 {
+    // Factory programs are read-only (dsp-engine.md §9 validation targets).
     juce::ignoreUnused(index, newName);
 }
 

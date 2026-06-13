@@ -21,6 +21,7 @@ target_sources(mwstime_plugin_tests
         test_faceplatespec.cpp
         test_state.cpp
         test_state_embed.cpp
+        test_presets.cpp
         test_lcdfont.cpp
         test_lcdpagemodel.cpp
         test_inputcluster.cpp
@@ -43,6 +44,13 @@ target_sources(mwstime_plugin_tests
         "${CMAKE_SOURCE_DIR}/plugin/src/state/StateTree.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/state/StateBlobCache.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/state/Migrations.cpp"
+        "${CMAKE_SOURCE_DIR}/plugin/src/state/FactoryPresets.cpp"
+        # The canonical golden cases.json loader (JUCE-free, mws/engine/Params.h
+        # only) — reused so the factory-preset cross-check (task 038) shares ONE
+        # parameter vocabulary with the golden renderer; drift fails the build.
+        "${CMAKE_SOURCE_DIR}/tools/mwstime-render/Cases.cpp"
+        "${CMAKE_SOURCE_DIR}/tools/mwstime-render/Args.cpp"
+        "${CMAKE_SOURCE_DIR}/tools/mwstime-render/Json.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/ui/ControlPanel.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/ui/Faceplate.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/ui/LcdDisplay.cpp"
@@ -61,6 +69,8 @@ target_include_directories(mwstime_plugin_tests
         # TestAllocationCounter.h (shared global new-counter, task 005) so the
         # SAMPLE-mode audio-path no-allocation tests (task 034) can assert it.
         "${CMAKE_SOURCE_DIR}/tests/unit"
+        # Cases.h / Json.h / Args.h for the factory-preset cross-check (task 038).
+        "${CMAKE_SOURCE_DIR}/tools/mwstime-render"
 )
 
 target_compile_definitions(mwstime_plugin_tests
@@ -68,6 +78,9 @@ target_compile_definitions(mwstime_plugin_tests
         JUCE_WEB_BROWSER=0
         JUCE_USE_CURL=0
         JUCE_MODAL_LOOPS_PERMITTED=0
+        # Absolute path to tests/golden/cases.json — the factory-preset test
+        # (task 038) reads it in-test to cross-check presets against the goldens.
+        MWS_CASES_JSON_PATH="${CMAKE_SOURCE_DIR}/tests/golden/cases.json"
 )
 
 target_link_libraries(mwstime_plugin_tests
