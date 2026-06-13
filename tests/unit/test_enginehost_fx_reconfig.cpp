@@ -115,21 +115,67 @@ TEST_CASE("enginehost: FX reconfigure rebuilds the engine and re-reports latency
         fxParams(ModelId::S950, 19.2, SampleRateSel::Fs44100, true)));
     REQUIRE(fx.consumeLatencyDirty());
 
-    // A bandwidth change on the varclock model changes the model rate and so the
-    // latency (dsp-engine.md §7.4). The reported value tracks it.
+    // A bandwidth change on the varclock model IS latency-relevant (it changes
+    // the model rate, dsp-engine.md §7.4) so it re-reports — even though, under
+    // the task-033 character-ON honest-PDC fix (review item 2a; FxEngine.h
+    // DEVIATION + plan/backlog/053), the REPORTED value is the realized
+    // read-head delay rather than the model-rate-scaled §7.4 formula: with no
+    // host<->model resampler in the character-ON path, the cycle scaling and SRC
+    // group delay the formula assumes are never realized.
     const int latS950BW192 = fx.latencySamples();
     REQUIRE(fx.requestReconfigure(
         fxParams(ModelId::S950, 3.0, SampleRateSel::Fs44100, true)));
     REQUIRE(fx.consumeLatencyDirty());
     const int latS950BW30 = fx.latencySamples();
-    // Lower bandwidth => lower model rate => more host samples per model cycle
-    // => larger latency (the documented ~12.8 k extreme).
-    REQUIRE(latS950BW30 > latS950BW192);
+    // The realized read-head delay (D = 2000 + fadeMax model samples, fed 1:1 as
+    // host samples because nothing resamples) does NOT scale with the model rate,
+    // so the two character-ON figures are equal — the honest PDC the path
+    // actually applies. (Once 053's streaming chain resamples for real, the
+    // model-rate scaling and SRC term ARE realized and this becomes a strict
+    // inequality; the character-OFF magnitude relationship is pinned below.)
+    REQUIRE(latS950BW30 == latS950BW192);
 
     // An FS change on a fixed-rate model is latency-relevant too.
     REQUIRE(fx.requestReconfigure(
         fxParams(ModelId::S1000, 19.2, SampleRateSel::Fs22050, true)));
     REQUIRE(fx.consumeLatencyDirty());
+}
+
+TEST_CASE("enginehost: FX character-ON reports the realized PDC (review item 2a)",
+          "[enginehost]")
+{
+    // The task-033 honest-PDC fix at the JUCE-free FX-engine level: with
+    // CHARACTER ON and modelRate != hostRate the FX glue feeds host-rate audio
+    // straight into the stretcher (no resampler exists yet — FxEngine.h
+    // DEVIATION, follow-up plan/backlog/053). RealtimeStretcher::latencySamples()
+    // is the dsp-engine.md §7.4 formula for the INTENDED streaming chain and
+    // includes a host<->model SRC group-delay term + model-rate cycle scaling
+    // that this path never realizes; reporting it would over-report PDC. So
+    // FxEngine reports the scheduler's actually-realized read-head delay instead.
+    FxEngine fx;
+    const auto charOn =
+        fxParams(ModelId::S1000, 19.2, SampleRateSel::Fs44100, /*character=*/true);
+    fx.prepare(kHostRate, kMaxBlock, /*channels=*/1, charOn);
+
+    // Reference engine prepared with the SAME inputs: the §7.4 formula vs the
+    // realized read-head delay (they diverge here precisely because 44.1k != 48k).
+    mws::engine::RealtimeStretcher ref;
+    ref.prepare(kHostRate, kMaxBlock, /*channels=*/1, charOn);
+    REQUIRE(ref.modelRate() < kHostRate);                        // 44100 < 48000
+    REQUIRE(ref.latencySamples() > ref.realizedDelaySamples());  // SRC term present
+    REQUIRE(fx.latencySamples() == ref.realizedDelaySamples());  // honest PDC
+
+    // Companion invariant: character OFF (modelRate == hostRate) has no SRC term,
+    // so the realized delay equals the formula and the honest branch is a no-op
+    // on the null-tested path.
+    FxEngine fxOff;
+    const auto charOff =
+        fxParams(ModelId::S1000, 19.2, SampleRateSel::Fs44100, /*character=*/false);
+    fxOff.prepare(kHostRate, kMaxBlock, /*channels=*/1, charOff);
+    mws::engine::RealtimeStretcher refOff;
+    refOff.prepare(kHostRate, kMaxBlock, /*channels=*/1, charOff);
+    REQUIRE(refOff.latencySamples() == refOff.realizedDelaySamples());
+    REQUIRE(fxOff.latencySamples() == refOff.latencySamples());
 }
 
 TEST_CASE("enginehost: FX reconfiguration handoff is race-free under processing",

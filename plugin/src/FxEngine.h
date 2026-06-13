@@ -33,22 +33,35 @@
 // (Published.h GraveyardFifo) — the FX history reconfig is one of the three
 // cross-thread handoffs task 030 mandated share one mechanism.
 //
-// DEVIATION (documented, plan/backlog/033 PR): the FX path runs
-// RealtimeStretcher directly on the host-rate block. With CHARACTER OFF the
-// model rate IS the host rate (CharacterChain §8.4), so this is exactly correct
-// and null-testable (RealtimeStretcher.h §56-63) — the path every task-033
-// verification test exercises. With CHARACTER ON the dsp-engine.md §3.5 host-rate
-// rule wants the ingest character (host -> model rate, 12/16-bit quantize) run
-// BEFORE the stretcher and the playback character (model -> host) AFTER it. That
-// needs an allocation-free STREAMING resampler with continuous cross-block phase
-// (the per-block 12-bit/16-bit character chain). The mwstime-core only ships an
-// OFFLINE allocating SincResampler (core/Resampler.h) — no RT-safe streaming
-// variant exists — so a faithful streaming character chain is a separate engine-
-// layer effort, NOT plugin glue. Until it lands, character-ON FX runs the
-// stretcher at host rate (the reported latency still includes the §7.4 SRC
-// group-delay term, so PDC is honest); the offline SAMPLE-mode render remains the
-// bit-faithful character path. This keeps the task in scope and the contract
-// (latency + grain-boundary param application + the null) fully met.
+// DEVIATION (documented; plan/backlog/033 PR + follow-up task plan/backlog/053):
+// the FX path runs RealtimeStretcher directly on the host-rate block. With
+// CHARACTER OFF the model rate IS the host rate (CharacterChain §8.4), so this
+// is exactly correct and null-testable (RealtimeStretcher.h §56-63) — the path
+// every task-033 verification test exercises. With CHARACTER ON the
+// dsp-engine.md §3.5 host-rate rule wants the ingest character (host -> model
+// rate, 12/16-bit quantize) run BEFORE the stretcher and the playback character
+// (model -> host) AFTER it. That needs an allocation-free STREAMING resampler
+// with continuous cross-block phase (the per-block 12-bit/16-bit character
+// chain). The mwstime-core only ships an OFFLINE allocating SincResampler
+// (core/Resampler.h) — no RT-safe streaming variant exists — so a faithful
+// streaming character chain is a separate engine-layer effort, NOT plugin glue.
+// That effort is tracked in plan/backlog/053-fx-streaming-character-chain.md
+// (the allocation-free streaming host<->model resampler + per-block 12/16-bit
+// character chain). Until 053 lands, character-ON FX runs the stretcher at host
+// rate and the SAMPLE-mode offline render remains the bit-faithful character
+// path.
+//
+// HONEST PDC (review item 2a; superseded by 053): because no resampler runs in
+// the character-ON deviation, the dsp-engine.md §7.4 SRC group-delay term and
+// the model-rate cycle scaling in RealtimeStretcher::latencySamples() are NEVER
+// realized by this path. Reporting them would over-report PDC by a delay the
+// path does not apply (the original review finding). So for the character-ON
+// deviation ONLY, FxEngine reports the scheduler's actually-realized read-head
+// delay (RealtimeStretcher::realizedDelaySamples()) — see realizedLatencyOf().
+// With character OFF (modelRate == hostRate, every null-tested path) that figure
+// is identical to latencySamples(), so the contract null is untouched. When 053
+// lands, the SRC term IS realized and realizedLatencyOf()'s deviation branch is
+// deleted so latencySamples() is reported unconditionally.
 
 #pragma once
 
@@ -141,7 +154,7 @@ public:
         activeKey_ = keyOf(params);
 
         auto prepared = buildPrepared(params);
-        latencyHost_.store(prepared->stretcher.latencySamples(),
+        latencyHost_.store(realizedLatencyOf(*prepared),
                            std::memory_order_release);
 
         // prepare() is prepareToPlay only — the audio thread is stopped — so the
@@ -179,7 +192,7 @@ public:
 
         activeKey_ = key;
         auto prepared = buildPrepared(params);
-        latencyHost_.store(prepared->stretcher.latencySamples(),
+        latencyHost_.store(realizedLatencyOf(*prepared),
                            std::memory_order_release);
         latencyDirty_.store(true, std::memory_order_release);
 
@@ -307,6 +320,39 @@ private:
         prepared->config = params;
         prepared->stretcher.prepare(hostRate_, maxBlock_, channels_, params);
         return prepared;
+    }
+
+    /// The latency the FX path ACTUALLY realizes, in host samples — honest PDC
+    /// (review item 2a; task 033 PR). RealtimeStretcher::latencySamples() is the
+    /// dsp-engine.md §7.4 formula for the INTENDED streaming chain: it scales
+    /// the cycle/crossfade by hostRate/modelRate AND adds the §7.2 SRC
+    /// group-delay round trip whenever modelRate != hostRate. That formula is
+    /// correct for the offline render and for the streaming chain once it lands
+    /// (plan/backlog/053). It is NOT correct for the current character-ON
+    /// deviation (FxEngine.h DEVIATION header): there the FX glue feeds
+    /// HOST-rate audio straight into a stretcher whose internal geometry is
+    /// model-rate, with NO resampler in the path — so neither the model-rate
+    /// cycle scaling nor the SRC group delay is ever realized. Reporting the
+    /// full formula there would over-report PDC by a delay the path never
+    /// applies (the original review finding). For that one case we report the
+    /// scheduler's pure read-head delay (realizedDelaySamples(), = D stream
+    /// samples = D host samples since the stream IS host-rate). With character
+    /// OFF — every null-tested path, where modelRate == hostRate — the two are
+    /// identical, so the honest figure leaves the contract null untouched.
+    [[nodiscard]] int realizedLatencyOf(const PreparedFx& prepared) const noexcept
+    {
+        const auto& s = prepared.stretcher;
+        // modelRate() != hostRate_ via the not-less-not-greater form: exact
+        // (CharacterChain::modelRateFor returns hostRate_ verbatim when the
+        // model rate matches), -Wfloat-equal-clean, and false for any NaN.
+        const bool ratesDiffer =
+            (s.modelRate() < hostRate_) || (hostRate_ < s.modelRate());
+        const bool resamplesInPath = prepared.config.character && ratesDiffer;
+        // (resamplesInPath is the character-ON deviation: model rate diverges
+        //  from host rate but no resampler runs. Once task 053's streaming
+        //  resampler lands, the path DOES realize the SRC term and this branch
+        //  should be deleted so latencySamples() is reported unconditionally.)
+        return resamplesInPath ? s.realizedDelaySamples() : s.latencySamples();
     }
 
     static void passDry(const mws::core::ConstAudioView* inputs,

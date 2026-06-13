@@ -189,6 +189,82 @@ TEST_CASE("enginehost: FX reconfigure latency re-reports only on model/BW/FS cha
     host.collectFxGarbage();
 }
 
+TEST_CASE("enginehost: FX character-ON reports the realized PDC, not the unrealized SRC term",
+          "[enginehost]")
+{
+    // Pins the task-033 character-ON honest-PDC fix (review item 2a). The
+    // CHARACTER-ON path is the DEFAULT config but, until plan/backlog/053's
+    // streaming character chain lands, the FX glue feeds host-rate audio
+    // straight into the stretcher with NO host<->model resampler in the path
+    // (FxEngine.h DEVIATION). So the dsp-engine.md §7.4 SRC group-delay term and
+    // model-rate cycle scaling in RealtimeStretcher::latencySamples() are NEVER
+    // realized here — reporting them would over-report PDC by a delay the path
+    // never applies (the original review finding). FxEngine therefore reports
+    // the scheduler's actually-realized read-head delay for this one case.
+    //
+    // Default config that makes modelRate != hostRate: S1000 / Fs44100 model
+    // rate (44.1 kHz) under a 48 kHz host, character ON.
+    auto charOn = fxParams(/*character=*/true);
+    charOn.model = ModelId::S1000;
+    charOn.sampleRateSel = SampleRateSel::Fs44100;
+
+    // Reference numbers from a stretcher prepared with the SAME inputs: the
+    // §7.4 formula (latencySamples, includes the SRC term because modelRate !=
+    // hostRate) vs the actually-realized read-head delay.
+    RealtimeStretcher ref;
+    ref.prepare(kHostRate, kBlock, /*channels=*/2, charOn);
+    const int formula = ref.latencySamples();
+    const int realized = ref.realizedDelaySamples();
+
+    // Sanity: this config really does engage the deviation (rates differ, so the
+    // formula adds the unrealized SRC term + model-rate scaling on top of the
+    // realized read-head delay). If these were equal the test would not be
+    // guarding anything.
+    REQUIRE(ref.modelRate() < kHostRate); // 44100 < 48000
+    REQUIRE(formula > realized);
+
+    // The EngineHost reports the realized delay (honest PDC), NOT the formula.
+    EngineHost host;
+    const int reported = host.prepareFx(kHostRate, kBlock, /*channels=*/2, charOn);
+    REQUIRE(reported == realized);
+    REQUIRE(reported < formula); // the unrealized SRC term is excluded
+    REQUIRE(host.fxLatencySamples() == reported);
+
+    // Reconfiguring to another character-ON model that still resamples keeps
+    // PDC honest the same way. S950 model rate = 2.5 x bandwidth, so bandwidth
+    // 16.0 kHz => 40 kHz model rate (< the 48 kHz host => the SRC term applies;
+    // note the default 19.2 kHz would give exactly 48 kHz == host, no SRC).
+    auto s950On = fxParams(/*character=*/true);
+    s950On.model = ModelId::S950;
+    s950On.bandwidth = 16.0;
+    RealtimeStretcher refS950;
+    refS950.prepare(kHostRate, kBlock, /*channels=*/2, s950On);
+    REQUIRE(refS950.latencySamples() > refS950.realizedDelaySamples());
+    REQUIRE(host.reconfigureFxIfNeeded(s950On));
+    REQUIRE(host.fxLatencySamples() == refS950.realizedDelaySamples());
+    host.collectFxGarbage();
+}
+
+TEST_CASE("enginehost: FX character-OFF latency equals the full §7.4 formula (no divergence)",
+          "[enginehost]")
+{
+    // The companion invariant: with character OFF the model rate IS the host
+    // rate, so there is no SRC term and the realized delay equals the §7.4
+    // formula — the honest-PDC branch is a no-op on every null-tested path, so
+    // the contract null (T=100%, character OFF) is untouched.
+    auto charOff = fxParams(/*character=*/false);
+    charOff.model = ModelId::S1000;
+    charOff.sampleRateSel = SampleRateSel::Fs44100;
+
+    RealtimeStretcher ref;
+    ref.prepare(kHostRate, kBlock, /*channels=*/2, charOff);
+    REQUIRE(ref.latencySamples() == ref.realizedDelaySamples()); // coincide
+
+    EngineHost host;
+    const int reported = host.prepareFx(kHostRate, kBlock, /*channels=*/2, charOff);
+    REQUIRE(reported == ref.latencySamples()); // full formula reported as-is
+}
+
 TEST_CASE("enginehost: FX mono-sum + clamp flags are plumbed for the LCD", "[enginehost]")
 {
     EngineHost host;
