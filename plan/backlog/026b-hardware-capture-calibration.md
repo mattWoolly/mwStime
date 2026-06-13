@@ -1,7 +1,7 @@
 ---
 id: 026b
 title: Hardware-capture sourcing + SpliceCal/D-TIME calibration (v1-freeze gate)
-status: in-review
+status: done
 depends-on: [026]
 component: qa
 estimated-size: M
