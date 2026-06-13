@@ -79,6 +79,17 @@ public:
     void clearCursor();
     [[nodiscard]] bool hasCursor() const noexcept { return cursorRow >= 0; }
 
+    // --- cell geometry (task 045: the editor hit-tests LCD double-clicks to
+    //     map them onto an editable field) ----------------------------------
+    /// Bounds of cell (row, col) within this component, in local coordinates.
+    /// Mirrors the paint-time grid math; an empty rectangle for cells outside
+    /// the active region or before the first layout.
+    [[nodiscard]] juce::Rectangle<float> cellBounds(int row, int col) const noexcept;
+
+    /// Maps a local-coordinate point onto a cell; returns false when the point
+    /// is outside the character grid. Out-params untouched on a miss.
+    [[nodiscard]] bool cellAt(juce::Point<float> local, int& row, int& col) const noexcept;
+
     void paint(juce::Graphics& g) override;
 
 private:
@@ -90,6 +101,15 @@ private:
     [[nodiscard]] bool cellInActiveRegion(int row, int col) const noexcept;
     void updateBlinkTimer();
     void timerCallback() override;
+
+    /// Paint-time grid metrics shared by paint() and cellBounds() so the
+    /// double-click hit test matches exactly what is drawn.
+    struct GridMetrics {
+        float x0 = 0.0f, y0 = 0.0f;  // top-left of cell (0,0)
+        float cellW = 0.0f, cellH = 0.0f;
+        bool valid = false;
+    };
+    [[nodiscard]] GridMetrics gridMetrics() const noexcept;
 
     std::array<std::array<Cell, kCols>, kRows> cells;
 

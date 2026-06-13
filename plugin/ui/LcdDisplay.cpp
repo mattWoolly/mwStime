@@ -3,6 +3,8 @@
 
 #include "LcdDisplay.h"
 
+#include <cmath>
+
 namespace mws::ui {
 
 namespace {
@@ -125,6 +127,59 @@ void LcdDisplay::clearCursor()
     repaint();
 }
 
+// --- cell geometry (task 045 double-click hit test) --------------------------
+
+LcdDisplay::GridMetrics LcdDisplay::gridMetrics() const noexcept
+{
+    GridMetrics m;
+    const auto bounds = getLocalBounds().toFloat();
+    if (bounds.isEmpty())
+        return m;
+
+    const int rows = activeRows();
+    const auto inner = bounds.reduced(bounds.getWidth() * 0.025f,
+                                      bounds.getHeight() * 0.06f);
+    const float pitch = juce::jmin(inner.getWidth() / (kCellDotsW * (float) kCols),
+                                   inner.getHeight() / (kCellDotsH * (float) rows));
+    if (pitch <= 0.0f)
+        return m;
+
+    m.cellW = pitch * kCellDotsW;
+    m.cellH = pitch * kCellDotsH;
+    m.x0 = bounds.getCentreX() - m.cellW * (float) kCols * 0.5f;
+    m.y0 = bounds.getCentreY() - m.cellH * (float) rows * 0.5f;
+    m.valid = true;
+    return m;
+}
+
+juce::Rectangle<float> LcdDisplay::cellBounds(int row, int col) const noexcept
+{
+    if (! cellInActiveRegion(row, col))
+        return {};
+    const auto m = gridMetrics();
+    if (! m.valid)
+        return {};
+    return { m.x0 + (float) col * m.cellW, m.y0 + (float) row * m.cellH, m.cellW,
+             m.cellH };
+}
+
+bool LcdDisplay::cellAt(juce::Point<float> local, int& row, int& col) const noexcept
+{
+    const auto m = gridMetrics();
+    if (! m.valid)
+        return false;
+
+    const float fx = (local.x - m.x0) / m.cellW;
+    const float fy = (local.y - m.y0) / m.cellH;
+    const int c = (int) std::floor(fx);
+    const int r = (int) std::floor(fy);
+    if (! cellInActiveRegion(r, c))
+        return false;
+    row = r;
+    col = c;
+    return true;
+}
+
 // --- blink -------------------------------------------------------------------
 
 void LcdDisplay::updateBlinkTimer()
@@ -175,17 +230,15 @@ void LcdDisplay::paint(juce::Graphics& g)
 
     // --- character-cell grid -------------------------------------------------
     const int rows = activeRows();
-    const auto inner = bounds.reduced(bounds.getWidth() * 0.025f,
-                                      bounds.getHeight() * 0.06f);
-    const float pitch = juce::jmin(inner.getWidth() / (kCellDotsW * (float) kCols),
-                                   inner.getHeight() / (kCellDotsH * (float) rows));
-    if (pitch <= 0.0f)
+    const auto metrics = gridMetrics();
+    if (! metrics.valid)
         return;
 
-    const float cellW = pitch * kCellDotsW;
-    const float cellH = pitch * kCellDotsH;
-    const float x0 = bounds.getCentreX() - cellW * (float) kCols * 0.5f;
-    const float y0 = bounds.getCentreY() - cellH * (float) rows * 0.5f;
+    const float pitch = metrics.cellW / kCellDotsW;
+    const float cellW = metrics.cellW;
+    const float cellH = metrics.cellH;
+    const float x0 = metrics.x0;
+    const float y0 = metrics.y0;
 
     // One Path per ink class keeps this a handful of fill calls (dynamic-layer
     // budget, ui-design §4).

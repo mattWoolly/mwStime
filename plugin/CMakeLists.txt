@@ -50,6 +50,8 @@ target_sources(mwStime
         ui/ControlPanel.cpp
         ui/Faceplate.cpp
         ui/LcdDisplay.cpp
+        ui/LcdFieldEditor.cpp
+        ui/LcdPageBinding.cpp
         ui/LcdPageModel.cpp
         ui/JogWheel.cpp
         ui/ModelSelector.cpp

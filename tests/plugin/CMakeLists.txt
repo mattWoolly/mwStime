@@ -36,6 +36,7 @@ target_sources(mwstime_plugin_tests
         test_midivoice.cpp
         test_export.cpp
         test_alloc_counter.cpp
+        test_editor_wiring.cpp
         "${CMAKE_SOURCE_DIR}/plugin/src/EngineHost.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/MidiVoice.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/ExportService.cpp"
@@ -54,6 +55,8 @@ target_sources(mwstime_plugin_tests
         "${CMAKE_SOURCE_DIR}/plugin/ui/ControlPanel.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/ui/Faceplate.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/ui/LcdDisplay.cpp"
+        "${CMAKE_SOURCE_DIR}/plugin/ui/LcdFieldEditor.cpp"
+        "${CMAKE_SOURCE_DIR}/plugin/ui/LcdPageBinding.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/ui/LcdPageModel.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/ui/JogWheel.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/ui/ModelSelector.cpp"
