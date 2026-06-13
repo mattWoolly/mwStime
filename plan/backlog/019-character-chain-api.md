@@ -1,7 +1,7 @@
 ---
 id: 019
 title: CharacterChain — unified per-model ingest/playback API + bypass + mono-sum rule
-status: in-review
+status: done
 depends-on: [009, 016, 017]
 component: dsp
 estimated-size: M
