@@ -52,7 +52,7 @@ Deferred to v1.1 by ADR (no tasks here beyond reserved slots): INTELL engine
 | 8 | 031 | FileLoader thread (WAV/AIFF/FLAC) | plugin | M | 027, 030 | done |
 | 8 | 033 | EngineHost FX path + latency reporting + scope FIFO | plugin | M | 022, 023, 028, 030 | done |
 | 9 | 026b | Hardware-capture sourcing + SpliceCal/D-TIME calibration (early QA, v1-freeze gate) | qa | M | 026 | done |
-| 9 | 026c | Akaizer secondary cross-check (local-only, never CI) | qa | S | 026 | todo |
+| 9 | 026c | Akaizer secondary cross-check (local-only, never CI) | qa | S | 026 | done |
 | 9 | 032 | FLAC state-blob cache / embed audio | plugin | M | 029, 031 | todo |
 | 9 | 034 | SAMPLE mode: slot, GO flow, SamplePlayer, zone preview, outTrim | plugin | M | 022, 028, 029, 030, 031 | todo |
 | 9 | 037 | Host tempo sync + source BPM | plugin | S | 021, 029, 033 | todo |
