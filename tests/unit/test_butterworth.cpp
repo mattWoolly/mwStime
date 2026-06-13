@@ -21,16 +21,18 @@
 // Global operator-new replacement: counts every allocation in the test binary
 // so the "setCutoff does not allocate" acceptance criterion (task 005) is
 // verified at runtime, not just by inspection. Counting is branch-free and
-// always on; tests snapshot the counter around the calls under test.
+// always on; tests snapshot the counter around the calls under test. The
+// counter has external linkage (TestAllocationCounter.h) so other
+// allocation-freedom tests (e.g. test_rtstretch_free.cpp, task 022) share
+// this single replacement.
 // ---------------------------------------------------------------------------
-namespace
-{
-std::atomic<std::size_t> g_allocationCount{0};
-} // namespace
+#include "TestAllocationCounter.h"
+
+std::atomic<std::size_t> mwsTestGlobalAllocationCount{0};
 
 void* operator new(std::size_t size)
 {
-    g_allocationCount.fetch_add(1, std::memory_order_relaxed);
+    mwsTestGlobalAllocationCount.fetch_add(1, std::memory_order_relaxed);
     if (void* p = std::malloc(size != 0 ? size : 1))
         return p;
     throw std::bad_alloc{};
@@ -260,13 +262,13 @@ TEST_CASE("butterworth: setCutoff and processSample never allocate",
     Butterworth6LP filter;
     float sink = 0.0f;
 
-    const std::size_t before = g_allocationCount.load(std::memory_order_relaxed);
+    const std::size_t before = mwsTestGlobalAllocationCount.load(std::memory_order_relaxed);
     for (int i = 0; i < 1024; ++i)
     {
         filter.setCutoff(3000.0 + 16.0 * static_cast<double>(i), 192000.0);
         sink += filter.processSample(0.25f);
     }
-    const std::size_t after = g_allocationCount.load(std::memory_order_relaxed);
+    const std::size_t after = mwsTestGlobalAllocationCount.load(std::memory_order_relaxed);
 
     REQUIRE(after == before);
     REQUIRE(std::isfinite(sink));
