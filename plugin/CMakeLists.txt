@@ -39,6 +39,7 @@ target_sources(mwStime
         src/PluginProcessor.cpp
         src/PluginEditor.cpp
         src/EngineHost.cpp
+        src/FileLoader.cpp
         src/state/Parameters.cpp
         src/state/StateTree.cpp
         src/state/Migrations.cpp
