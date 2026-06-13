@@ -1,7 +1,7 @@
 ---
 id: 026c
 title: Akaizer secondary cross-check — local-only corroboration procedure (never CI)
-status: todo
+status: in-review
 depends-on: [026]
 component: qa
 estimated-size: S
