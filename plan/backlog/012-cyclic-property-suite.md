@@ -1,7 +1,7 @@
 ---
 id: 012
 title: Cyclic property suite — splice-comb signature, stereo coherence, determinism
-status: in-review
+status: done
 depends-on: [011]
 component: qa
 estimated-size: S
