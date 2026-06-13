@@ -30,6 +30,12 @@ add_subdirectory(libs/mwstime-core)   # mwstime_core (static, JUCE-free)
 # CLI golden-render driver — task 025 (links only mwstime_core, no JUCE):
 add_subdirectory(tools/mwstime-render)
 
+# Golden-harness tooling — task 026 (both JUCE-free, link only mwstime_core):
+#   gen_golden_inputs : deterministic generator for tests/golden/inputs/
+#   golden_compare    : the two-stage golden-render comparer + diagnostics
+add_subdirectory(tools/gen_golden_inputs)
+add_subdirectory(tools/golden_compare)
+
 # JUCE plugin — task 027. Guarded: the directory may not exist yet. JUCE and
 # clap-juce-extensions (both pinned tags) are fetched only when the plugin is
 # actually being built.

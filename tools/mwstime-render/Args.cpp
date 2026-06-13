@@ -118,6 +118,9 @@ USAGE
   mwstime-render --in <in.wav> --out <out.wav> [render flags]   (direct mode)
   mwstime-render --case <id> --cases <cases.json> --inputs-dir <dir>
                  --out <out.wav>                                 (case mode)
+  mwstime-render --engine-version                                (prints
+                 "<engineVersion> 0x<hash>" and exits — the bless target reads
+                 it to stamp tests/golden/blessed/MANIFEST.json)
   mwstime-render --help
 
 DIRECT-MODE RENDER FLAGS (defaults per dsp-engine.md §2; ranges clamped at the
@@ -171,7 +174,7 @@ ArgsParseResult parseArgs(int argc, const char* const* argv)
         return result;
     };
 
-    // First pass: scan for help, then walk flag/value pairs.
+    // First pass: scan for help / version, then walk flag/value pairs.
     for (int i = 1; i < argc; ++i)
     {
         const std::string flag = argv[i];
@@ -179,6 +182,11 @@ ArgsParseResult parseArgs(int argc, const char* const* argv)
         {
             a.mode = Mode::Help;
             return result; // help wins regardless of other flags
+        }
+        if (flag == "--engine-version" || flag == "--version")
+        {
+            a.mode = Mode::Version;
+            return result; // version query short-circuits like help
         }
     }
 
