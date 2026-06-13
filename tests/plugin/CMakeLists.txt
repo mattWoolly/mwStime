@@ -26,7 +26,9 @@ target_sources(mwstime_plugin_tests
         test_waveformview.cpp
         test_controlpanel.cpp
         test_enginehost.cpp
+        test_fileloader.cpp
         "${CMAKE_SOURCE_DIR}/plugin/src/EngineHost.cpp"
+        "${CMAKE_SOURCE_DIR}/plugin/src/FileLoader.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/state/Parameters.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/state/StateTree.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/state/Migrations.cpp"
@@ -58,6 +60,7 @@ target_link_libraries(mwstime_plugin_tests
     PRIVATE
         mwstime_core
         juce::juce_audio_processors
+        juce::juce_audio_formats
         juce::juce_gui_basics
         Catch2::Catch2WithMain
         juce::juce_recommended_config_flags
