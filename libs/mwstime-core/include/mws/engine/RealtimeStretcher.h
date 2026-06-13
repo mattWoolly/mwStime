@@ -151,6 +151,24 @@ public:
     /// prepare() calls by contract.
     [[nodiscard]] int latencySamples() const noexcept { return latencyHost_; }
 
+    /// The pure read-head delay the scheduler ACTUALLY realizes at T=100%, in
+    /// STREAM samples (= the internal model-domain delay D = 2000 + fadeMax;
+    /// the read head starts at -D, so process() is a D-sample pure delay). When
+    /// the stream rate equals the model rate (character OFF, the null-test
+    /// path) this equals latencySamples(). It diverges from latencySamples()
+    /// ONLY in the task-033 character-ON deviation, where the FX glue feeds
+    /// HOST-rate audio straight in (no host<->model resampler exists yet, see
+    /// FxEngine.h DEVIATION + plan/backlog/053): there the stream is host-rate,
+    /// so the realized delay is D host samples and latencySamples()'s SRC
+    /// group-delay + model-rate cycle scaling are never applied. FxEngine
+    /// reports THIS figure for that path so PDC stays honest (task 053 removes
+    /// the divergence by adding the streaming chain). Constant between
+    /// prepare() calls by contract.
+    [[nodiscard]] int realizedDelaySamples() const noexcept
+    {
+        return static_cast<int>(delayModel_);
+    }
+
     /// True while the ADR-006 FREE causality clamp is engaged — T < 100% on
     /// the cyclic models, varispeed rate > 1 (T < 100%) on the S900. The LCD
     /// shows `FX MIN 100%` (task 041); automation values are preserved.
