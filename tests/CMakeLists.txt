@@ -21,6 +21,7 @@ add_executable(mwstime_tests
     unit/test_s950.cpp
     unit/test_s1000chain.cpp
     unit/test_tempomap.cpp
+    unit/test_transpose.cpp
     unit/test_varclock.cpp
 )
 

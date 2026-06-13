@@ -1,7 +1,7 @@
 ---
 id: 018
 title: Transpose stage — post-stretch sinc repitch (S1000/S1100) + clock-modulation hook (S900/S950)
-status: todo
+status: in-review
 depends-on: [004, 009, 016]
 component: dsp
 estimated-size: M
