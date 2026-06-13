@@ -1,7 +1,7 @@
 ---
 id: 038
 title: Factory presets — the four documented v1 validation presets
-status: in-review
+status: done
 depends-on: [026, 029, 034]
 component: plugin
 estimated-size: S
