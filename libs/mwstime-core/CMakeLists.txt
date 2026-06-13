@@ -20,6 +20,7 @@ add_library(mwstime_core STATIC
     src/stretch/AutoCycle.cpp
     src/stretch/CyclicEngine.cpp
     src/stretch/RepitchEngine.cpp
+    src/stretch/S950Engine.cpp
 )
 
 target_include_directories(mwstime_core

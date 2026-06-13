@@ -18,6 +18,7 @@ add_executable(mwstime_tests
     unit/test_wavio.cpp
     unit/test_resampler.cpp
     unit/test_repitch.cpp
+    unit/test_s950.cpp
     unit/test_s1000chain.cpp
     unit/test_tempomap.cpp
     unit/test_varclock.cpp
