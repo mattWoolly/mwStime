@@ -71,6 +71,12 @@ set_tests_properties(
     PROPERTIES LABELS tsan
 )
 
+# Golden-render character regression (tests/golden/ — task 026). Registers one
+# CTest per cases.json case (LABEL `golden`), the `bless_goldens` target, and the
+# input-corpus reproducibility check. JUCE-free: it drives the mwstime_render +
+# golden_compare CLIs, so it builds and runs without the plugin.
+add_subdirectory(golden)
+
 # JUCE-linked plugin tests (tests/plugin/ — harness created by task 028 and
 # reused by every later tests/plugin/ task). Only built when the plugin is.
 if(MWS_BUILD_PLUGIN AND TARGET juce::juce_audio_processors)

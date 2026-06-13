@@ -122,6 +122,17 @@ int main(int argc, char** argv)
         return 0;
     }
 
+    if (args.mode == mwsrender::Mode::Version)
+    {
+        // One machine-readable line: "<version> 0x<hash>". The bless target
+        // (tools/bless_goldens.sh) parses this to stamp MANIFEST.json so the
+        // renderer remains the single authoritative source of the engine
+        // version (task 026; architecture.md §6 render metadata).
+        std::cout << mws::core::engineVersion() << " 0x" << std::hex
+                  << mws::core::engineVersionHash() << std::dec << "\n";
+        return 0;
+    }
+
     // Resolve the input WAV path, parameter snapshot, and output bit depth for
     // the chosen mode.
     std::string inputPath;

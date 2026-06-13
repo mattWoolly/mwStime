@@ -1,0 +1,539 @@
+{
+  "_comment": [
+    "Golden-render character-regression case matrix (docs/design/testing-strategy.md §4,",
+    "docs/design/dsp-engine.md §9; task plan/backlog/026-golden-harness.md).",
+    "Each case renders tests/golden/inputs/<input> with mwstime-render --case and is",
+    "compared against tests/golden/blessed/<id>.wav by golden_compare.",
+    "",
+    "Schema (per tools/mwstime-render/Cases.h, plus harness-only top-level keys the",
+    "loader ignores):",
+    "  id      : unique; the blessed file is <id>.wav (the <model>_<case> convention).",
+    "  input   : a file in tests/golden/inputs/.",
+    "  model   : s900|s950|s1000|s1100.",
+    "  params  : any subset of the dsp-engine §2 render flags; omitted = §2 default.",
+    "  bitDepth: 16|24|32|float (default 16). Goldens use 16-bit so every blessed WAV",
+    "            stays well under 1 MB (plain git, no LFS); 16-bit exact compare is",
+    "            valid because the renderer is deterministic.",
+    "  policy  : exact|tolerance (harness only). 'exact' = CLASSIC stretch-only",
+    "            (transpose 0, character OFF) integer path -> bit-exact on all",
+    "            platforms (dsp-engine §3.2). 'tolerance' = float-stage cases ->",
+    "            bit-exact on the reference platform (macOS arm64), tol 1e-6 off it.",
+    "  note    : human description (harness only).",
+    "",
+    "LEGAL: all inputs are original synthetic material (tools/gen_golden_inputs/);",
+    "there is NO copyrighted audio in this repo (no Amen break)."
+  ],
+  "version": 1,
+  "cases": [
+
+    {
+      "id": "s1100_jungle_amen_300",
+      "input": "breakslice.wav",
+      "model": "s1100",
+      "params": { "stretchMode": "cyclic", "cycleLen": 1000, "timeFactor": 300, "qual": 20, "width": 10, "hopMode": "classic", "character": true },
+      "policy": "tolerance",
+      "note": "dsp-engine §9 'Jungle Amen 300' preset (SPOD S1100 setting [DRR F10])"
+    },
+    {
+      "id": "s950_vocal_200",
+      "input": "sine440.wav",
+      "model": "s950",
+      "params": { "timeFactor": 200, "cycleLen": 1000, "material": "pol2", "hopMode": "classic", "character": true },
+      "policy": "tolerance",
+      "note": "dsp-engine §9 'S950 vocal 200' preset"
+    },
+    {
+      "id": "s900_half_speed",
+      "input": "saw100.wav",
+      "model": "s900",
+      "params": { "timeFactor": 200, "bandwidth": 16.0, "character": true },
+      "policy": "tolerance",
+      "note": "dsp-engine §9 'S900 half-speed' varispeed preset (ADR-003)"
+    },
+    {
+      "id": "s1000_dred_vox",
+      "input": "sine440.wav",
+      "model": "s1000",
+      "params": { "stretchMode": "cyclic", "cycleLen": 200, "timeFactor": 400, "hopMode": "classic", "character": true },
+      "policy": "tolerance",
+      "note": "dsp-engine §9 'Dred vox' preset (timestretched-vocal idiom [DRR F9])"
+    },
+
+    {
+      "id": "s1000_classic_stretchonly_200",
+      "input": "saw100.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 200, "cycleLen": 1000, "hopMode": "classic", "transpose": 0, "character": false },
+      "policy": "exact",
+      "note": "CLASSIC stretch-only -> integer path, bit-exact everywhere (§3.2)"
+    },
+    {
+      "id": "s1000_classic_stretchonly_300",
+      "input": "breakslice.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 300, "cycleLen": 1000, "hopMode": "classic", "transpose": 0, "character": false },
+      "policy": "exact",
+      "note": "CLASSIC stretch-only, breakbeat -> bit-exact"
+    },
+    {
+      "id": "s1000_classic_stretchonly_150",
+      "input": "clicktrain_2hz.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 150, "cycleLen": 1000, "hopMode": "classic", "transpose": 0, "character": false },
+      "policy": "exact",
+      "note": "CLASSIC stretch-only, transient train -> bit-exact (flam)"
+    },
+    {
+      "id": "s1000_classic_stretchonly_50",
+      "input": "saw100.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 50, "cycleLen": 1000, "hopMode": "classic", "transpose": 0, "character": false },
+      "policy": "exact",
+      "note": "CLASSIC compression (T<100) stretch-only -> bit-exact"
+    },
+    {
+      "id": "s1000_classic_smallcycle_300",
+      "input": "sine440.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 300, "cycleLen": 200, "hopMode": "classic", "transpose": 0, "character": false },
+      "policy": "exact",
+      "note": "CLASSIC stretch-only, short cycle -> bit-exact (metallic)"
+    },
+    {
+      "id": "s1000_classic_cycle20_300",
+      "input": "sine440.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 300, "cycleLen": 20, "hopMode": "classic", "transpose": 0, "character": false },
+      "policy": "exact",
+      "note": "extreme min cycle 20, CLASSIC stretch-only -> bit-exact"
+    },
+    {
+      "id": "s1000_classic_cycle2000_300",
+      "input": "breakslice.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 300, "cycleLen": 2000, "hopMode": "classic", "transpose": 0, "character": false },
+      "policy": "exact",
+      "note": "extreme max cycle 2000, CLASSIC stretch-only -> bit-exact"
+    },
+    {
+      "id": "s1000_classic_25pct",
+      "input": "breakslice.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 25, "cycleLen": 1000, "hopMode": "classic", "transpose": 0, "character": false },
+      "policy": "exact",
+      "note": "extreme low 25% (superset min), CLASSIC stretch-only -> bit-exact"
+    },
+    {
+      "id": "s1000_classic_2000pct",
+      "input": "noiseburst.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 2000, "cycleLen": 1000, "hopMode": "classic", "transpose": 0, "character": false },
+      "policy": "exact",
+      "note": "extreme high 2000% (superset max), short input keeps it <1 MB -> bit-exact"
+    },
+    {
+      "id": "s1000_classic_char_300",
+      "input": "saw100.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 300, "cycleLen": 1000, "hopMode": "classic", "transpose": 0, "character": true },
+      "policy": "tolerance",
+      "note": "CLASSIC with character ON -> float-stage chain (16-bit/voice filter)"
+    },
+    {
+      "id": "s1000_classic_char_sweep_300",
+      "input": "sweep20-20k.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 300, "cycleLen": 1000, "hopMode": "classic", "transpose": 0, "character": true },
+      "policy": "tolerance",
+      "note": "character ON on a sweep -> filter/alias signature"
+    },
+    {
+      "id": "s1000_classic_transpose_up12",
+      "input": "saw100.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 200, "cycleLen": 1000, "hopMode": "classic", "transpose": 12, "character": false },
+      "policy": "tolerance",
+      "note": "transpose +12 -> windowed-sinc resample stage (float)"
+    },
+    {
+      "id": "s1000_classic_transpose_down12",
+      "input": "saw100.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 200, "cycleLen": 1000, "hopMode": "classic", "transpose": -12, "character": false },
+      "policy": "tolerance",
+      "note": "transpose -12 -> windowed-sinc resample stage (float)"
+    },
+    {
+      "id": "s1000_revised_200",
+      "input": "saw100.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 200, "cycleLen": 1000, "hopMode": "revised", "transpose": 0, "character": false },
+      "policy": "tolerance",
+      "note": "REVISED timing -> fractional hop, interpolated reads (float)"
+    },
+    {
+      "id": "s1000_revised_175",
+      "input": "breakslice.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 175, "cycleLen": 1000, "hopMode": "revised", "transpose": 0, "character": false },
+      "policy": "tolerance",
+      "note": "REVISED fractional time factor 175%"
+    },
+    {
+      "id": "s1000_norm_on_300",
+      "input": "breakslice.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 300, "cycleLen": 1000, "hopMode": "classic", "transpose": 0, "character": true, "norm": true },
+      "policy": "tolerance",
+      "note": "NORM ON (peak-normalize to source peak, Akaizer v1.3 behavior)"
+    },
+    {
+      "id": "s1000_fs22k_300",
+      "input": "breakslice_22k.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 300, "cycleLen": 1000, "hopMode": "classic", "transpose": 0, "character": true, "fs": "22.05" },
+      "policy": "tolerance",
+      "note": "FS 22.05 kHz model rate -> cycle length in samples changes the sound"
+    },
+    {
+      "id": "s1000_stereo_coherence_300",
+      "input": "stereo_pan.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 300, "cycleLen": 1000, "hopMode": "classic", "transpose": 0, "character": false },
+      "policy": "exact",
+      "note": "stereo CLASSIC stretch-only -> shared hop schedule, bit-exact"
+    },
+
+    {
+      "id": "s1100_classic_stretchonly_300",
+      "input": "breakslice.wav",
+      "model": "s1100",
+      "params": { "timeFactor": 300, "cycleLen": 1000, "hopMode": "classic", "transpose": 0, "character": false },
+      "policy": "exact",
+      "note": "S1100 CLASSIC stretch-only -> identical engine to S1000, bit-exact"
+    },
+    {
+      "id": "s1100_classic_char_300",
+      "input": "breakslice.wav",
+      "model": "s1100",
+      "params": { "timeFactor": 300, "cycleLen": 1000, "hopMode": "classic", "transpose": 0, "character": true },
+      "policy": "tolerance",
+      "note": "S1100 character ON -> 20-bit DAC dither delta vs S1000 (seeded)"
+    },
+    {
+      "id": "s1100_classic_cycle20_500",
+      "input": "sine440.wav",
+      "model": "s1100",
+      "params": { "timeFactor": 500, "cycleLen": 20, "hopMode": "classic", "transpose": 0, "character": false },
+      "policy": "exact",
+      "note": "S1100 extreme min cycle 20 at 500% -> bit-exact"
+    },
+    {
+      "id": "s1100_classic_cycle2000_300",
+      "input": "breakslice.wav",
+      "model": "s1100",
+      "params": { "timeFactor": 300, "cycleLen": 2000, "hopMode": "classic", "transpose": 0, "character": false },
+      "policy": "exact",
+      "note": "S1100 extreme max cycle 2000 -> bit-exact"
+    },
+    {
+      "id": "s1100_classic_999pct",
+      "input": "sine440.wav",
+      "model": "s1100",
+      "params": { "timeFactor": 999, "cycleLen": 1000, "hopMode": "classic", "transpose": 0, "character": false },
+      "policy": "exact",
+      "note": "S1100 high 999% on 1 s sine (16-bit keeps <1 MB) -> bit-exact"
+    },
+    {
+      "id": "s1100_classic_2000pct",
+      "input": "noiseburst.wav",
+      "model": "s1100",
+      "params": { "timeFactor": 2000, "cycleLen": 1000, "hopMode": "classic", "transpose": 0, "character": false },
+      "policy": "exact",
+      "note": "S1100 extreme 2000% on 0.5 s noise -> bit-exact"
+    },
+    {
+      "id": "s1100_classic_25pct",
+      "input": "breakslice.wav",
+      "model": "s1100",
+      "params": { "timeFactor": 25, "cycleLen": 1000, "hopMode": "classic", "transpose": 0, "character": false },
+      "policy": "exact",
+      "note": "S1100 extreme low 25% -> bit-exact"
+    },
+    {
+      "id": "s1100_revised_250",
+      "input": "saw100.wav",
+      "model": "s1100",
+      "params": { "timeFactor": 250, "cycleLen": 1000, "hopMode": "revised", "transpose": 0, "character": false },
+      "policy": "tolerance",
+      "note": "S1100 REVISED timing -> fractional hop (float)"
+    },
+    {
+      "id": "s1100_transpose_up12_char",
+      "input": "saw100.wav",
+      "model": "s1100",
+      "params": { "timeFactor": 200, "cycleLen": 1000, "hopMode": "classic", "transpose": 12, "character": true },
+      "policy": "tolerance",
+      "note": "S1100 transpose +12 with character -> sinc + chain (float)"
+    },
+    {
+      "id": "s1100_transpose_down12_char",
+      "input": "saw100.wav",
+      "model": "s1100",
+      "params": { "timeFactor": 200, "cycleLen": 1000, "hopMode": "classic", "transpose": -12, "character": true },
+      "policy": "tolerance",
+      "note": "S1100 transpose -12 with character -> sinc + chain (float)"
+    },
+    {
+      "id": "s1100_norm_on_jungle",
+      "input": "breakslice.wav",
+      "model": "s1100",
+      "params": { "stretchMode": "cyclic", "cycleLen": 1000, "timeFactor": 300, "hopMode": "classic", "character": true, "norm": true },
+      "policy": "tolerance",
+      "note": "S1100 jungle preset with NORM ON"
+    },
+    {
+      "id": "s1100_stereo_char_300",
+      "input": "stereo_pan.wav",
+      "model": "s1100",
+      "params": { "timeFactor": 300, "cycleLen": 1000, "hopMode": "classic", "transpose": 0, "character": true },
+      "policy": "tolerance",
+      "note": "S1100 stereo with character ON -> per-channel dither, coherence"
+    },
+
+    {
+      "id": "s950_classic_stretchonly_200",
+      "input": "sine440.wav",
+      "model": "s950",
+      "params": { "timeFactor": 200, "cycleLen": 1000, "material": "pol2", "hopMode": "classic", "transpose": 0, "character": false },
+      "policy": "tolerance",
+      "note": "S950 character OFF still runs the mono-sum + 2.5xBW model rate (float SRC)"
+    },
+    {
+      "id": "s950_classic_char_200",
+      "input": "saw100.wav",
+      "model": "s950",
+      "params": { "timeFactor": 200, "cycleLen": 1000, "material": "pol2", "bandwidth": 19.2, "hopMode": "classic", "character": true },
+      "policy": "tolerance",
+      "note": "S950 character ON -> variable-clock 12-bit chain"
+    },
+    {
+      "id": "s950_mon1_200",
+      "input": "sine440.wav",
+      "model": "s950",
+      "params": { "timeFactor": 200, "cycleLen": 1000, "material": "mon1", "hopMode": "classic", "character": true },
+      "policy": "tolerance",
+      "note": "S950 MON1 material (per-grain cycle snap to detected pitch)"
+    },
+    {
+      "id": "s950_dtime_small_300",
+      "input": "saw100.wav",
+      "model": "s950",
+      "params": { "timeFactor": 300, "cycleLen": 100, "material": "pol2", "hopMode": "classic", "character": true },
+      "policy": "tolerance",
+      "note": "S950 short D-TIME (cycle 100) -> metallic [MAN §2]"
+    },
+    {
+      "id": "s950_dtime_cycle20_300",
+      "input": "sine440.wav",
+      "model": "s950",
+      "params": { "timeFactor": 300, "cycleLen": 20, "material": "pol2", "hopMode": "classic", "character": true },
+      "policy": "tolerance",
+      "note": "S950 extreme min D-TIME cycle 20"
+    },
+    {
+      "id": "s950_dtime_cycle2000_300",
+      "input": "breakslice.wav",
+      "model": "s950",
+      "params": { "timeFactor": 300, "cycleLen": 2000, "material": "pol2", "hopMode": "classic", "character": true },
+      "policy": "tolerance",
+      "note": "S950 extreme max D-TIME cycle 2000 -> tremolo [MAN §2]"
+    },
+    {
+      "id": "s950_clamp_999",
+      "input": "noiseburst.wav",
+      "model": "s950",
+      "params": { "timeFactor": 2000, "cycleLen": 1000, "material": "pol2", "hopMode": "classic", "character": false },
+      "policy": "tolerance",
+      "note": "S950 timeFactor 2000 engine-clamps to 999 [MAN §2] -> achieved 999% length"
+    },
+    {
+      "id": "s950_25pct",
+      "input": "breakslice.wav",
+      "model": "s950",
+      "params": { "timeFactor": 25, "cycleLen": 1000, "material": "pol2", "hopMode": "classic", "character": false },
+      "policy": "tolerance",
+      "note": "S950 extreme low 25%"
+    },
+    {
+      "id": "s950_revised_175",
+      "input": "saw100.wav",
+      "model": "s950",
+      "params": { "timeFactor": 175, "cycleLen": 1000, "material": "pol2", "hopMode": "revised", "character": false },
+      "policy": "tolerance",
+      "note": "S950 REVISED timing (float fractional hop)"
+    },
+    {
+      "id": "s950_transpose_up12",
+      "input": "saw100.wav",
+      "model": "s950",
+      "params": { "timeFactor": 200, "cycleLen": 1000, "material": "pol2", "hopMode": "classic", "transpose": 12, "character": true },
+      "policy": "tolerance",
+      "note": "S950 transpose +12 -> virtual-clock multiplier (tracking filter)"
+    },
+    {
+      "id": "s950_transpose_down12",
+      "input": "saw100.wav",
+      "model": "s950",
+      "params": { "timeFactor": 200, "cycleLen": 1000, "material": "pol2", "hopMode": "classic", "transpose": -12, "character": true },
+      "policy": "tolerance",
+      "note": "S950 transpose -12 -> virtual-clock multiplier (tracking filter)"
+    },
+    {
+      "id": "s950_bandwidth_min",
+      "input": "sweep20-20k.wav",
+      "model": "s950",
+      "params": { "timeFactor": 200, "cycleLen": 1000, "material": "pol2", "bandwidth": 3.0, "hopMode": "classic", "character": true },
+      "policy": "tolerance",
+      "note": "S950 minimum bandwidth 3 kHz -> 7.5 kHz model rate, heavy band-limit"
+    },
+    {
+      "id": "s950_norm_on_200",
+      "input": "sine440.wav",
+      "model": "s950",
+      "params": { "timeFactor": 200, "cycleLen": 1000, "material": "pol2", "hopMode": "classic", "character": true, "norm": true },
+      "policy": "tolerance",
+      "note": "S950 vocal-200 with NORM ON"
+    },
+    {
+      "id": "s950_stereo_monosum_200",
+      "input": "stereo_pan.wav",
+      "model": "s950",
+      "params": { "timeFactor": 200, "cycleLen": 1000, "material": "pol2", "hopMode": "classic", "character": false },
+      "policy": "tolerance",
+      "note": "S950 stereo input summed to mono (authentic) -> mono output"
+    },
+
+    {
+      "id": "s900_repitch_up_oct",
+      "input": "saw100.wav",
+      "model": "s900",
+      "params": { "timeFactor": 200, "bandwidth": 16.0, "transpose": 0, "character": false },
+      "policy": "tolerance",
+      "note": "S900 varispeed: 200% time -> half speed, -12 st (ADR-003), no character"
+    },
+    {
+      "id": "s900_repitch_char_200",
+      "input": "saw100.wav",
+      "model": "s900",
+      "params": { "timeFactor": 200, "bandwidth": 16.0, "transpose": 0, "character": true },
+      "policy": "tolerance",
+      "note": "S900 varispeed with the variable-clock 12-bit chain (tracking filter)"
+    },
+    {
+      "id": "s900_repitch_compress_50",
+      "input": "breakslice.wav",
+      "model": "s900",
+      "params": { "timeFactor": 50, "bandwidth": 16.0, "transpose": 0, "character": false },
+      "policy": "tolerance",
+      "note": "S900 varispeed 50% -> double speed, +12 st (SAMPLE-mode compression OK)"
+    },
+    {
+      "id": "s900_transpose_up7",
+      "input": "saw100.wav",
+      "model": "s900",
+      "params": { "timeFactor": 100, "bandwidth": 16.0, "transpose": 7, "character": true },
+      "policy": "tolerance",
+      "note": "S900 transpose +7 st -> clock multiplier, tracking reconstruction"
+    },
+    {
+      "id": "s900_transpose_down7",
+      "input": "saw100.wav",
+      "model": "s900",
+      "params": { "timeFactor": 100, "bandwidth": 16.0, "transpose": -7, "character": true },
+      "policy": "tolerance",
+      "note": "S900 transpose -7 st -> clock divider, tracking reconstruction"
+    },
+    {
+      "id": "s900_bandwidth_min_sweep",
+      "input": "sweep20-20k.wav",
+      "model": "s900",
+      "params": { "timeFactor": 150, "bandwidth": 3.0, "transpose": 0, "character": true },
+      "policy": "tolerance",
+      "note": "S900 minimum bandwidth 3 kHz on a sweep -> alias/filter signature"
+    },
+    {
+      "id": "s900_bandwidth_max_sweep",
+      "input": "sweep20-20k.wav",
+      "model": "s900",
+      "params": { "timeFactor": 150, "bandwidth": 16.0, "transpose": 0, "character": true },
+      "policy": "tolerance",
+      "note": "S900 max bandwidth 16 kHz (40 kHz rate ceiling [MAN §1])"
+    },
+    {
+      "id": "s900_stereo_monosum",
+      "input": "stereo_pan.wav",
+      "model": "s900",
+      "params": { "timeFactor": 200, "bandwidth": 16.0, "transpose": 0, "character": false },
+      "policy": "tolerance",
+      "note": "S900 stereo input summed to mono (authentic) -> mono output"
+    },
+
+    {
+      "id": "s1000_classic_click_smear_400",
+      "input": "clicktrain_2hz.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 400, "cycleLen": 1000, "hopMode": "classic", "transpose": 0, "character": false },
+      "policy": "exact",
+      "note": "transient smear/flam at 400% CLASSIC stretch-only -> bit-exact"
+    },
+    {
+      "id": "s1000_classic_noise_300",
+      "input": "noiseburst.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 300, "cycleLen": 1000, "hopMode": "classic", "transpose": 0, "character": false },
+      "policy": "exact",
+      "note": "broadband noise at 300% CLASSIC stretch-only -> bit-exact"
+    },
+    {
+      "id": "s1000_classic_char_noise_300",
+      "input": "noiseburst.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 300, "cycleLen": 1000, "hopMode": "classic", "transpose": 0, "character": true },
+      "policy": "tolerance",
+      "note": "broadband noise at 300% with character -> 16-bit quantize signature"
+    },
+    {
+      "id": "s1000_classic_transpose_up5_char",
+      "input": "sine440.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 200, "cycleLen": 1000, "hopMode": "classic", "transpose": 5, "character": true },
+      "policy": "tolerance",
+      "note": "S1000 +5 st with character -> sinc transpose + voice filter"
+    },
+    {
+      "id": "s1000_revised_char_220",
+      "input": "breakslice.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 220, "cycleLen": 800, "hopMode": "revised", "transpose": 0, "character": true },
+      "policy": "tolerance",
+      "note": "S1000 REVISED with character on a breakbeat"
+    },
+    {
+      "id": "s1000_classic_sweep_stretchonly_200",
+      "input": "sweep20-20k.wav",
+      "model": "s1000",
+      "params": { "timeFactor": 200, "cycleLen": 1000, "hopMode": "classic", "transpose": 0, "character": false },
+      "policy": "exact",
+      "note": "sweep CLASSIC stretch-only -> bit-exact (pre-character alias-free copy)"
+    },
+    {
+      "id": "s1100_classic_sweep_char_200",
+      "input": "sweep20-20k.wav",
+      "model": "s1100",
+      "params": { "timeFactor": 200, "cycleLen": 1000, "hopMode": "classic", "transpose": 0, "character": true },
+      "policy": "tolerance",
+      "note": "S1100 sweep with character -> filter/dither signature"
+    }
+  ]
+}

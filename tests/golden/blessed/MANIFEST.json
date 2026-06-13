@@ -1,0 +1,9 @@
+{
+  "engineVersion": "0.1.0",
+  "engineVersionHash": "0xb1ecc4b0e1cf1eb8",
+  "date": "2026-06-13T19:57:13Z",
+  "blesser": "matt.woolly",
+  "platform": "Darwin arm64",
+  "reason": "dry-run check",
+  "caseCount": 63
+}

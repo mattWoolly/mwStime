@@ -17,7 +17,10 @@
 namespace mwsrender {
 
 /// Which top-level operation the user asked for.
-enum class Mode { Direct, Case, Help };
+/// `Version` prints "<engineVersion> 0x<hash>" (machine-readable, one line) and
+/// exits 0 — the bless target reads it to stamp tests/golden/blessed/MANIFEST.json
+/// (task 026; the renderer is the authoritative source of the engine version).
+enum class Mode { Direct, Case, Help, Version };
 
 /// One mws::engine::ParamSnapshot value mapped from a CLI string flag, plus a
 /// human error when the string is out of the documented domain.
