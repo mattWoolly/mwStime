@@ -1,7 +1,7 @@
 ---
 id: 034b
 title: Adversarial DSP QA — NaN/denormal hunts, host-rate matrix, FX soak, extremes, (PI) audit
-status: in-review
+status: done
 depends-on: [033, 034]
 component: qa
 estimated-size: M

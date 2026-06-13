@@ -56,7 +56,7 @@ Deferred to v1.1 by ADR (no tasks here beyond reserved slots): INTELL engine
 | 9 | 032 | FLAC state-blob cache / embed audio | plugin | M | 029, 031 | done |
 | 9 | 034 | SAMPLE mode: slot, GO flow, SamplePlayer, zone preview, outTrim | plugin | M | 022, 028, 029, 030, 031 | done |
 | 9 | 037 | Host tempo sync + source BPM | plugin | S | 021, 029, 033 | done |
-| 10 | 034b | Adversarial DSP QA — NaN/denormals, rate matrix, soak, (PI) audit | qa | M | 033, 034 | todo |
+| 10 | 034b | Adversarial DSP QA — NaN/denormals, rate matrix, soak, (PI) audit | qa | M | 033, 034 | done |
 | 10 | 035 | MIDI repitch voice (mono, filter retune) | plugin | M | 016, 034 | todo |
 | 10 | 036 | Drag-out export | plugin | S | 003, 034 | todo |
 | 10 | 038 | Factory presets (dsp-engine §9) | plugin | S | 026, 029, 034 | todo |
