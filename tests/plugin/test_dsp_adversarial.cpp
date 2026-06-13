@@ -17,16 +17,22 @@
 //      (akaizer-analysis.md §2.1 input floor), and a zone of minimum length —
 //      none crash, none produce NaN, and lengths stay schedule-derived.
 //   3. Host sample-rate matrix: 44.1/48/88.2/96/192 kHz host rates with
-//      CHARACTER ON — the processor FX output is model-rate invariant (the same
+//      CHARACTER OFF — the processor FX output is model-rate invariant (the same
 //      underlying render within SRC tolerance). Extends the 024 engine-level
-//      test to the plugin processor.
+//      test to the plugin processor. (CHARACTER OFF is the path the invariant
+//      holds on today — model rate == host rate; see the matrix case's header
+//      for why the CHARACTER ON path is deferred to task 053.)
 //   4. Render cap: 2000% on a synthetic long file is refused with the typed
 //      NotEnoughMemory event and nothing is published (no over-cap allocation).
 //
 // A 30-minute streamed FX soak (flat memory, bounded CPU) lives in the
 // `[.soak]`-tagged case at the foot of this file (HOW-TO-RUN is in that case's
-// header comment) — Catch2 hides `[.]` cases from the default run, so the
-// `qa-adversarial`-labelled CTest entry never triggers the 30-minute run.
+// header comment). Catch2's `[.]` prefix only hides a case from the NO-FILTER
+// default run; an explicit tag filter like `[qa-adversarial]` still matches it
+// (the soak carries `[qa-adversarial]` too). So the `qa-adversarial`-labelled
+// CTest entry uses the selector `[qa-adversarial]~[.soak]` to exclude the soak
+// explicitly (see tests/plugin/CMakeLists.txt) — that is what keeps the labelled
+// run to the 7 fast cases; the soak is invoked separately by tag.
 //
 // Context: docs/design/testing-strategy.md §7 Wave 1; docs/design/dsp-engine.md
 // §3.4 (edge rules), §3.5 (host-rate processing / model-rate invariance);
@@ -792,8 +798,10 @@ TEST_CASE("qa-adversarial: render cap refuses 2000% on a long file with no over-
 // ===========================================================================
 // FX soak — 30-minute streamed run, flat memory + bounded CPU.
 //
-// HOW TO RUN (it is HIDDEN from the default ctest run via the Catch2 `[.]`
-// prefix on the `[.soak]` tag, so `ctest -L qa-adversarial` never triggers it):
+// HOW TO RUN (it is HIDDEN from the NO-FILTER default ctest run via the Catch2
+// `[.]` prefix on the `[.soak]` tag; the `qa-adversarial`-labelled CTest then
+// excludes it explicitly via its `[qa-adversarial]~[.soak]` selector, so
+// `ctest -L qa-adversarial` never triggers it — run it directly by tag):
 //
 //   cmake --preset default
 //   cmake --build --preset default -j 6 --target mwstime_plugin_tests

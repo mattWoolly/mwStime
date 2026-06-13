@@ -84,12 +84,15 @@ catch_discover_tests(mwstime_plugin_tests)
 # `ctest -R qa-adversarial` selects them — README test-selection rules), but
 # Catch2 3.x does not map tags to CTest LABELS. Register the [qa-adversarial]-
 # tagged set as one labelled CTest so `ctest -L qa-adversarial` selects exactly
-# Wave 1 of the adversarial fleet (testing-strategy.md §7). The `[.soak]` 30-min
-# case carries Catch2's hidden `[.]` prefix, so neither this entry nor the bare
-# tag run drives it — it is invoked explicitly by tag (see the file header).
+# Wave 1 of the adversarial fleet (testing-strategy.md §7). Catch2's `[.]`-hidden
+# prefix only excludes a case from the NO-FILTER default run; an explicit tag
+# filter like `[qa-adversarial]` DOES match the `[.soak]` case (it carries the
+# `[qa-adversarial]` tag too). So we must exclude the 30-min soak ourselves with
+# the `~[.soak]` term — `[qa-adversarial]~[.soak]` selects exactly the 7 fast
+# Wave 1 cases. The soak is invoked explicitly by tag instead (see the file header).
 add_test(
     NAME "qa-adversarial: Wave 1 DSP adversaries (labelled set)"
-    COMMAND mwstime_plugin_tests "[qa-adversarial]"
+    COMMAND mwstime_plugin_tests "[qa-adversarial]~[.soak]"
 )
 set_tests_properties(
     "qa-adversarial: Wave 1 DSP adversaries (labelled set)"

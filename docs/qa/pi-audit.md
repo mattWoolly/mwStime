@@ -97,7 +97,7 @@ test_lcdfont.cpp / test_lcdpagemodel.cpp). Individually enumerated tags:
 - ui-design.md §2 palette table; §6.5 LCD grid 40×6; LcdDisplay.h grid; LcdFont.h
   glyph shapes; FaceplateSpec.h / FaceplateGeometry.h (chassis, glow inks);
   JogWheel.cpp drag/wheel gains; SeriesLookAndFeel.cpp cap/fader insets;
-  Faceplate.cpp sheen/slot cosmetics; ModelSelector 150 ms faceplate cross-fade;
+  Faceplate.cpp sheen/slot cosmetics;
   LcdPageModel.cpp hardware-idiom wording (`** WRONG DISK **`-flavored) and the
   appended bandwidth field deviation; SoftKeyBar.h / ui-design.md §6.3 hold-F8
   ≥ 600 ms abort.
