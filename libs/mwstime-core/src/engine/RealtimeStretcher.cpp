@@ -11,8 +11,10 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <limits>
 
 #include "mws/core/Resampler.h"
+#include "mws/engine/TempoMap.h"
 #include "mws/model/CharacterChain.h"
 #include "mws/model/ModelSpec.h"
 
@@ -80,7 +82,22 @@ void RealtimeStretcher::prepare(double hostRate, int maxBlockFrames,
 
     written_ = 0;
     produced_ = 0;
+    readCeil_ = 0;
     hasPending_ = false;
+
+    // SYNC state reset (task 023). The transport is delivered per block via
+    // setTransport(); until then SYNC uses the wall-clock fallback.
+    transport_ = TransportInfo{};
+    lastKnownBpm_ = 0.0;
+    windowLenModel_ = 0;
+    syncFramesToBoundary_ = 0;
+    syncWindowStartPpq_ = 0.0;
+    nextBoundaryPpq_ = 0.0;
+    ppqPerFrameModel_ = 0.0;
+    syncFallbackArmed_ = false;
+    syncTransportStarted_ = false;
+    syncFirstResyncDone_ = false;
+
     applyParams(params);
 
     // Read heads start at -D: the stream's sample 0 leaves the engine exactly
@@ -110,13 +127,19 @@ void RealtimeStretcher::applyParams(const ParamSnapshot& raw) noexcept
     const model::ModelSpec& spec = model::ModelSpec::get(raw.model);
     const ParamSnapshot p = spec.clamp(raw);
 
+    // SYNC mode (task 023, ADR-006 SYNC column): tempoSync == Host engages the
+    // transport-aligned window resync and ALLOWS T < 100% compression (the
+    // captured window plays compressed, then silence to the boundary). FREE
+    // (tempoSync == Off) keeps the causality clamp below.
+    syncActive_ = (raw.tempoSync == TempoSync::Host);
+
     // ADR-006 FREE causality clamp, applied AT THE ENGINE regardless of the
-    // ModelSpec fxWindow rule (this front-end IS FREE mode until task 023):
-    // effective T = max(T, 100%). The raw automation value is preserved
-    // upstream; clampActive() feeds the LCD `FX MIN 100%` message. The same
-    // rule clamps the S900 varispeed rate (= 100/T) to <= 1 (ADR-003).
-    const double effectiveT = std::max(p.timeFactor, 100.0);
-    clampActive_ = raw.timeFactor < 100.0;
+    // ModelSpec fxWindow rule: effective T = max(T, 100%). The raw automation
+    // value is preserved upstream; clampActive() feeds the LCD `FX MIN 100%`
+    // message. The same rule clamps the S900 varispeed rate (= 100/T) to <= 1
+    // (ADR-003). SYNC supersedes the clamp — compression is a product feature.
+    const double effectiveT = syncActive_ ? p.timeFactor : std::max(p.timeFactor, 100.0);
+    clampActive_ = !syncActive_ && raw.timeFactor < 100.0;
 
     // cycleLen in model-rate samples (dsp-engine.md §3.5); ModelSpec keeps it
     // within [20, 2000] — the extra floor is engine arithmetic safety only.
@@ -146,9 +169,12 @@ void RealtimeStretcher::applyParams(const ParamSnapshot& raw) noexcept
         hopIn_ = static_cast<double>(geom_.hopOut) / (effectiveT / 100.0);
     }
 
-    // S900 varispeed (ADR-003, dsp-engine.md §6): rate = 100/T, FREE-clamped
-    // to <= 1 — T < 100% would consume input faster than it arrives.
-    readRate_ = std::min(1.0, 100.0 / std::max(p.timeFactor, 1.0));
+    // S900 varispeed (ADR-003, dsp-engine.md §6): rate = 100/T. FREE clamps it
+    // to <= 1 (T < 100% would consume input faster than it arrives); SYNC
+    // window mode PERMITS rate > 1 (dsp-engine.md §6 last paragraph), so the
+    // captured window compresses and then runs out into silence.
+    const double rawRate = 100.0 / std::max(p.timeFactor, 1.0);
+    readRate_ = syncActive_ ? rawRate : std::min(1.0, rawRate);
 
     active_ = raw;
 }
@@ -157,10 +183,15 @@ float RealtimeStretcher::ringAt(std::size_t channel, std::int64_t pos) const noe
 {
     if (pos < 0)
         return 0.0f; // pre-roll: the stream has not started yet
+    // Readable ceiling: FREE pins it to the write head (so positions past the
+    // write head are edge silence — the original FREE invariant); SYNC pins it
+    // to the captured-window end so T<100% compression decays to silence to the
+    // boundary instead of bleeding the next window (task 023). readCeil_ is
+    // never above the write head, so reads never run past live input.
+    if (pos >= readCeil_)
+        return 0.0f;
     assert(pos < written_ && "scheduled read must stay behind the write head");
     assert(pos >= written_ - historyLen_ && "scheduled read fell out of history");
-    if (pos >= written_)
-        return 0.0f;
     return history_.channel(channel)[static_cast<std::size_t>(pos % historyLen_)];
 }
 
@@ -198,6 +229,19 @@ void RealtimeStretcher::process(const core::ConstAudioView* inputs,
     }
     written_ += static_cast<std::int64_t>(numFrames);
 
+    // FREE: the read ceiling is the write head (reads past it are edge silence,
+    // the original invariant). SYNC pins it per window in syncResyncReadHead()
+    // so the captured window's tail decays to silence — but BEFORE the first
+    // window boundary there is nothing captured yet, so SYNC tracks the write
+    // head too (causal pre-roll, never a long dead patch of silence).
+    if (!syncActive_ || !syncFirstResyncDone_)
+        readCeil_ = written_;
+
+    // SYNC: recompute the window length + boundary countdown for this block
+    // from the transport (or the wall-clock fallback) — task 023.
+    if (syncActive_)
+        beginSyncBlock();
+
     // 2. Render exactly numFrames output samples (insert FX: 1:1 I/O).
     if (varispeed_)
         processVarispeed(outputs, numChannels, numFrames);
@@ -221,6 +265,15 @@ void RealtimeStretcher::processCyclic(core::AudioView* outputs,
 
     for (std::size_t i = 0; i < numFrames; ++i)
     {
+        // SYNC: at the transport-aligned window boundary the read head
+        // hard-resyncs to the start of the just-captured window — "stretch the
+        // last bar" (task 023). The boundary lands here regardless of grain
+        // phase; this is the ONLY SYNC resync point (mid-window resyncs never
+        // occur — the FREE exhaustion rule below is suppressed in SYNC). A
+        // zero-length window (FxWindow::Free under SYNC) yields no boundaries.
+        if (syncActive_ && windowLenModel_ > 0 && syncFramesToBoundary_ == 0)
+            syncResyncReadHead();
+
         // ONE shared schedule across channels (architecture.md §5.2 stereo
         // rule): taps computed once, applied per channel.
         const auto taps = sched_.taps();
@@ -234,6 +287,8 @@ void RealtimeStretcher::processCyclic(core::AudioView* outputs,
             outputs[ch][i] = outSample;
         }
         ++produced_;
+        if (syncActive_)
+            --syncFramesToBoundary_;
 
         const bool boundary = sched_.advance(
             [&](double aOff) { return aOff + hopIn_; },
@@ -255,11 +310,14 @@ void RealtimeStretcher::processCyclic(core::AudioView* outputs,
             hasPending_ = false;
         }
 
-        // (b) history-exhaustion resync: when the grain taking over has
-        //     lagged to the history bound (margin D keeps its remaining
-        //     reads valid while the write head advances), the read head
-        //     jumps to writePos - latency (model domain). Audible,
-        //     documented, and observable through the launch hook.
+        // (b) FREE history-exhaustion resync: when the grain taking over has
+        //     lagged to the history bound (margin D keeps its remaining reads
+        //     valid while the write head advances), the read head jumps to
+        //     writePos - latency (model domain). Audible, documented,
+        //     observable through the launch hook. SUPERSEDED in SYNC — the
+        //     window boundary is the only resync there (ADR-006 SYNC column).
+        if (syncActive_)
+            continue;
         const auto& a = sched_.grainA();
         if (!a.active
             || a.off < static_cast<double>(written_ - historyLen_ + resyncMargin_))
@@ -287,11 +345,25 @@ void RealtimeStretcher::processVarispeed(core::AudioView* outputs,
 
     for (std::size_t i = 0; i < numFrames; ++i)
     {
-        // History exhaustion: same landing point as the cyclic resync
-        // (writePos - latency), applied immediately — a continuous read has
-        // no grain boundary to wait for.
-        if (readPos_ < static_cast<double>(written_ - historyLen_ + resyncMargin_))
-            readPos_ = static_cast<double>(written_ - delayModel_);
+        if (syncActive_)
+        {
+            // SYNC: hard-resync the read head to the captured-window start at
+            // the transport-aligned boundary — the only resync in SYNC (task
+            // 023). rate = 100/T is NOT clamped here (applyParams), so T<100%
+            // runs the read head past the window end into silence. A
+            // zero-length window (FxWindow::Free under SYNC) yields no resyncs.
+            if (windowLenModel_ > 0 && syncFramesToBoundary_ == 0)
+                syncResyncReadHead();
+        }
+        else
+        {
+            // FREE history exhaustion: same landing point as the cyclic resync
+            // (writePos - latency), applied immediately — a continuous read has
+            // no grain boundary to wait for.
+            if (readPos_
+                < static_cast<double>(written_ - historyLen_ + resyncMargin_))
+                readPos_ = static_cast<double>(written_ - delayModel_);
+        }
 
         // ZOH read, NO interpolation [DRR F4]: the variable-rate read IS the
         // virtual DAC clock the §8.1 character chain consumes (task 033).
@@ -301,7 +373,134 @@ void RealtimeStretcher::processVarispeed(core::AudioView* outputs,
 
         readPos_ += readRate_;
         ++produced_;
+        if (syncActive_)
+            --syncFramesToBoundary_;
     }
+}
+
+// ---------------------------------------------------------------------------
+// SYNC mode (task 023)
+// ---------------------------------------------------------------------------
+
+void RealtimeStretcher::setTransport(const TransportInfo& transport) noexcept
+{
+    transport_ = transport;
+    // Remember the most recent positive tempo for the no-transport wall-clock
+    // fallback (architecture.md §5.2 / ADR-006: "last known tempo or 120 BPM").
+    if (transport.bpm > 0.0)
+        lastKnownBpm_ = transport.bpm;
+}
+
+void RealtimeStretcher::beginSyncBlock() noexcept
+{
+    const bool transportPresent = transport_.playing && transport_.bpm > 0.0;
+    if (transportPresent)
+    {
+        // Transport-aligned window: re-anchor the boundary grid from the host
+        // ppq every block. The bar grid is the source of truth, so boundaries
+        // stay locked to it and a mid-stream tempo change is followed
+        // automatically (the spacing is recomputed from the new tempo — the
+        // testing-strategy §6 REAPER expectation). The window length in
+        // quarter notes (TempoMap convention: bar = numerator * 4/denominator
+        // quarters; 3/4 vs 4/4 differ).
+        const double barQuarters =
+            static_cast<double>(transport_.timeSigNumerator) * 4.0
+            / static_cast<double>(transport_.timeSigDenominator);
+        const double windowQuarters = TempoMap::windowBars(active_.fxWindow) * barQuarters;
+
+        // ppq advance per rendered model frame: quarter notes per model-rate
+        // sample = bpm / 60 / modelRate (model rate == host rate when character
+        // is OFF, so the boundaries land on the host sample grid 1:1).
+        ppqPerFrameModel_ = transport_.bpm / 60.0 / modelRate_;
+
+        // The window length in model frames is windowQuarters / ppqPerFrame.
+        windowLenModel_ = (windowQuarters > 0.0 && ppqPerFrameModel_ > 0.0)
+                              ? std::llround(windowQuarters / ppqPerFrameModel_)
+                              : 0;
+
+        // The next boundary to resync at is the smallest grid line at or after
+        // the block-start ppq (a tiny epsilon keeps an on-grid block start —
+        // ppq exactly on a boundary — INCLUSIVE so a grid line reached mid
+        // stream resyncs at sample 0 rather than skipping a full window ahead).
+        if (windowQuarters > 0.0)
+        {
+            constexpr double kPpqEps = 1e-9;
+            double k = std::ceil(transport_.ppqPosition / windowQuarters - kPpqEps);
+            // First transport block: if playback STARTS exactly on a grid line
+            // that sample is a window START, not a window end — capture that
+            // window and resync at its END (the next grid line), so the first
+            // resync is the first real boundary crossing, never sample 0.
+            if (!syncTransportStarted_
+                && (k * windowQuarters) <= transport_.ppqPosition + kPpqEps)
+                k += 1.0;
+            nextBoundaryPpq_ = k * windowQuarters;
+            syncWindowStartPpq_ = nextBoundaryPpq_ - windowQuarters;
+            const double framesToBoundary =
+                (nextBoundaryPpq_ - transport_.ppqPosition) / ppqPerFrameModel_;
+            syncFramesToBoundary_ =
+                std::max<std::int64_t>(0, std::llround(framesToBoundary));
+        }
+        syncTransportStarted_ = true;
+        syncFallbackArmed_ = false;
+        return;
+    }
+
+    // No transport / Standalone: a free-running wall-clock window from the
+    // last-known tempo (else 120 BPM (PI)). There is no bar grid to anchor to,
+    // so the countdown is initialized ONCE and then free-runs (reset to the
+    // window length at each boundary in syncResyncReadHead()).
+    const double hostToModel = modelRate_ / hostRate_;
+    const double windowLenHost =
+        TempoMap::windowFromWallClock(lastKnownBpm_, hostRate_, active_.fxWindow);
+    windowLenModel_ = std::llround(windowLenHost * hostToModel);
+    syncWindowStartPpq_ = 0.0;
+    ppqPerFrameModel_ = 0.0; // grid-free: syncResyncReadHead re-arms by length
+    if (!syncFallbackArmed_)
+    {
+        syncFramesToBoundary_ = windowLenModel_;
+        syncFallbackArmed_ = true;
+    }
+}
+
+void RealtimeStretcher::syncResyncReadHead() noexcept
+{
+    // (a) staged parameter changes take effect at the window boundary (the
+    //     SYNC analogue of the grain-boundary param-change point, ADR-006).
+    if (hasPending_)
+    {
+        applyParams(pending_);
+        hasPending_ = false;
+    }
+
+    // (b) hard-resync to the start of the just-captured window: read head jumps
+    //     to writePos - windowLen ("stretch the last bar"). The readable
+    //     ceiling is pinned to the window end (the write head at capture), so
+    //     T<100% compression runs out into SILENCE to the boundary instead of
+    //     bleeding the next window (ADR-006 SYNC column; dsp-engine.md §3.5).
+    const std::int64_t windowStart =
+        std::max<std::int64_t>(0, written_ - windowLenModel_);
+    readCeil_ = written_;
+    syncFirstResyncDone_ = true;
+
+    if (varispeed_)
+        readPos_ = static_cast<double>(windowStart);
+    else
+        sched_.reset(geom_, static_cast<double>(windowStart));
+
+    if (resyncObserver_ != nullptr && *resyncObserver_)
+        (*resyncObserver_)(SyncResync{ produced_, windowLenModel_, syncWindowStartPpq_ });
+
+    // (c) re-arm the boundary countdown for the NEXT window. With a transport
+    //     grid, advance to the next grid line (handles a second boundary
+    //     within the same block before beginSyncBlock re-anchors); without one
+    //     (wall-clock fallback) the next boundary is exactly one window away.
+    if (ppqPerFrameModel_ > 0.0)
+    {
+        const double windowQuarters = windowLenModel_ * ppqPerFrameModel_;
+        nextBoundaryPpq_ += windowQuarters;
+        syncWindowStartPpq_ += windowQuarters;
+    }
+    syncFramesToBoundary_ = windowLenModel_;
 }
 
 } // namespace mws::engine
