@@ -36,6 +36,12 @@ add_subdirectory(tools/mwstime-render)
 add_subdirectory(tools/gen_golden_inputs)
 add_subdirectory(tools/golden_compare)
 
+# Hardware-capture calibration tool — task 026b (JUCE-free; links mwstime_core
+# + the shared mwstime_render_lib case schema). Fits CyclicEngine::SpliceCal and
+# validates the S950 D-TIME mapping (the v1-freeze gate) against real captures;
+# its `calibrate` ctest recovers planted SpliceCal values from synthetic ones.
+add_subdirectory(tools/calibrate)
+
 # JUCE plugin — task 027. Guarded: the directory may not exist yet. JUCE and
 # clap-juce-extensions (both pinned tags) are fetched only when the plugin is
 # actually being built.
