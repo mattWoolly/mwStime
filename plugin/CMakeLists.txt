@@ -39,6 +39,7 @@ target_sources(mwStime
         src/PluginProcessor.cpp
         src/PluginEditor.cpp
         src/EngineHost.cpp
+        src/ExportService.cpp
         src/FileLoader.cpp
         src/MidiVoice.cpp
         src/state/Parameters.cpp
