@@ -32,8 +32,10 @@ target_sources(mwstime_plugin_tests
         test_fileloader.cpp
         test_sample_mode.cpp
         test_dsp_adversarial.cpp
+        test_midivoice.cpp
         test_alloc_counter.cpp
         "${CMAKE_SOURCE_DIR}/plugin/src/EngineHost.cpp"
+        "${CMAKE_SOURCE_DIR}/plugin/src/MidiVoice.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/FileLoader.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/state/Parameters.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/state/StateTree.cpp"

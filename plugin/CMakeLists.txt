@@ -40,6 +40,7 @@ target_sources(mwStime
         src/PluginEditor.cpp
         src/EngineHost.cpp
         src/FileLoader.cpp
+        src/MidiVoice.cpp
         src/state/Parameters.cpp
         src/state/StateTree.cpp
         src/state/StateBlobCache.cpp
