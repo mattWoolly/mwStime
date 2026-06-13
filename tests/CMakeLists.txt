@@ -17,6 +17,7 @@ add_executable(mwstime_tests
     unit/test_movinglpf.cpp
     unit/test_offline_renderer.cpp
     unit/test_quantizer.cpp
+    unit/test_rendercli.cpp
     unit/test_wavio.cpp
     unit/test_resampler.cpp
     unit/test_repitch.cpp
@@ -33,6 +34,12 @@ target_link_libraries(mwstime_tests
         mwstime_core
         Catch2::Catch2WithMain
 )
+
+# The [rendercli] smoke tests (task 025) invoke the CLI binary; inject its
+# path and make sure building the tests builds the tool.
+target_compile_definitions(mwstime_tests
+    PRIVATE MWS_RENDER_CLI_PATH="$<TARGET_FILE:mwstime-render>")
+add_dependencies(mwstime_tests mwstime-render)
 
 catch_discover_tests(mwstime_tests)
 
