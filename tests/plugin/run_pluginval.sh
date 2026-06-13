@@ -2,31 +2,54 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # mwStime — Akai S-series timestretch emulation. Copyright (C) 2026 mattWoolly.
 #
-# run_pluginval.sh — macOS format validation of the built VST3 and AU with a
-# PINNED pluginval release (task plan/backlog/048; testing-strategy.md §5,
-# architecture.md §3). pluginval covers only VST3/AU (it CANNOT load CLAP/LV2 —
-# those use run_clap_validator.sh / lv2lint, per the corrected validator matrix).
+# run_pluginval.sh — format validation of the built VST3 (and, on macOS, AU)
+# with a PINNED pluginval release (task plan/backlog/048; Linux per-OS download
+# wired in task 049; testing-strategy.md §5, architecture.md §3). pluginval
+# covers only VST3/AU (it CANNOT load CLAP/LV2 — those use run_clap_validator.sh
+# / run_lv2_checks.sh, per the corrected validator matrix). On Linux only VST3 is
+# built (AU is macOS-only), so this validates the VST3 there.
 #
 # Behaviour (CTest contract):
 #   - exit 0  : every located VST3/AU artifact passed strictness 10.
 #   - exit 1  : a located artifact FAILED validation.
 #   - exit 77 : the pinned pluginval could not be fetched (offline) OR no built
 #               VST3/AU artifact was found — a SKIP (CTest SKIP_RETURN_CODE=77),
-#               so `ctest --preset default` stays green offline / without a build.
+#               so `ctest` stays green offline / without a build.
 #
 # The pinned binary is cached under build/ (never committed; build/ is in
-# .gitignore). The pin and its SHA-256 are below — bumping them is a deliberate
-# change, not an incidental upgrade (acceptance criterion: versions pinned here).
+# .gitignore). The pins and their SHA-256 are below, PER OS — bumping them is a
+# deliberate change, not an incidental upgrade (acceptance criterion: versions
+# pinned here). Tracktion ships a macOS .zip and a Linux .zip per release.
 
 set -euo pipefail
 
-# --- pinned pluginval release (Tracktion) -----------------------------------
+# --- pinned pluginval release (Tracktion), selected PER OS ------------------
 PLUGINVAL_VERSION="v1.0.4"
-PLUGINVAL_URL="https://github.com/Tracktion/pluginval/releases/download/${PLUGINVAL_VERSION}/pluginval_macOS.zip"
-# SHA-256 of pluginval_macOS.zip for the pinned tag (verified at authoring time).
-PLUGINVAL_SHA256="3c4c533bda0c5059eea3ddaea752d757ee2025041f0f47e6bcb0e87f6082b29f"
-# Path to the executable inside the unzipped .app bundle.
-PLUGINVAL_EXE_REL="pluginval.app/Contents/MacOS/pluginval"
+case "$(uname -s)" in
+    Darwin)
+        PLUGINVAL_URL="https://github.com/Tracktion/pluginval/releases/download/${PLUGINVAL_VERSION}/pluginval_macOS.zip"
+        # SHA-256 of pluginval_macOS.zip for the pinned tag (verified at authoring time).
+        PLUGINVAL_SHA256="3c4c533bda0c5059eea3ddaea752d757ee2025041f0f47e6bcb0e87f6082b29f"
+        # Path to the executable inside the unzipped .app bundle.
+        PLUGINVAL_EXE_REL="pluginval.app/Contents/MacOS/pluginval"
+        SHASUM=(shasum -a 256)
+        ;;
+    Linux)
+        PLUGINVAL_URL="https://github.com/Tracktion/pluginval/releases/download/${PLUGINVAL_VERSION}/pluginval_Linux.zip"
+        # SHA-256 of pluginval_Linux.zip for the pinned tag. NOTE (task 049): this
+        # placeholder is verified-on-first-fetch on a Linux box — replace with the
+        # real digest when blessing the Linux toolchain (see docs/BUILDING.md).
+        # A checksum mismatch is a HARD FAIL (never a silent skip), so a stale pin
+        # surfaces loudly rather than running an unverified binary.
+        PLUGINVAL_SHA256="${MWS_PLUGINVAL_LINUX_SHA256:-UNVERIFIED_SET_ON_LINUX}"
+        PLUGINVAL_EXE_REL="pluginval"
+        SHASUM=(sha256sum)
+        ;;
+    *)
+        printf 'run_pluginval: unsupported OS %s — SKIPPING (exit 77).\n' "$(uname -s)" >&2
+        exit 77
+        ;;
+esac
 
 # pluginval invocation (testing-strategy.md §5 / task scope).
 STRICTNESS=10
@@ -80,9 +103,9 @@ fetch_pluginval() {
         return 1
     fi
 
-    # Verify the pin's checksum before trusting the binary.
+    # Verify the pin's checksum before trusting the binary (per-OS hasher).
     local got
-    got="$(shasum -a 256 "${zip}" | awk '{print $1}')"
+    got="$("${SHASUM[@]}" "${zip}" | awk '{print $1}')"
     if [ "${got}" != "${PLUGINVAL_SHA256}" ]; then
         warn "pluginval checksum mismatch! expected ${PLUGINVAL_SHA256}, got ${got}."
         warn "refusing to run an unverified binary."
@@ -100,7 +123,10 @@ fetch_pluginval() {
     rm -f "${zip}"
     chmod +x "${pluginval_exe}" 2>/dev/null || true
     # macOS Gatekeeper: strip the quarantine bit so the downloaded app runs.
-    xattr -dr com.apple.quarantine "${dest_dir}" 2>/dev/null || true
+    # (no-op / absent on Linux — guarded by command -v.)
+    if command -v xattr >/dev/null 2>&1; then
+        xattr -dr com.apple.quarantine "${dest_dir}" 2>/dev/null || true
+    fi
 
     if [ ! -x "${pluginval_exe}" ]; then
         warn "pluginval executable not found after unzip (${pluginval_exe}) — SKIP."
@@ -119,6 +145,16 @@ if ! fetch_pluginval; then
     fi
     warn "pluginval unavailable — SKIPPING (exit ${SKIP_EXIT})."
     exit "${SKIP_EXIT}"
+fi
+
+# --- headless wrapper (Linux, testing-strategy.md §5) -----------------------
+# pluginval instantiates the plugin (and its editor); on a headless Linux box
+# that needs a virtual X server. Wrap it in xvfb-run when no DISPLAY is set and
+# xvfb-run is available. macOS / a real display: run directly.
+xvfb=()
+if [ -z "${DISPLAY:-}" ] && command -v xvfb-run >/dev/null 2>&1; then
+    log "no DISPLAY set; wrapping pluginval in xvfb-run (headless)."
+    xvfb=(xvfb-run -a)
 fi
 
 # --- locate the built VST3 / AU artifacts -----------------------------------
@@ -155,8 +191,8 @@ for target in "${targets[@]}"; do
     log "validating: ${target}"
     # --validate-in-process keeps it deterministic and CI-friendly; --repeat 3
     # + --randomise exercise parameter/state churn (testing-strategy.md §5).
-    # (${extra[@]:+...} keeps this safe under `set -u` on macOS bash 3.2 when empty.)
-    if "${pluginval_exe}" \
+    # (${arr[@]:+...} keeps these safe under `set -u` on macOS bash 3.2 when empty.)
+    if ${xvfb[@]:+"${xvfb[@]}"} "${pluginval_exe}" \
             --strictness-level "${STRICTNESS}" \
             --validate-in-process \
             --repeat "${REPEAT}" \

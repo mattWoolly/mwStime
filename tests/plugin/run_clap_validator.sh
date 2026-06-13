@@ -20,13 +20,32 @@
 
 set -euo pipefail
 
-# --- pinned clap-validator release (free-audio) -----------------------------
+# --- pinned clap-validator release (free-audio), selected PER OS ------------
 CLAP_VALIDATOR_VERSION="0.3.2"
-CLAP_VALIDATOR_URL="https://github.com/free-audio/clap-validator/releases/download/${CLAP_VALIDATOR_VERSION}/clap-validator-${CLAP_VALIDATOR_VERSION}-macos-universal.tar.gz"
-# SHA-256 of the macOS-universal tarball for the pinned tag (verified at authoring time).
-CLAP_VALIDATOR_SHA256="3750f3729adfd8489f2b29019f7f2ed65ba71bf9d5049735f6a2ca0fccb18ffd"
-# Path to the executable inside the unpacked tarball.
-CLAP_VALIDATOR_EXE_REL="binaries/clap-validator"
+case "$(uname -s)" in
+    Darwin)
+        CLAP_VALIDATOR_URL="https://github.com/free-audio/clap-validator/releases/download/${CLAP_VALIDATOR_VERSION}/clap-validator-${CLAP_VALIDATOR_VERSION}-macos-universal.tar.gz"
+        # SHA-256 of the macOS-universal tarball for the pinned tag (verified at authoring time).
+        CLAP_VALIDATOR_SHA256="3750f3729adfd8489f2b29019f7f2ed65ba71bf9d5049735f6a2ca0fccb18ffd"
+        CLAP_VALIDATOR_EXE_REL="binaries/clap-validator"
+        SHASUM=(shasum -a 256)
+        ;;
+    Linux)
+        CLAP_VALIDATOR_URL="https://github.com/free-audio/clap-validator/releases/download/${CLAP_VALIDATOR_VERSION}/clap-validator-${CLAP_VALIDATOR_VERSION}-ubuntu-18.04.tar.gz"
+        # SHA-256 of the Linux tarball for the pinned tag. NOTE (task 049): this
+        # placeholder is verified-on-first-fetch on a Linux box — replace with the
+        # real digest when blessing the Linux toolchain (see docs/BUILDING.md). A
+        # mismatch is a HARD FAIL (never a silent skip), so a stale pin surfaces
+        # loudly rather than running an unverified binary.
+        CLAP_VALIDATOR_SHA256="${MWS_CLAP_VALIDATOR_LINUX_SHA256:-UNVERIFIED_SET_ON_LINUX}"
+        CLAP_VALIDATOR_EXE_REL="binaries/clap-validator"
+        SHASUM=(sha256sum)
+        ;;
+    *)
+        printf 'run_clap_validator: unsupported OS %s — SKIPPING (exit 77).\n' "$(uname -s)" >&2
+        exit 77
+        ;;
+esac
 
 SKIP_EXIT=77
 
@@ -59,7 +78,7 @@ fetch_validator() {
     fi
 
     local got
-    got="$(shasum -a 256 "${tarball}" | awk '{print $1}')"
+    got="$("${SHASUM[@]}" "${tarball}" | awk '{print $1}')"
     if [ "${got}" != "${CLAP_VALIDATOR_SHA256}" ]; then
         warn "clap-validator checksum mismatch! expected ${CLAP_VALIDATOR_SHA256}, got ${got}."
         warn "refusing to run an unverified binary."
@@ -77,7 +96,10 @@ fetch_validator() {
     rm -f "${tarball}"
     chmod +x "${validator_exe}" 2>/dev/null || true
     # macOS Gatekeeper: strip the quarantine bit so the downloaded binary runs.
-    xattr -dr com.apple.quarantine "${dest_dir}" 2>/dev/null || true
+    # (no-op / absent on Linux — guarded by command -v.)
+    if command -v xattr >/dev/null 2>&1; then
+        xattr -dr com.apple.quarantine "${dest_dir}" 2>/dev/null || true
+    fi
 
     if [ ! -x "${validator_exe}" ]; then
         warn "clap-validator executable not found after extract (${validator_exe}) — SKIP."
@@ -111,10 +133,21 @@ if [ -z "${clap_bundle}" ]; then
     exit "${SKIP_EXIT}"
 fi
 
+# --- headless wrapper (Linux, testing-strategy.md §5) -----------------------
+# clap-validator instantiates the plugin; on a headless Linux box the editor
+# needs a virtual X server. Wrap it in xvfb-run when no DISPLAY is set and
+# xvfb-run is available. macOS / a real display: run directly.
+xvfb=()
+if [ -z "${DISPLAY:-}" ] && command -v xvfb-run >/dev/null 2>&1; then
+    log "no DISPLAY set; wrapping clap-validator in xvfb-run (headless)."
+    xvfb=(xvfb-run -a)
+fi
+
 # --- validate ---------------------------------------------------------------
 log "validating: ${clap_bundle}"
 # `validate` runs the full default test suite; nonzero exit on any failed test.
-if "${validator_exe}" validate "${clap_bundle}"; then
+# (${arr[@]:+...} keeps this safe under `set -u` when the xvfb array is empty.)
+if ${xvfb[@]:+"${xvfb[@]}"} "${validator_exe}" validate "${clap_bundle}"; then
     log "PASS: ${clap_bundle}"
     exit 0
 fi

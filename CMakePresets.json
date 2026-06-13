@@ -15,6 +15,21 @@
       }
     },
     {
+      "name": "linux-default",
+      "displayName": "Linux default (RelWithDebInfo, Ninja)",
+      "description": "Linux x86_64 bring-up (task 049). Same FP discipline + build type as `default`; Ninja generator (task scope). LV2/VST3/CLAP validators self-skip when their tools are absent (label `validators`).",
+      "binaryDir": "${sourceDir}/build/linux-default",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
       "name": "tsan",
       "displayName": "ThreadSanitizer (publication/swap + FX history reconfig)",
       "binaryDir": "${sourceDir}/build/tsan",
@@ -35,6 +50,11 @@
       "jobs": 6
     },
     {
+      "name": "linux-default",
+      "configurePreset": "linux-default",
+      "jobs": 6
+    },
+    {
       "name": "tsan",
       "configurePreset": "tsan",
       "jobs": 6
@@ -44,6 +64,13 @@
     {
       "name": "default",
       "configurePreset": "default",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "linux-default",
+      "configurePreset": "linux-default",
       "output": {
         "outputOnFailure": true
       }

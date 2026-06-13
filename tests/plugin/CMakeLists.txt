@@ -124,26 +124,31 @@ set_tests_properties(
 )
 
 # ---------------------------------------------------------------------------
-# Format validators (task 048; testing-strategy.md §5, architecture.md §3/§7,
-# plan/decisions/002). macOS-only here: pluginval (VST3+AU, strictness 10),
-# auval (-v aumf MwS1 MwSt), and clap-validator (CLAP). LV2 is task 049.
+# Format validators (task 048 macOS; task 049 Linux; testing-strategy.md §5,
+# architecture.md §3/§7, plan/decisions/002).
+#   * macOS : pluginval (VST3+AU, strictness 10), auval (-v aumf MwS1 MwSt),
+#             clap-validator (CLAP).
+#   * Linux : pluginval (VST3 — AU is macOS-only), clap-validator (CLAP), and
+#             the LV2 checks (lv2lint + lv2_validate/sord_validate + REQUIRED
+#             Carla load smoke; xvfb-wrapped on headless boxes).
 #
-# Each script self-skips with exit 77 when its tool can't be fetched (offline)
-# or when no built artifact is present, so SKIP_RETURN_CODE 77 makes
-# `ctest --preset default` GREEN offline. The scripts download PINNED releases
-# into build/ (never committed). LABEL `validators` lets the task's command
-#   ctest --preset default -L validators --no-tests=error
+# Each script self-skips with exit 77 when its tool can't be fetched/installed
+# (offline / package absent) or when no built artifact is present, so
+# SKIP_RETURN_CODE 77 makes `ctest` GREEN on a tools-absent box. pluginval and
+# clap-validator download PINNED releases into build/ (per-OS URL+digest, never
+# committed); the LV2 tools come from the system package manager (docs/BUILDING.md).
+# LABEL `validators` lets the task's command
+#   ctest --preset <preset> -L validators --no-tests=error
 # select exactly these; the `validators:`-prefixed names also satisfy a
 # `ctest -R validators` name selector (backlog/README silent-pass rule).
 #
 # MWS_BUILD_DIR is passed so the scripts locate the artefacts regardless of the
-# ctest working directory. These run only on APPLE (the AU/auval paths are
-# macOS-only); on other platforms they are simply not registered (task 049/051
-# own Linux/CI). DISABLED is left OFF (acceptance criterion) — the self-skip is
-# the gate, not a CTest DISABLED flag.
-if(APPLE)
-    set(MWS_VALIDATOR_SCRIPT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+# ctest working directory. DISABLED is left OFF (acceptance criterion) — the
+# self-skip is the gate, not a CTest DISABLED flag.
+set(MWS_VALIDATOR_SCRIPT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+set(MWS_VALIDATOR_NAMES "")   # collected to set shared properties once
 
+if(APPLE)
     add_test(
         NAME "validators: pluginval VST3+AU (strictness 10)"
         COMMAND "${MWS_VALIDATOR_SCRIPT_DIR}/run_pluginval.sh"
@@ -156,16 +161,39 @@ if(APPLE)
         NAME "validators: clap-validator CLAP"
         COMMAND "${MWS_VALIDATOR_SCRIPT_DIR}/run_clap_validator.sh"
     )
-
-    set_tests_properties(
+    list(APPEND MWS_VALIDATOR_NAMES
         "validators: pluginval VST3+AU (strictness 10)"
         "validators: auval -v aumf MwS1 MwSt"
         "validators: clap-validator CLAP"
+    )
+elseif(UNIX)   # Linux (task 049) — VST3 + CLAP + LV2; no AU/auval (macOS-only).
+    add_test(
+        NAME "validators: pluginval VST3 (strictness 10)"
+        COMMAND "${MWS_VALIDATOR_SCRIPT_DIR}/run_pluginval.sh"
+    )
+    add_test(
+        NAME "validators: clap-validator CLAP"
+        COMMAND "${MWS_VALIDATOR_SCRIPT_DIR}/run_clap_validator.sh"
+    )
+    add_test(
+        NAME "validators: LV2 lv2lint+lv2_validate+Carla"
+        COMMAND "${MWS_VALIDATOR_SCRIPT_DIR}/run_lv2_checks.sh"
+    )
+    list(APPEND MWS_VALIDATOR_NAMES
+        "validators: pluginval VST3 (strictness 10)"
+        "validators: clap-validator CLAP"
+        "validators: LV2 lv2lint+lv2_validate+Carla"
+    )
+endif()
+
+if(MWS_VALIDATOR_NAMES)
+    set_tests_properties(
+        ${MWS_VALIDATOR_NAMES}
         PROPERTIES
             LABELS validators
             SKIP_RETURN_CODE 77
-            # pluginval --repeat 3 --randomise at strictness 10 + the auval
-            # render matrix can take a while; give them generous headroom.
+            # pluginval --repeat 3 --randomise at strictness 10, the auval render
+            # matrix, and the Carla load smoke can take a while; generous headroom.
             TIMEOUT 1200
             # Pass the active build dir so the scripts find the artefacts no
             # matter what directory ctest invokes them from.

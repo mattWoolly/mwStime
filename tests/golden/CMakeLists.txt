@@ -43,6 +43,27 @@ endif()
 set(GOLDEN_CASE_LIST_LINES "")
 math(EXPR GOLDEN_LAST_INDEX "${GOLDEN_NUM_CASES} - 1")
 
+# --- platform-keyed tolerance (testing-strategy.md §4; task 049) ------------
+# Goldens are blessed bit-exact on the REFERENCE platform (macOS arm64). The
+# comparison policy is scoped per case AND per platform:
+#   * CLASSIC stretch-only cases (policy "exact" in cases.json) are integer-only
+#     by construction (dsp-engine.md §3.2) with FP discipline pinned on the core,
+#     so they are bit-exact on EVERY platform — the tol arg below is ignored for
+#     them (golden_compare --policy exact gates at max abs diff == 0).
+#   * float-stage cases (policy "tolerance": filters/SRC/transpose/REVISED) are
+#     bit-exact ONLY on the reference platform. There we keep the strict tol 0
+#     (a tighter-than-1e-6 reference check that catches any drift early);
+#     off-reference (Linux/Windows) we relax to max abs <= 1e-6 per the policy.
+# Keyed on the reference platform, not the host OS string, so a future macOS x86
+# bless or a different reference would only need this single switch updated.
+if(APPLE)
+    set(GOLDEN_TOL "0")        # reference platform: float cases must be bit-exact too
+else()
+    set(GOLDEN_TOL "1e-6")     # off-reference: tolerance compare (testing-strategy.md §4)
+endif()
+message(STATUS "golden harness: float-stage tolerance = ${GOLDEN_TOL} "
+               "(reference platform = bit-exact)")
+
 foreach(i RANGE 0 ${GOLDEN_LAST_INDEX})
     string(JSON CASE_OBJ GET "${GOLDEN_CASES_TEXT}" "cases" ${i})
     string(JSON CASE_ID GET "${CASE_OBJ}" "id")
@@ -56,15 +77,16 @@ foreach(i RANGE 0 ${GOLDEN_LAST_INDEX})
     string(APPEND GOLDEN_CASE_LIST_LINES "${CASE_ID} ${CASE_POLICY}\n")
 
     # One CTest per case. The reference platform blesses bit-exact, so the
-    # tolerance gate is run with tol 0 here (a stricter-than-1e-6 reference
-    # check); off-reference CI may relax it later (testing-strategy.md §4).
+    # tolerance gate is run with tol 0 there (a stricter-than-1e-6 reference
+    # check); off-reference platforms relax to GOLDEN_TOL (testing-strategy.md
+    # §4). `exact`-policy cases ignore the tol arg entirely (bit-exact gate).
     add_test(
         NAME "golden_${CASE_ID}"
         COMMAND "${RUN_CASE_SH}"
                 "${RENDER_BIN}" "${COMPARE_BIN}"
                 "${GOLDEN_CASES_JSON}" "${GOLDEN_INPUTS_DIR}"
                 "${GOLDEN_BLESSED_DIR}" "${GOLDEN_SCRATCH}"
-                "${CASE_ID}" "${CASE_POLICY}" "0"
+                "${CASE_ID}" "${CASE_POLICY}" "${GOLDEN_TOL}"
     )
     set_tests_properties("golden_${CASE_ID}" PROPERTIES LABELS golden)
 endforeach()
