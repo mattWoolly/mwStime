@@ -30,13 +30,28 @@ namespace mws::ui {
 [[nodiscard]] juce::Image renderFaceplateStaticLayer(const FaceplateSpec& spec,
                                                      int width, int height);
 
-class Faceplate final : public juce::Component
+class Faceplate final : public juce::Component, private juce::Timer
 {
 public:
     Faceplate();
+    ~Faceplate() override;
 
-    /// Swaps the FaceplateSpec and invalidates the cache (cross-fade is task 046).
+    /// Palette cross-fade duration on a model switch (ui-design §6.5 (PI)).
+    static constexpr int kCrossfadeMs = 150;
+
+    /// Swaps the FaceplateSpec and invalidates the cache (instant, no fade).
     void setModel(model::ModelId id);
+
+    /// Swaps to `id` with a kCrossfadeMs palette cross-fade (ui-design §6.5):
+    /// the current cached image is captured as the fade-FROM layer and blended
+    /// out over the freshly built fade-TO layer. A no-op (identical to
+    /// setModel) when the model is unchanged. Driven by a private timer.
+    void crossfadeToModel(model::ModelId id);
+
+    /// True while a cross-fade is animating (tests / the editor's repaint
+    /// coordination). False once the fade completes.
+    [[nodiscard]] bool isCrossfading() const noexcept { return crossfading; }
+
     [[nodiscard]] model::ModelId model() const noexcept { return modelId; }
     [[nodiscard]] const FaceplateSpec& spec() const noexcept
     {
@@ -48,10 +63,18 @@ public:
 
 private:
     void rebuildCacheIfNeeded();
+    void timerCallback() override;
 
     model::ModelId modelId = model::ModelId::S1000;
     juce::Image cache;  // static layer, keyed on (size, model)
     model::ModelId cachedModel = model::ModelId::S1000;
+
+    // Cross-fade state (ui-design §6.5): the previous model's cached image is
+    // the fade-FROM layer; `fadeStartMs` anchors the kCrossfadeMs blend. The
+    // timer repaints at the UI rate while crossfading == true.
+    bool crossfading = false;
+    juce::Image fadeFrom;       // the old model's static layer (kept full size)
+    double fadeStartMs = 0.0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Faceplate)
 };
