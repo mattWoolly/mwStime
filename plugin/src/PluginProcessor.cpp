@@ -40,11 +40,21 @@ void PluginProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
     // §7.4 latency. setLatencySamples must be called from prepareToPlay (and on
     // model/bandwidth/FS change — handled in parameterChanged).
     const auto snapshot = params.makeSnapshot();
-    const int latency = engine.prepareFx(sampleRate, samplesPerBlock,
-                                         static_cast<std::size_t>(juce::jmax(
-                                             1, getTotalNumInputChannels())),
-                                         snapshot);
+    const auto channels =
+        static_cast<std::size_t>(juce::jmax(1, getTotalNumInputChannels()));
+    const int latency = engine.prepareFx(sampleRate, samplesPerBlock, channels, snapshot);
     setLatencySamples(latency);
+
+    // SAMPLE-mode playback voice + ZONE-preview stretcher (task 034). Allocates
+    // here, off the audio thread.
+    engine.prepareSample(sampleRate, samplesPerBlock, channels, snapshot);
+
+    // Mode-switch crossfade scratch (one block of the old path's output).
+    fadeScratch_.setSize(getTotalNumOutputChannels(), samplesPerBlock,
+                         /*keepExistingContent=*/false, /*clearExtraSpace=*/true,
+                         /*avoidReallocating=*/false);
+    prevMode_ = snapshot.pluginMode;
+    haveProcessed_ = false;
 }
 
 void PluginProcessor::releaseResources() {}
@@ -91,19 +101,68 @@ void PluginProcessor::processBlock(juce::AudioBuffer<float>& buffer,
         buffer.clear(channel, 0, buffer.getNumSamples());
 
     const auto snapshot = params.makeSnapshot();
+    const int numChannels = getTotalNumInputChannels();
+    const int numFrames = buffer.getNumSamples();
+    const auto mode = snapshot.pluginMode;
 
-    if (snapshot.pluginMode == mws::engine::PluginMode::Sample)
+    // Mode switch (FX<->SAMPLE): on the first block after a flip, render the OLD
+    // path into the fade scratch, then the NEW path in place, and cross-fade
+    // them over this one block (click-free — task 034 scope; a NAMED tunable
+    // invention flagged for the task-034b PI audit). One block only.
+    const bool modeSwitched = haveProcessed_ && mode != prevMode_;
+    if (modeSwitched && numFrames <= fadeScratch_.getNumSamples()
+        && numChannels <= fadeScratch_.getNumChannels())
     {
-        // SAMPLE mode: the SamplePlayer is task 034. Until then the FX path is
-        // bypassed and the dry signal passes through (explicit per ADR-006 mode
-        // default — never silence).
+        // Old path into the scratch (a copy of the dry input — both paths read
+        // the same input buffer).
+        for (int ch = 0; ch < numChannels; ++ch)
+            fadeScratch_.copyFrom(ch, 0, buffer, ch, 0, numFrames);
+        renderMode(prevMode_, fadeScratch_.getArrayOfWritePointers(), numChannels,
+                   numFrames, snapshot);
+
+        // New path in place.
+        renderMode(mode, buffer.getArrayOfWritePointers(), numChannels, numFrames,
+                   snapshot);
+
+        // Equal-power one-block crossfade: old fades out, new fades in.
+        for (int ch = 0; ch < numChannels; ++ch)
+        {
+            float* out = buffer.getWritePointer(ch);
+            const float* old = fadeScratch_.getReadPointer(ch);
+            for (int i = 0; i < numFrames; ++i)
+            {
+                const float t = (numFrames > 1)
+                                    ? static_cast<float>(i) / static_cast<float>(numFrames - 1)
+                                    : 1.0f;
+                out[i] = old[i] * (1.0f - t) + out[i] * t;
+            }
+        }
+    }
+    else
+    {
+        renderMode(mode, buffer.getArrayOfWritePointers(), numChannels, numFrames,
+                   snapshot);
+    }
+
+    prevMode_ = mode;
+    haveProcessed_ = true;
+}
+
+void PluginProcessor::renderMode(mws::engine::PluginMode mode, float* const* channelData,
+                                 int numChannels, int numFrames,
+                                 const mws::engine::ParamSnapshot& snapshot) noexcept
+{
+    if (mode == mws::engine::PluginMode::Sample)
+    {
+        // SAMPLE mode: the SamplePlayer / ZONE-preview path (task 034). It
+        // GENERATES audio (PLAY / A-B / ZONE) — it does not pass the host input
+        // through (architecture.md §4).
+        engine.processSampleBlock(channelData, numChannels, numFrames, snapshot);
         return;
     }
 
     // FX mode: run the RealtimeStretcher over the in-place buffer.
-    engine.processFxBlock(buffer.getArrayOfWritePointers(),
-                          getTotalNumInputChannels(), buffer.getNumSamples(),
-                          snapshot, readTransport());
+    engine.processFxBlock(channelData, numChannels, numFrames, snapshot, readTransport());
 }
 
 void PluginProcessor::parameterChanged(const juce::String& parameterID, float newValue)

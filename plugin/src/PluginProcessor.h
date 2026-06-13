@@ -93,6 +93,13 @@ private:
     /// TransportInfo struct for SYNC mode (no JUCE inside the engine — §5.2).
     [[nodiscard]] mws::engine::RealtimeStretcher::TransportInfo readTransport() noexcept;
 
+    /// Audio thread: render one block through the given mode's process path (the
+    /// shared body of processBlock and the mode-switch crossfade). FX runs the
+    /// RealtimeStretcher; SAMPLE runs the SamplePlayer / ZONE-preview path.
+    void renderMode(mws::engine::PluginMode mode, float* const* channelData,
+                    int numChannels, int numFrames,
+                    const mws::engine::ParamSnapshot& snapshot) noexcept;
+
     juce::AudioProcessorValueTreeState apvts;
     Parameters params;
     juce::ValueTree stateTree = state::createDefault();
@@ -100,6 +107,15 @@ private:
 
     EngineHost engine;
     state::StateBlobCache blobCache_;
+
+    // Mode-switch (FX<->SAMPLE) one-block crossfade state (task 034 — a NAMED
+    // tunable invention flagged for the task-034b PI audit; ui-design.md §6.5
+    // specifies the one-block crossfade for MODEL switches only). The audio
+    // thread renders BOTH paths for the first block after a mode flip and
+    // cross-fades them; `prevMode_` is the mode the last block ran.
+    mws::engine::PluginMode prevMode_ = mws::engine::PluginMode::Fx;
+    bool haveProcessed_ = false;
+    juce::AudioBuffer<float> fadeScratch_; // old-path output for the crossfade
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PluginProcessor)
 };
