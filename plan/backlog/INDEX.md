@@ -36,7 +36,7 @@ Deferred to v1.1 by ADR (no tasks here beyond reserved slots): INTELL engine
 | 4 | 040 | LCD font + LcdDisplay | ui | M | 039 | done |
 | 4 | 041 | LcdPageModel (headless; load-error + embed-status lines) | ui | M | 010, 028 | done |
 | 4 | 042 | SoftKeyBar + cursor/ENT + JogWheel | ui | M | 039 | done |
-| 4 | 043 | WaveformView (+ click-to-audition event) | ui | M | 039 | todo |
+| 4 | 043 | WaveformView (+ click-to-audition event) | ui | M | 039 | done |
 | 4 | 044 | ModelSelector + control panel | ui | S | 028, 039 | todo |
 | 5 | 012 | Cyclic property suite (comb/stereo/determinism) | qa | S | 011 | todo |
 | 5 | 015 | S950Engine (D-TIME, MON1/POL2, AUTO-D) | dsp | M | 010, 014 | todo |
