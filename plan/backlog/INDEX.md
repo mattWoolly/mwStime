@@ -39,7 +39,7 @@ Deferred to v1.1 by ADR (no tasks here beyond reserved slots): INTELL engine
 | 4 | 043 | WaveformView (+ click-to-audition event) | ui | M | 039 | done |
 | 4 | 044 | ModelSelector + control panel | ui | S | 028, 039 | done |
 | 5 | 012 | Cyclic property suite (comb/stereo/determinism) | qa | S | 011 | done |
-| 5 | 015 | S950Engine (D-TIME, MON1/POL2, AUTO-D) | dsp | M | 010, 014 | todo |
+| 5 | 015 | S950Engine (D-TIME, MON1/POL2, AUTO-D) | dsp | M | 010, 014 | done |
 | 5 | 018 | Transpose stage (sinc + clock-modulation) | dsp | M | 004, 009, 016 | todo |
 | 5 | 019 | CharacterChain unified API + bypass | dsp | M | 009, 016, 017 | todo |
 | 6 | 020 | OfflineRenderer (cap, norm, progress/abort) | engine | M | 009, 011, 013, 015, 018, 019 | todo |

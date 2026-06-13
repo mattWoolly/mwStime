@@ -1,7 +1,7 @@
 ---
 id: 015
 title: S950Engine — 999% stretch, D-TIME, MON1/POL2, AUTO-D
-status: in-review
+status: done
 depends-on: [010, 014]
 component: dsp
 estimated-size: M
