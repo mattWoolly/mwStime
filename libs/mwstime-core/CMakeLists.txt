@@ -17,6 +17,7 @@ add_library(mwstime_core STATIC
     src/model/ModelSpec.cpp
     src/model/VarClockChain.cpp
     src/engine/TempoMap.cpp
+    src/engine/Transpose.cpp
     src/stretch/AutoCycle.cpp
     src/stretch/CyclicEngine.cpp
     src/stretch/RepitchEngine.cpp
