@@ -1,7 +1,7 @@
 ---
 id: 030
 title: Threading — render worker, lock-free queues, RCU publication + graveyard FIFO
-status: in-review
+status: done
 depends-on: [020, 027]
 component: plugin
 estimated-size: M

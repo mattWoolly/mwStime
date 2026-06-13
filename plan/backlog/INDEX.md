@@ -47,7 +47,7 @@ Deferred to v1.1 by ADR (no tasks here beyond reserved slots): INTELL engine
 | 7 | 023 | RealtimeStretcher SYNC windows | engine | M | 021, 022 | done |
 | 7 | 024 | Stream/offline equivalence (+ host-rate matrix, FX stereo) | qa | S | 020, 022 | done |
 | 7 | 025 | mwstime-render CLI | engine | M | 003, 020 | done |
-| 7 | 030 | Render worker + RCU publication + TSan presets | plugin | M | 020, 027 | todo |
+| 7 | 030 | Render worker + RCU publication + TSan presets | plugin | M | 020, 027 | done |
 | 8 | 026 | Golden harness, inputs, comparer, bless | qa | M | 025 | todo |
 | 8 | 031 | FileLoader thread (WAV/AIFF/FLAC) | plugin | M | 027, 030 | todo |
 | 8 | 033 | EngineHost FX path + latency reporting + scope FIFO | plugin | M | 022, 023, 028, 030 | todo |
