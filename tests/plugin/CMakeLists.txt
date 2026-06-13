@@ -25,6 +25,8 @@ target_sources(mwstime_plugin_tests
         test_inputcluster.cpp
         test_waveformview.cpp
         test_controlpanel.cpp
+        test_enginehost.cpp
+        "${CMAKE_SOURCE_DIR}/plugin/src/EngineHost.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/state/Parameters.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/state/StateTree.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/state/Migrations.cpp"

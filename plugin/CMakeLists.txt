@@ -38,6 +38,7 @@ target_sources(mwStime
     PRIVATE
         src/PluginProcessor.cpp
         src/PluginEditor.cpp
+        src/EngineHost.cpp
         src/state/Parameters.cpp
         src/state/StateTree.cpp
         src/state/Migrations.cpp
