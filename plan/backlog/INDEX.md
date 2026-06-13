@@ -50,7 +50,7 @@ Deferred to v1.1 by ADR (no tasks here beyond reserved slots): INTELL engine
 | 7 | 030 | Render worker + RCU publication + TSan presets | plugin | M | 020, 027 | done |
 | 8 | 026 | Golden harness, inputs, comparer, bless | qa | M | 025 | done |
 | 8 | 031 | FileLoader thread (WAV/AIFF/FLAC) | plugin | M | 027, 030 | done |
-| 8 | 033 | EngineHost FX path + latency reporting + scope FIFO | plugin | M | 022, 023, 028, 030 | todo |
+| 8 | 033 | EngineHost FX path + latency reporting + scope FIFO | plugin | M | 022, 023, 028, 030 | done |
 | 9 | 026b | Hardware-capture sourcing + SpliceCal/D-TIME calibration (early QA, v1-freeze gate) | qa | M | 026 | todo |
 | 9 | 026c | Akaizer secondary cross-check (local-only, never CI) | qa | S | 026 | todo |
 | 9 | 032 | FLAC state-blob cache / embed audio | plugin | M | 029, 031 | todo |
