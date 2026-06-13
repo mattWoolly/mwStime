@@ -1,7 +1,7 @@
 ---
 id: 025
 title: mwstime-render CLI — wav in, wav out, all params
-status: in-review
+status: done
 depends-on: [003, 020]
 component: engine
 estimated-size: M
