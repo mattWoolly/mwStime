@@ -1,7 +1,7 @@
 ---
 id: 031
 title: FileLoader thread — decode WAV/AIFF/FLAC to SourceSample, publish via RCU
-status: in-review
+status: done
 depends-on: [027, 030]
 component: plugin
 estimated-size: M
