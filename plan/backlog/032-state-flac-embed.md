@@ -1,7 +1,7 @@
 ---
 id: 032
 title: FLAC state-blob cache — embed sample audio in plugin state without message-thread stalls
-status: todo
+status: in-review
 depends-on: [029, 031]
 component: plugin
 estimated-size: M

@@ -20,6 +20,7 @@ target_sources(mwstime_plugin_tests
         test_parameters.cpp
         test_faceplatespec.cpp
         test_state.cpp
+        test_state_embed.cpp
         test_lcdfont.cpp
         test_lcdpagemodel.cpp
         test_inputcluster.cpp
@@ -32,6 +33,7 @@ target_sources(mwstime_plugin_tests
         "${CMAKE_SOURCE_DIR}/plugin/src/FileLoader.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/state/Parameters.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/state/StateTree.cpp"
+        "${CMAKE_SOURCE_DIR}/plugin/src/state/StateBlobCache.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/src/state/Migrations.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/ui/ControlPanel.cpp"
         "${CMAKE_SOURCE_DIR}/plugin/ui/Faceplate.cpp"

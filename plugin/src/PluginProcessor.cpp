@@ -144,12 +144,15 @@ void PluginProcessor::changeProgramName(int index, const juce::String& newName)
 
 void PluginProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    // APVTS + versioned non-parameter tree (task 029). The trailing nullptr
-    // is the task-032 extension point: once the file loader caches a
-    // pre-encoded FLAC blob, it is passed here verbatim — never encoded on
-    // this (message) thread (architecture.md §6).
+    // APVTS + versioned non-parameter tree (task 029) + the task-032 embedded
+    // FLAC blob. The blob was pre-encoded on the file-loader thread and is
+    // merely MEMCPY'd here — getStateInformation NEVER encodes on this (message)
+    // thread (architecture.md §6; the host-autosave-stall failure the design
+    // avoids). cachedBlob() is a plain atomic load; it is empty when embedding
+    // is off or the encoded FLAC was over the 16 MB cap (path-only persistence).
+    const auto blob = blobCache_.cachedBlob();
     state::writePluginState(apvts.copyState(), stateTree, destData,
-                            /*embeddedAudioBlob=*/nullptr);
+                            blob != nullptr ? blob.get() : nullptr);
 }
 
 void PluginProcessor::setStateInformation(const void* data, int sizeInBytes)
@@ -163,12 +166,22 @@ void PluginProcessor::setStateInformation(const void* data, int sizeInBytes)
 
     stateTree = restored.stateTree; // already migrated + defaults-filled
 
-    // Re-render-on-load (architecture.md §6 determinism rule): render
-    // metadata present means a render existed — request a deterministic
-    // re-render instead of restoring stored output. The worker that services
-    // this arrives in task 030; the callback defaults to a no-op.
-    if (state::hasRenderMetadata(stateTree) && onReRenderRequested)
-        onReRenderRequested();
+    // Keep the blob cache's embed policy in step with the restored state-tree
+    // flag (default ON ≤ 16 MB encoded, dsp-engine.md §2) before we restore.
+    blobCache_.setEmbedEnabled(
+        static_cast<bool>(stateTree.getProperty(state::id::embedAudio,
+                                                state::defaults::embedAudio)));
+
+    // Restore embedded audio (decode dispatched off the message thread) or
+    // resolve the sourceFile path + verify its content hash; then fire the
+    // deterministic re-render with the saved snapshot (architecture.md §6).
+    // The processor's re-render hook is parameterless (task-029 contract); the
+    // saved ParamSnapshot is the just-restored APVTS snapshot.
+    blobCache_.restore(restored.embeddedAudioBlob, stateTree, makeParamSnapshot(),
+                       [this](const mws::engine::ParamSnapshot&) {
+                           if (onReRenderRequested)
+                               onReRenderRequested();
+                       });
 }
 
 } // namespace mws::plugin
