@@ -1,7 +1,7 @@
 ---
 id: 055
 title: Fix data race on FxEngine::active_ (atomic shared_ptr handoff) + LCD-snapshot + TSan coverage
-status: in-review
+status: done
 depends-on: [033]
 component: plugin
 estimated-size: M

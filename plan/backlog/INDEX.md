@@ -72,6 +72,7 @@ Deferred to v1.1 by ADR (no tasks here beyond reserved slots): INTELL engine
 | 14 | 052 | README + user docs | docs | S | 046, 048, 049 | done |
 | 15 | 051 | GitHub Actions CI (deferred trigger — last) | infra | M | 026, 049, 050 | done |
 | 16 | 054 | Gate INTELL — grey + non-automatable stretchMode (no plausible-fake CYCLIC) | plugin | S | 041, 045b | done |
+| 16 | 055 | Fix data race on FxEngine::active_ (atomic shared_ptr handoff) + LCD-snapshot + TSan coverage | plugin | M | 033 | done |
 
 Notes:
 - Waves 3–4 are the widest (up to 11 parallel tasks); DSP, plugin-shell, and UI
