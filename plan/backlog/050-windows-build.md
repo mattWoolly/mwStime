@@ -1,7 +1,7 @@
 ---
 id: 050
 title: Windows build bring-up — MSVC, VST3/CLAP/Standalone, golden tolerance
-status: in-review
+status: done
 depends-on: [049]
 component: infra
 estimated-size: M
