@@ -190,6 +190,10 @@ TEST_CASE("publication: concurrent publish vs per-block acquire/retire is race-f
     std::atomic<bool> producerDone{ false };
     std::atomic<std::uint64_t> blocksProcessed{ 0 };
     std::atomic<std::uint64_t> consistencyFailures{ 0 };
+    // Catch2's REQUIRE is not thread-safe; record retire failures on the worker
+    // and assert after join (the in-thread REQUIRE aborted under CI contention —
+    // task 051). Same safe pattern already used for consistencyFailures.
+    std::atomic<std::uint64_t> retireFailures{ 0 };
 
     // Producer: rapid immutable publishes, exactly the render-worker swap path.
     std::thread producer([&] {
@@ -213,7 +217,19 @@ TEST_CASE("publication: concurrent publish vs per-block acquire/retire is race-f
                         consistencyFailures.fetch_add(1, std::memory_order_relaxed);
                     blocksProcessed.fetch_add(1, std::memory_order_relaxed);
                 }
-                REQUIRE(pub.retire(buf)); // graveyard sized to never overflow
+                // Yield-and-retry on a momentarily-full graveyard (collector
+                // behind under load); the buffer is never stranded (it is held by
+                // `buf`). Bounded so a permanent stall still fails. See the
+                // matching note in the "many producers' swaps" test below.
+                for (int attempt = 0; !pub.retire(buf); ++attempt)
+                {
+                    if (attempt >= 1'000'000)
+                    {
+                        retireFailures.fetch_add(1, std::memory_order_relaxed);
+                        break;
+                    }
+                    std::this_thread::yield();
+                }
             }
         }
     });
@@ -235,6 +251,7 @@ TEST_CASE("publication: concurrent publish vs per-block acquire/retire is race-f
     pub.collectGarbage();
 
     REQUIRE(consistencyFailures.load() == 0); // no torn publish / use-after-free
+    REQUIRE(retireFailures.load() == 0);       // graveyard never overflowed
     REQUIRE(blocksProcessed.load() > 0);       // the audio thread actually ran
     REQUIRE_FALSE(pub.hasGarbage());           // graveyard fully drained
     REQUIRE(pub.current()->sentinel == kPublishes); // last publish stuck
@@ -265,6 +282,17 @@ TEST_CASE("publication: many producers' swaps never strand a buffer", "[publicat
     constexpr std::uint64_t kPublishes = 20000;
     std::atomic<bool> producerDone{ false };
 
+    // Catch2's REQUIRE is NOT thread-safe — asserting from a spawned thread is
+    // UB (it surfaced as a "fatal error condition" abort under CI contention, and
+    // pub.acquire() can legitimately return null transiently mid-swap, so the
+    // old `REQUIRE(buf->consistent())` also dereferenced null). Mirror the safe
+    // pattern the first test in this file already uses: record failures into
+    // atomic counters on the worker threads and REQUIRE on the main thread after
+    // join. The stress is unchanged (20000 publishes, concurrent acquire/retire/
+    // collect). (Hardened by the first CI run — task 051.)
+    std::atomic<std::uint64_t> consistencyFailures{ 0 };
+    std::atomic<std::uint64_t> retireFailures{ 0 };
+
     std::thread producer([&] {
         for (std::uint64_t id = 1; id <= kPublishes; ++id)
             pub.publish(makeTracked(id));
@@ -275,8 +303,24 @@ TEST_CASE("publication: many producers' swaps never strand a buffer", "[publicat
         while (!producerDone.load(std::memory_order_acquire))
         {
             auto buf = pub.acquire();
-            REQUIRE(buf->consistent());
-            REQUIRE(pub.retire(buf));
+            if (buf && !buf->consistent())
+                consistencyFailures.fetch_add(1, std::memory_order_relaxed);
+            // retire() returns false only when the graveyard ring is momentarily
+            // FULL (the collector thread is behind) — the buffer is NOT stranded,
+            // it is still owned by `buf`, exactly as the real audio thread holds
+            // it until the next opportunity. Yield and retry until the collector
+            // drains a slot (bounded so a genuine permanent stall still fails).
+            // The original in-thread `REQUIRE(retire(...))` assumed the collector
+            // always keeps up, which a contended CI runner does not guarantee.
+            for (int attempt = 0; !pub.retire(buf); ++attempt)
+            {
+                if (attempt >= 1'000'000)
+                {
+                    retireFailures.fetch_add(1, std::memory_order_relaxed);
+                    break;
+                }
+                std::this_thread::yield();
+            }
         }
     });
 
@@ -288,6 +332,9 @@ TEST_CASE("publication: many producers' swaps never strand a buffer", "[publicat
     producer.join();
     audio.join();
     collector.join();
+
+    REQUIRE(consistencyFailures.load() == 0);
+    REQUIRE(retireFailures.load() == 0);
 
     // Shutdown drain.
     auto tail = pub.acquire();

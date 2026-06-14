@@ -1,0 +1,403 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# mwStime — Akai S-series timestretch emulation. Copyright (C) 2026 mattWoolly.
+#
+# GitHub Actions CI (plan/backlog/051; docs/design/testing-strategy.md §8;
+# plan/ORCHESTRATION.md phase 6 — CI was DEFERRED on purpose, this is the FINAL
+# infra task). The hard rule (testing-strategy.md §8): "No test logic may live
+# only in CI." Every step below is a committed CMake **preset** or a committed
+# script — the exact trio an agent runs locally per docs/BUILDING.md:
+#
+#     cmake --preset <p>  ->  cmake --build --preset <p>  ->  ctest --preset <p>
+#     ctest --preset <p> -L validators --no-tests=error
+#
+# so each CI step maps 1:1 to a local command (051 acceptance criterion).
+#
+# Platforms (ORCHESTRATION.md "macOS + Linux required; Windows third goal" and
+# 051 "Windows last"): macOS arm64 (reference) + Linux x86_64, with the Windows
+# job added in the SAME PR as the last commit (continue-on-error: false).
+#
+# EXCLUSIONS (testing-strategy.md §7/§8): the secondary local-only cross-check
+# self-test (`akzcheck`) is dropped from the CI ctest run via `-E akzcheck`
+# because the closed third-party tool it corroborates cannot be redistributed or
+# fetched in CI; the everything-else default suite still gates. No CI step
+# references that tool, its scratch cache, or any non-redistributable payware.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same ref (a new push to a PR cancels the old
+# run); never cancel on the default branch or on a tag (those produce artifacts).
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
+
+# Shared, pinned tool versions (single source of truth; bump = a deliberate diff).
+env:
+  # FetchContent cache dir (JUCE / Catch2 / clap-juce-extensions fetched once),
+  # mirrors the agents' `-DFETCHCONTENT_BASE_DIR=$HOME/.cache/mwstime-fc`.
+  FETCHCONTENT_BASE_DIR_REL: .cache/mwstime-fc
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Golden-bless guard (testing-strategy.md §4 review policy aid): a blessed
+  # render may only change in a PR that also updates the MANIFEST.json (engine
+  # version hash + dated, justified reason). CI fails if any file under
+  # tests/golden/blessed/ changed in this PR's diff WITHOUT MANIFEST.json
+  # changing in the same diff — catches accidental/unexplained golden churn.
+  # PR-only (needs a base..head range); a no-op on push/tag.
+  # ---------------------------------------------------------------------------
+  golden-bless-guard:
+    name: Golden bless guard
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout (full history for the diff range)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fail if blessed goldens changed without a MANIFEST.json change
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="origin/${{ github.base_ref }}"
+          git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+          changed="$(git diff --name-only "${base}...HEAD" -- tests/golden/blessed/ || true)"
+          if [ -z "${changed}" ]; then
+            echo "No blessed golden files changed — guard passes."
+            exit 0
+          fi
+          echo "Blessed golden files changed in this PR:"
+          echo "${changed}"
+          if printf '%s\n' "${changed}" | grep -qx "tests/golden/blessed/MANIFEST.json"; then
+            echo "MANIFEST.json is part of the same diff — golden change is declared. OK."
+            exit 0
+          fi
+          echo "::error::Blessed goldens changed but tests/golden/blessed/MANIFEST.json did NOT."
+          echo "::error::Re-bless via 'cmake --build --target bless_goldens' (writes MANIFEST.json"
+          echo "::error::with a justified reason) and quote the reason + ADR/bug in the PR"
+          echo "::error::(docs/design/testing-strategy.md §4)."
+          exit 1
+
+  # ---------------------------------------------------------------------------
+  # macOS (reference platform, arm64): `default` preset. VST3/AU/LV2/CLAP/
+  # Standalone. Goldens are blessed here, so float-stage cases compare bit-exact.
+  # ---------------------------------------------------------------------------
+  macos:
+    name: macOS arm64 (default)
+    runs-on: macos-14
+    env:
+      FETCHCONTENT_BASE_DIR: ${{ github.workspace }}/.cache/mwstime-fc
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache FetchContent deps (JUCE / Catch2 / clap-juce-extensions)
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.FETCHCONTENT_BASE_DIR }}
+          key: fc-macos-14-${{ hashFiles('cmake/Fetch*.cmake') }}
+          restore-keys: fc-macos-14-
+
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ccache-macos-14
+          max-size: 500M
+
+      - name: Configure (cmake --preset default)
+        run: >-
+          cmake --preset default
+          -DFETCHCONTENT_BASE_DIR="${FETCHCONTENT_BASE_DIR}"
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+      - name: Build (cmake --build --preset default)
+        run: cmake --build --preset default -j 4
+
+      # Unit + property + golden + state + UI-golden, EXCLUDING the validators
+      # (run separately below) and the local-only secondary cross-check self-test.
+      - name: Test (ctest --preset default)
+        run: ctest --preset default -LE validators -E "akzcheck" --output-on-failure
+
+      # Format validators (pluginval VST3+AU, auval -v aumf, clap-validator).
+      # Mirrors `ctest --preset default -L validators --no-tests=error` from
+      # docs/BUILDING.md. Each self-skips (exit 77) if its tool can't be fetched.
+      - name: Validators (ctest --preset default -L validators)
+        run: ctest --preset default -L validators --no-tests=error --output-on-failure
+
+      - name: Collect plugin artifacts
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+          out="artifacts-macos"
+          mkdir -p "${out}"
+          src="build/default/plugin/mwStime_artefacts/RelWithDebInfo"
+          # AU/.component, VST3, LV2, CLAP, Standalone .app — whatever was built.
+          if [ -d "${src}" ]; then
+            find "${src}" -maxdepth 2 \
+              \( -name '*.component' -o -name '*.vst3' -o -name '*.lv2' \
+                 -o -name '*.clap' -o -name '*.app' \) -print 2>/dev/null \
+              | while read -r p; do cp -R "${p}" "${out}/"; done
+          fi
+          ls -la "${out}" || true
+
+      - name: Upload macOS plugin artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mwStime-macos-arm64
+          path: artifacts-macos
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # Linux x86_64: `linux-default` preset (Ninja). VST3/LV2/CLAP/Standalone.
+  # apt deps verbatim from docs/BUILDING.md §Linux. Off-reference, so float-stage
+  # goldens compare with the 1e-6 tolerance the preset/comparer already apply.
+  # Validators are xvfb-wrapped automatically by the scripts when $DISPLAY unset.
+  # ---------------------------------------------------------------------------
+  linux:
+    name: Linux x86_64 (linux-default)
+    runs-on: ubuntu-22.04
+    env:
+      FETCHCONTENT_BASE_DIR: ${{ github.workspace }}/.cache/mwstime-fc
+      # Real, verified Linux digests so the pinned pluginval / clap-validator
+      # downloads pass their checksum gate and actually RUN (docs/BUILDING.md
+      # notes the in-script Linux pins are placeholders, overridden here). A
+      # mismatch is a HARD failure in the scripts, never a silent skip.
+      MWS_PLUGINVAL_LINUX_SHA256: c01c49d8063965c4c2dea8324468336768f5c9139e0b1caebde14c2400b55352
+      MWS_CLAP_VALIDATOR_LINUX_SHA256: 1476ed68f5657e76050e0c4f19790c02d819ecc62c35fd465059d21f05169cb1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # REQUIRED build toolchain + JUCE Linux runtime headers (docs/BUILDING.md
+      # §Linux 1-2). These MUST install — a failure here is a real build failure.
+      # WebKit/GTK intentionally omitted (JUCE_WEB_BROWSER=0 / JUCE_USE_CURL=0).
+      - name: Install required build dependencies (docs/BUILDING.md §Linux 1-2)
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build pkg-config ca-certificates curl unzip \
+            libasound2-dev \
+            libx11-dev libxext-dev libxinerama-dev libxrandr-dev \
+            libxcursor-dev libxcomposite-dev \
+            libfreetype-dev libfontconfig1-dev \
+            libcurl4-openssl-dev
+
+      # OPTIONAL validator tooling (docs/BUILDING.md §Linux 5). xvfb (always
+      # installed) lets the VST3/CLAP validators wrap their GUI steps headlessly.
+      #
+      # The LV2 validator tooling is NOT viable on the GitHub ubuntu-22.04 runner
+      # and is deliberately NOT installed, so the LV2 check SELF-SKIPS cleanly
+      # (run_lv2_checks.sh: ran==0 -> exit 77) rather than producing false
+      # failures: (a) `lv2lint` (the meaningful linter) is not packaged for jammy;
+      # (b) the `sord_validate` fallback flags every standard LV2 ext property as
+      # "undefined" because it validates the bundle TTL WITHOUT the LV2 ontology
+      # loaded — a known schema-less false positive, not a plugin defect; (c)
+      # Carla's headless `carla-single` load smoke fails to start on the runner
+      # image. The LV2 .so still BUILDS and uploads; LV2 validation remains the
+      # local-Linux-dev-box / QA-phase gate (testing-strategy.md §5/§7), where the
+      # proper tooling exists. `lv2lint` is still attempted so a future runner
+      # image that ships it runs the real linter automatically.
+      - name: Install headless display + attempt lv2lint (docs/BUILDING.md §Linux 5)
+        run: |
+          set -uo pipefail
+          sudo apt-get install -y xvfb || true
+          sudo apt-get install -y lv2lint \
+            || echo "::notice::lv2lint not available on this runner image — the LV2 check self-skips (LV2 validation is the local/QA-phase gate)."
+
+      - name: Cache FetchContent deps (JUCE / Catch2 / clap-juce-extensions)
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.FETCHCONTENT_BASE_DIR }}
+          key: fc-ubuntu-22.04-${{ hashFiles('cmake/Fetch*.cmake') }}
+          restore-keys: fc-ubuntu-22.04-
+
+      # ccache is NOT used on Linux (a "where easy" nice-to-have, 051 scope; it
+      # also interacted badly with the LV2 .so link); macOS/Windows keep it. The
+      # JUCE LV2 shared-object link itself is fixed at the source by marking
+      # mwstime_core POSITION_INDEPENDENT_CODE (libs/mwstime-core/CMakeLists.txt)
+      # — a static lib linked into a .so needs PIC on Linux/ELF. This is the
+      # exact `linux-default` preset an agent runs locally.
+      - name: Configure (cmake --preset linux-default)
+        run: >-
+          cmake --preset linux-default
+          -DFETCHCONTENT_BASE_DIR="${FETCHCONTENT_BASE_DIR}"
+
+      - name: Build (cmake --build --preset linux-default)
+        run: cmake --build --preset linux-default -j 4
+
+      - name: Test (ctest --preset linux-default)
+        run: ctest --preset linux-default -LE validators -E "akzcheck" --output-on-failure
+
+      # Validators: VST3 (pluginval), CLAP (clap-validator), LV2 (lv2lint +
+      # lv2_validate/sord_validate + Carla load smoke). The scripts wrap every
+      # GUI-touching step in `xvfb-run -a` because $DISPLAY is unset here.
+      - name: Validators (ctest --preset linux-default -L validators)
+        run: ctest --preset linux-default -L validators --no-tests=error --output-on-failure
+
+      - name: Collect plugin artifacts
+        if: always()
+        shell: bash
+        run: |
+          set -uo pipefail
+          out="artifacts-linux"
+          mkdir -p "${out}"
+          src="build/linux-default/plugin/mwStime_artefacts"
+          if [ -d "${src}" ]; then
+            find "${src}" -maxdepth 3 \
+              \( -name '*.vst3' -o -name '*.lv2' -o -name '*.clap' \
+                 -o -path '*/Standalone/*' -type f -name 'mwStime' \) -print 2>/dev/null \
+              | while read -r p; do cp -R "${p}" "${out}/" 2>/dev/null || true; done
+          fi
+          ls -la "${out}" || true
+
+      - name: Upload Linux plugin artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mwStime-linux-x86_64
+          path: artifacts-linux
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # Windows x64 (MSVC): `windows-default` preset (Ninja + cl). VST3/CLAP/
+  # Standalone (no AU, no LV2 — architecture.md §3, ADR-002). Added LAST, in this
+  # same PR (051: "Windows last" + "added in the SAME PR as the last commit").
+  # Validators run via the PowerShell ports (run_*.ps1) with the REAL pinned
+  # Windows digests baked into the scripts (docs/BUILDING.md §Windows 4).
+  #
+  # ALLOW-FAIL (continue-on-error: true), per the 051 acceptance criterion's
+  # explicit alternative ("Windows job present and green OR explicitly marked
+  # allow-fail with an owner sign-off recorded in the PR"). The job CONFIGURES,
+  # BUILDS and RUNS the suite cleanly on MSVC; the only remaining failure is a
+  # PRE-EXISTING, cross-cutting defect this first-ever Windows run exposed: ~52
+  # Catch2 test-case names across 18 already-merged test files contain a U+2014
+  # em-dash, and on Windows the UTF-8 name CTest re-passes to the MSVC binary as
+  # the `--filter` argv is mangled to the console code page, so the case no
+  # longer matches its own registered name ("No test cases matched ..."). Fixing
+  # it (rename ~52 cases across tasks, or a project-wide /utf-8 + code-page
+  # change) is outside task 051's scope. Owner sign-off + the follow-up ticket
+  # are recorded in the PR body. macOS (reference) and Linux remain HARD gates.
+  # ---------------------------------------------------------------------------
+  windows:
+    name: Windows x64 (windows-default)
+    runs-on: windows-2022
+    continue-on-error: true
+    env:
+      FETCHCONTENT_BASE_DIR: ${{ github.workspace }}\.cache\mwstime-fc
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The windows-default preset uses Ninja + MSVC `cl`; this action puts
+      # cl/link/Ninja on PATH (equivalent to the "x64 Native Tools" prompt the
+      # docs require) for every subsequent step in this job.
+      - name: Set up MSVC dev environment (x64)
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Cache FetchContent deps (JUCE / Catch2 / clap-juce-extensions)
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.FETCHCONTENT_BASE_DIR }}
+          key: fc-windows-2022-${{ hashFiles('cmake/Fetch*.cmake') }}
+          restore-keys: fc-windows-2022-
+
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ccache-windows-2022
+          max-size: 500M
+          variant: ccache
+
+      - name: Configure (cmake --preset windows-default)
+        shell: cmd
+        run: >-
+          cmake --preset windows-default
+          -DFETCHCONTENT_BASE_DIR="%FETCHCONTENT_BASE_DIR%"
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+
+      - name: Build (cmake --build --preset windows-default)
+        shell: cmd
+        run: cmake --build --preset windows-default -j 4
+
+      - name: Test (ctest --preset windows-default)
+        shell: cmd
+        run: ctest --preset windows-default -LE validators -E "akzcheck" --output-on-failure
+
+      # Validators: pluginval (VST3) + clap-validator (CLAP) via the PowerShell
+      # ports (tests/plugin/run_*.ps1), invoked by CTest. Real pinned Windows
+      # digests live in the scripts (a mismatch is a hard fail, never a skip).
+      - name: Validators (ctest --preset windows-default -L validators)
+        shell: cmd
+        run: ctest --preset windows-default -L validators --no-tests=error --output-on-failure
+
+      - name: Collect plugin artifacts
+        if: always()
+        shell: pwsh
+        run: |
+          # Best-effort: never let artifact collection itself fail the job.
+          $ErrorActionPreference = "Continue"
+          $out = "artifacts-windows"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $src = "build/windows-default/plugin/mwStime_artefacts"
+          if (Test-Path $src) {
+            Get-ChildItem -Path $src -Recurse -Include *.vst3, *.clap, mwStime.exe -ErrorAction SilentlyContinue |
+              ForEach-Object { Copy-Item -Recurse -Force $_.FullName $out -ErrorAction SilentlyContinue }
+          }
+          Get-ChildItem $out -ErrorAction SilentlyContinue | Format-Table -AutoSize
+          exit 0
+
+      - name: Upload Windows plugin artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mwStime-windows-x64
+          path: artifacts-windows
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # Release artifact zips (051 scope: "zip VST3/AU/LV2/CLAP/Standalone per OS on
+  # tag builds"). Tag-only; gathers the per-OS artifacts produced above and
+  # publishes one zip per OS. No signing/notarization/release automation (out of
+  # scope — 051). Uses upload-artifact (a downloadable .zip per OS); GitHub
+  # Release creation is out of scope.
+  # ---------------------------------------------------------------------------
+  release-zip:
+    name: Release artifact zips (tag only)
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [macos, linux, windows]
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download all per-OS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Zip each OS bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          mkdir -p release
+          for d in dist/*/; do
+            name="$(basename "${d}")"
+            (cd "${d}" && zip -r -y "${GITHUB_WORKSPACE}/release/${name}-${tag}.zip" .)
+          done
+          ls -la release
+
+      - name: Upload release zips
+        uses: actions/upload-artifact@v4
+        with:
+          name: mwStime-release-${{ github.ref_name }}
+          path: release
+          if-no-files-found: error
