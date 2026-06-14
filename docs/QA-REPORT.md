@@ -14,8 +14,19 @@ positives* so the record shows it was checked.
 
 ## 1. Executive summary — verdict
 
-**Verdict: NOT ship-ready as-is. Two HIGH-severity defects must be fixed before v1;
-the remainder are acceptable-to-document and can ship as known limitations.**
+> **UPDATE 2026-06-14 — both HIGH findings RESOLVED; v1 ship-ready.**
+> F1 (INTELL plausible-fake) fixed by task **054** (commit `ef5dd4f`): `stretchMode` is now
+> greyed, non-automatable, and unreachable via jog/host; defense-in-depth prevents INTELL
+> from ever rendering as CYCLIC. F2 (FxEngine data race) fixed by task **055** (commit
+> `6a7069d`): `active_` handoff is atomic on both sides, the LCD reads an audio-thread-
+> published snapshot, and the `[tsan]` test now exercises the racing accessors —
+> **2/2 ThreadSanitizer tests pass clean**. Final on-main sweep: ctest 497/497 (+3
+> validators), TSan 2/2, pluginval/auval/clap all green; CI green on macOS + Linux
+> (Windows allow-fail per the 3rd-goal priority). The original audit verdict is preserved
+> below for the record.
+
+**Original verdict (pre-fix): NOT ship-ready as-is. Two HIGH-severity defects must be fixed
+before v1; the remainder are acceptable-to-document and can ship as known limitations.**
 
 The product is in strong shape. The DSP core is unusually faithful to the documented
 Akai S-series emulation: integer-hop CLASSIC scheduling, sample-exact REVISED length,
@@ -197,6 +208,16 @@ are tracked here:
 - **F9 (low):** Rename `PluginEditor::processor` → `processor_` to clear the
   `-Wshadow-field` warning. Build hygiene only.
 
-**Created backlog tasks (HIGH findings):**
-- `plan/backlog/054-gate-intell-stretch-mode.md` — F1 (+ F3) — status: todo
-- `plan/backlog/055-fxengine-active-atomic-shared-ptr-race.md` — F2 — status: todo
+**Created backlog tasks (HIGH findings) — both RESOLVED 2026-06-14:**
+- `plan/backlog/054-gate-intell-stretch-mode.md` — F1 (+ F3) — status: **done** (PR #60, `ef5dd4f`)
+- `plan/backlog/055-fxengine-active-atomic-shared-ptr-race.md` — F2 — status: **done** (PR #61, `6a7069d`)
+
+**Remaining follow-ups (non-blocking, tracked for v1.1):**
+- F4–F9 medium/low findings above remain documented known limitations (no separate tasks).
+- `plan/backlog/053-fx-streaming-character-chain.md` — FX-path per-block character chain enhancement.
+- Harness note: running `ctest --preset tsan` *unfiltered* reports test #53 ("S3000 is
+  reserved — fails loudly") as a failure because that intentional `abort()` death test trips
+  the sanitizer's exit handling. It passes in the normal build and is **not** a defect. The
+  TSan preset is meant to run only the `[tsan]`-labelled concurrency tests
+  (`ctest --preset tsan -L tsan`, 2/2 clean). A tiny v1.1 cleanup could exclude death tests
+  from the tsan preset.
