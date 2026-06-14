@@ -1,7 +1,7 @@
 ---
 id: 048b
 title: Host smoke test matrix — host-matrix.md + scripted/manual macOS host runs
-status: in-review
+status: done
 depends-on: [046, 048]
 component: qa
 estimated-size: M
