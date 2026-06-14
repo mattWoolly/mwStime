@@ -219,12 +219,16 @@ TEST_CASE("lcdpagemodel: S950 hides the mode row", "[lcdpagemodel]")
     CHECK(findParamField(page, ParamId::Material) != nullptr);
 }
 
-TEST_CASE("lcdpagemodel: S1000 greys qual/width as INTELL only", "[lcdpagemodel]")
+TEST_CASE("lcdpagemodel: S1000 greys stretchMode/qual/width as INTELL only", "[lcdpagemodel]")
 {
     const auto page =
         build(snapshotFor(ModelId::S1000, PluginMode::Sample), amenSample());
 
-    for (const ParamId param : {ParamId::Qual, ParamId::Width})
+    // INTELL is deferred to v1.1 and genuinely unreachable at v1: stretchMode
+    // joins qual/width as a greyed, cursor-skipped, INTELL-only field so the
+    // engine never renders a guess under the authentic name (ADR-001 res.#2;
+    // dsp-engine.md §4 L239-240; task 054 / QA F1+F3).
+    for (const ParamId param : {ParamId::StretchMode, ParamId::Qual, ParamId::Width})
     {
         const auto* field = findParamField(page, param);
         REQUIRE(field != nullptr);
@@ -235,6 +239,20 @@ TEST_CASE("lcdpagemodel: S1000 greys qual/width as INTELL only", "[lcdpagemodel]
         for (int c = field->col; c < field->col + field->width; ++c)
             CHECK(row.styles[static_cast<std::size_t>(c)] == LcdCellStyle::Greyed);
     }
+
+    // The greyed set on the S1000 page is EXACTLY {stretchMode, qual, width}:
+    // every other Param field stays editable so the cursor can reach it.
+    for (const auto& f : page.fields)
+    {
+        if (f.kind != mws::ui::LcdFieldKind::Param)
+            continue;
+        const bool greyed = f.param == ParamId::StretchMode
+                            || f.param == ParamId::Qual
+                            || f.param == ParamId::Width;
+        INFO("param field index editable mismatch");
+        CHECK(f.editable == !greyed);
+    }
+
     // The mockup renders the inert values as dashes (ui-design §1).
     CHECK(contains(page, "qual: --"));
     CHECK(contains(page, "width: --"));

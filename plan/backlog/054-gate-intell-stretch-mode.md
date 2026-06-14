@@ -1,7 +1,7 @@
 ---
 id: 054
 title: Gate INTELL — grey + non-automatable stretchMode so INTELL is unreachable (no plausible-fake CYCLIC audio)
-status: todo
+status: in-review
 depends-on: [041, 045b]
 component: plugin
 estimated-size: S

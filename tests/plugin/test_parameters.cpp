@@ -263,15 +263,19 @@ TEST_CASE("parameters: bool defaults match §2", "[parameters]")
     CHECK(f.paramAs<juce::AudioParameterBool>(pid::embedAudio).get() == true);
 }
 
-TEST_CASE("parameters: non-automatable set is exactly {model, pluginMode, sampleRateSel, embedAudio, bandwidth}", "[parameters]")
+TEST_CASE("parameters: non-automatable set is exactly {model, pluginMode, sampleRateSel, embedAudio, bandwidth, stretchMode}", "[parameters]")
 {
     Fixture f;
 
     // bandwidth is non-automatable GLOBALLY (it changes reported latency,
     // dsp-engine §2 bandwidth row / §7.4 — documented deviation from the
     // mode-conditional wording: host parameter info cannot change per mode).
+    // stretchMode is non-automatable so no host/automation path can move it
+    // off CYCLIC: INTELL is deferred to v1.1 and must be unreachable (ADR-001
+    // res.#2 plausible-fake gate; task 054 / QA F1+F3).
     constexpr const char* nonAutomatable[] = {
-        pid::model, pid::pluginMode, pid::sampleRateSel, pid::embedAudio, pid::bandwidth,
+        pid::model, pid::pluginMode, pid::sampleRateSel, pid::embedAudio,
+        pid::bandwidth, pid::stretchMode,
     };
 
     for (auto* id : kAllIds)
@@ -369,7 +373,7 @@ TEST_CASE("parameters: snapshot reflects host parameter changes", "[parameters]"
     f.set(pid::width, 33.0f);
     f.paramAs<juce::AudioParameterChoice>(pid::model) = 1;       // S950
     f.paramAs<juce::AudioParameterChoice>(pid::pluginMode) = 1;  // SAMPLE
-    f.paramAs<juce::AudioParameterChoice>(pid::stretchMode) = 1; // INTELL (reserved)
+    f.paramAs<juce::AudioParameterChoice>(pid::stretchMode) = 1; // INTELL (reserved) — must be coerced
     f.paramAs<juce::AudioParameterChoice>(pid::hopMode) = 1;     // REVISED
     f.paramAs<juce::AudioParameterChoice>(pid::material) = 0;    // MON1
     f.paramAs<juce::AudioParameterChoice>(pid::sampleRateSel) = 1; // 22.05
@@ -391,7 +395,11 @@ TEST_CASE("parameters: snapshot reflects host parameter changes", "[parameters]"
     CHECK(s.width == 33);
     CHECK(s.model == mws::model::ModelId::S950);
     CHECK(s.pluginMode == PluginMode::Sample);
-    CHECK(s.stretchMode == StretchMode::Intell);
+    // INTELL is deferred to v1.1 and genuinely unreachable at v1: even when the
+    // raw parameter is forced to INTELL (e.g. a stale preset/automation value),
+    // the snapshot coerces it to CYCLIC so the engine never renders a guess
+    // under the authentic name (ADR-001 res.#2; task 054 / QA F1).
+    CHECK(s.stretchMode == StretchMode::Cyclic);
     CHECK(s.hopMode == HopMode::Revised);
     CHECK(s.material == Material::Mon1);
     CHECK(s.sampleRateSel == SampleRateSel::Fs22050);
@@ -403,4 +411,27 @@ TEST_CASE("parameters: snapshot reflects host parameter changes", "[parameters]"
 
     // The snapshot type itself stays audio-thread safe (plain copy).
     static_assert(std::is_trivially_copyable_v<mws::engine::ParamSnapshot>);
+}
+
+TEST_CASE("parameters: INTELL is unreachable — the engine snapshot is always CYCLIC at v1",
+          "[parameters]")
+{
+    // INTELL is deferred to v1.1 and must be genuinely unreachable at v1: the
+    // LCD field is greyed, the parameter is non-automatable, AND makeSnapshot()
+    // coerces it. This proves the last line of defense: no jog/host/automation/
+    // stale-preset value can hand the engine an INTELL snapshot, so the engine
+    // can never render a guess as silently-CYCLIC audio under the authentic name
+    // (ADR-001 res.#2 plausible-fake gate; task 054 / QA F1+F3).
+    using namespace mws::engine;
+    Fixture f;
+    mws::plugin::Parameters params(f.apvts);
+
+    // The default snapshot is CYCLIC...
+    CHECK(params.makeSnapshot().stretchMode == StretchMode::Cyclic);
+
+    // ...and even forcing the raw parameter to INTELL (the host-cached choice
+    // value an old session/preset could carry) still yields a CYCLIC snapshot.
+    f.paramAs<juce::AudioParameterChoice>(pid::stretchMode) = 1; // INTELL
+    REQUIRE(f.paramAs<juce::AudioParameterChoice>(pid::stretchMode).getIndex() == 1);
+    CHECK(params.makeSnapshot().stretchMode == StretchMode::Cyclic);
 }

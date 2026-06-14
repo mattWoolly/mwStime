@@ -174,13 +174,16 @@ LcdPage buildS1000SamplePage(const ParamSnapshot& p, const model::ModelSpec& spe
     page.fields.push_back({LcdFieldKind::Param, ParamId::CycleLen, 2, 14, 4, true, nullptr});
     page.fields.push_back({LcdFieldKind::Param, ParamId::TimeFactor, 2, 32, 8, true, nullptr});
 
-    // r3: stretch mode: CYCLIC  qual: -- width: --   (qual/width greyed,
-    // "INTELL only" at v1 — [MAN §3 p.47]; ui-design §2)
+    // r3: stretch mode: CYCLIC  qual: -- width: --   (stretchMode/qual/width
+    // greyed, "INTELL only" at v1 — INTELL is genuinely unreachable so the
+    // engine never renders a guess under the authentic name [MAN §3 p.47];
+    // dsp-engine.md §4 L239-240, ADR-001 res.#2; ui-design §2).
     put(page.rows[3], 0, "stretch mode:");
-    put(page.rows[3], 14, toLcd(p.stretchMode));
+    put(page.rows[3], 14, toLcd(p.stretchMode), LcdCellStyle::Greyed);
     put(page.rows[3], 22, "qual: --", LcdCellStyle::Greyed);
     put(page.rows[3], 31, "width: --", LcdCellStyle::Greyed);
-    page.fields.push_back({LcdFieldKind::Param, ParamId::StretchMode, 3, 14, 6, true, nullptr});
+    page.fields.push_back({LcdFieldKind::Param, ParamId::StretchMode, 3, 14, 6, false,
+                           LcdPageModel::kIntellOnlyHint});
     page.fields.push_back({LcdFieldKind::Param, ParamId::Qual, 3, 28, 2, false,
                            LcdPageModel::kIntellOnlyHint});
     page.fields.push_back({LcdFieldKind::Param, ParamId::Width, 3, 38, 2, false,

@@ -148,12 +148,16 @@ Layout createParameterLayout()
         pid(paramid::cycleLen), "CYCLE LENGTH", 20, 2000, 1000,
         juce::AudioParameterIntAttributes().withLabel("samples")));
 
-    // STRETCH MODE — INTELL is present but reserved (greyed/UI-constrained at
-    // v1; selecting it is prevented at the UI layer — value reserved so the
-    // range is fixed for v1.1).
+    // STRETCH MODE — INTELL is present but RESERVED and genuinely unreachable
+    // at v1 (dsp-engine.md §4 L239-240; ADR-001 res.#2: shipping a guess under
+    // the authentic name is the plausible-fake failure mode). The field is
+    // greyed so the cursor/jog skips it (LcdPageModel) AND the parameter is
+    // non-automatable so no host path can move it off CYCLIC; makeSnapshot()
+    // additionally coerces it to CYCLIC. The INTELL value stays in the choice
+    // list so the host-visible range is fixed for v1.1.
     layout.add(std::make_unique<AudioParameterChoice>(
         pid(paramid::stretchMode), "STRETCH MODE",
-        juce::StringArray{ "CYCLIC", "INTELL" }, 0));
+        juce::StringArray{ "CYCLIC", "INTELL" }, 0, nonAutomatableChoice));
 
     // TIMING — CLASSIC default (hardware-faithful hop arithmetic).
     layout.add(std::make_unique<AudioParameterChoice>(
@@ -292,7 +296,11 @@ mws::engine::ParamSnapshot Parameters::makeSnapshot() const noexcept
     ParamSnapshot s;
     s.timeFactor    = static_cast<double>(timeFactor_->load(std::memory_order_relaxed));
     s.cycleLen      = static_cast<int>(std::lround(cycleLen_->load(std::memory_order_relaxed)));
-    s.stretchMode   = toEnum<StretchMode>(stretchMode_);
+    // INTELL is deferred to v1.1 and genuinely unreachable at v1 (greyed +
+    // non-automatable). Defense-in-depth: a stale state/preset/automation value
+    // can never reach the engine as INTELL — coerce to CYCLIC here so the engine
+    // never renders a guess under the authentic name (ADR-001 res.#2 / F1).
+    s.stretchMode   = StretchMode::Cyclic;
     s.hopMode       = toEnum<HopMode>(hopMode_);
     s.transpose     = static_cast<double>(transpose_->load(std::memory_order_relaxed));
     s.qual          = static_cast<int>(std::lround(qual_->load(std::memory_order_relaxed)));
