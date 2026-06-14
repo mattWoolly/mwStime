@@ -1,0 +1,12 @@
+{
+  // markdownlint config for user-facing docs (task 052).
+  // markdownlint-cli2 auto-discovers this file when linting README.md / docs/.
+  "default": true,
+  // MD013: line-length is impractical for tables, URLs, and citations in
+  // technical docs. Disabled (the prose is hard-wrapped by hand regardless).
+  "MD013": false,
+  // MD033: inline HTML is used for SPDX/license comment headers in our docs.
+  "MD033": false,
+  // MD041: first line need not be a top-level heading (SPDX comment leads).
+  "MD041": false
+}
