@@ -1,7 +1,7 @@
 ---
 id: 051
 title: GitHub Actions CI — macOS + Linux (+ Windows last), mirrors local presets
-status: in-review
+status: done
 depends-on: [026, 049, 050]
 component: infra
 estimated-size: M
