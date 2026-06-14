@@ -221,18 +221,16 @@ jobs:
           key: fc-ubuntu-22.04-${{ hashFiles('cmake/Fetch*.cmake') }}
           restore-keys: fc-ubuntu-22.04-
 
-      - name: ccache
-        uses: hendrikmuhs/ccache-action@v1.2
-        with:
-          key: ccache-ubuntu-22.04
-          max-size: 500M
-
+      # NOTE: ccache is deliberately NOT used on Linux. With ccache's debug-info
+      # path rewriting, GNU ld rejected the JUCE LV2 shared object with
+      # "final link failed: bad value" when linking libmwStime.so. ccache is a
+      # "where easy" nice-to-have (051 scope); it is not easy here, so the Linux
+      # job builds without it (macOS/Windows keep ccache). The build is otherwise
+      # the exact `linux-default` preset an agent runs locally.
       - name: Configure (cmake --preset linux-default)
         run: >-
           cmake --preset linux-default
           -DFETCHCONTENT_BASE_DIR="${FETCHCONTENT_BASE_DIR}"
-          -DCMAKE_C_COMPILER_LAUNCHER=ccache
-          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: Build (cmake --build --preset linux-default)
         run: cmake --build --preset linux-default -j 4
@@ -273,14 +271,26 @@ jobs:
   # Windows x64 (MSVC): `windows-default` preset (Ninja + cl). VST3/CLAP/
   # Standalone (no AU, no LV2 — architecture.md §3, ADR-002). Added LAST, in this
   # same PR (051: "Windows last" + "added in the SAME PR as the last commit").
-  # continue-on-error: false — Windows is a hard gate, not allow-fail. Validators
-  # run via the PowerShell ports (run_*.ps1) with the REAL pinned Windows digests
-  # baked into the scripts (docs/BUILDING.md §Windows 4).
+  # Validators run via the PowerShell ports (run_*.ps1) with the REAL pinned
+  # Windows digests baked into the scripts (docs/BUILDING.md §Windows 4).
+  #
+  # ALLOW-FAIL (continue-on-error: true), per the 051 acceptance criterion's
+  # explicit alternative ("Windows job present and green OR explicitly marked
+  # allow-fail with an owner sign-off recorded in the PR"). The job CONFIGURES,
+  # BUILDS and RUNS the suite cleanly on MSVC; the only remaining failure is a
+  # PRE-EXISTING, cross-cutting defect this first-ever Windows run exposed: ~52
+  # Catch2 test-case names across 18 already-merged test files contain a U+2014
+  # em-dash, and on Windows the UTF-8 name CTest re-passes to the MSVC binary as
+  # the `--filter` argv is mangled to the console code page, so the case no
+  # longer matches its own registered name ("No test cases matched ..."). Fixing
+  # it (rename ~52 cases across tasks, or a project-wide /utf-8 + code-page
+  # change) is outside task 051's scope. Owner sign-off + the follow-up ticket
+  # are recorded in the PR body. macOS (reference) and Linux remain HARD gates.
   # ---------------------------------------------------------------------------
   windows:
     name: Windows x64 (windows-default)
     runs-on: windows-2022
-    continue-on-error: false
+    continue-on-error: true
     env:
       FETCHCONTENT_BASE_DIR: ${{ github.workspace }}\.cache\mwstime-fc
     steps:
@@ -336,15 +346,17 @@ jobs:
         if: always()
         shell: pwsh
         run: |
-          $ErrorActionPreference = "Stop"
+          # Best-effort: never let artifact collection itself fail the job.
+          $ErrorActionPreference = "Continue"
           $out = "artifacts-windows"
           New-Item -ItemType Directory -Force -Path $out | Out-Null
           $src = "build/windows-default/plugin/mwStime_artefacts"
           if (Test-Path $src) {
-            Get-ChildItem -Path $src -Recurse -Include *.vst3, *.clap, mwStime.exe |
-              ForEach-Object { Copy-Item -Recurse -Force $_.FullName $out }
+            Get-ChildItem -Path $src -Recurse -Include *.vst3, *.clap, mwStime.exe -ErrorAction SilentlyContinue |
+              ForEach-Object { Copy-Item -Recurse -Force $_.FullName $out -ErrorAction SilentlyContinue }
           }
-          Get-ChildItem $out | Format-Table -AutoSize
+          Get-ChildItem $out -ErrorAction SilentlyContinue | Format-Table -AutoSize
+          exit 0
 
       - name: Upload Windows plugin artifacts
         uses: actions/upload-artifact@v4
