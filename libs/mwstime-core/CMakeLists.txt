@@ -36,7 +36,12 @@ target_compile_features(mwstime_core PUBLIC cxx_std_20)
 
 # FP discipline (architecture.md §7): pinned double rounding for deterministic
 # golden renders. No -ffast-math anywhere; FMA contraction disabled on this
-# target. MSVC's default /fp:precise already disables contraction.
+# target. On Clang/GCC that is -ffp-contract=off; on MSVC the equivalent is
+# /fp:precise (the default, but pinned EXPLICITLY here per task 050 so the
+# integer-CLASSIC bit-exactness on a third compiler does not silently depend on
+# a toolchain default — /fp:precise disables contraction and forbids the
+# /fp:fast reorderings, validating the fixed-point discipline on MSVC too).
 target_compile_options(mwstime_core PRIVATE
     $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-ffp-contract=off>
+    $<$<CXX_COMPILER_ID:MSVC>:/fp:precise>
 )

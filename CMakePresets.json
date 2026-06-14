@@ -30,6 +30,23 @@
       }
     },
     {
+      "name": "windows-default",
+      "displayName": "Windows default (RelWithDebInfo, Ninja + MSVC)",
+      "description": "Windows x64 bring-up (task 050). Same RelWithDebInfo build type + FP discipline as `default` (core pins /fp:precise — MSVC's contraction-disabling default, made explicit). Ninja + the MSVC (cl) toolchain; run from a `x64 Native Tools` developer prompt (or VS CMake integration) so cl/link are on PATH. Formats: VST3 + CLAP + Standalone (AU is macOS-only; LV2 optional, dropped on Windows). VST3/CLAP validators self-skip when their tools are absent (label `validators`).",
+      "binaryDir": "${sourceDir}/build/windows-default",
+      "generator": "Ninja",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_C_COMPILER": "cl",
+        "CMAKE_CXX_COMPILER": "cl"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
       "name": "tsan",
       "displayName": "ThreadSanitizer (publication/swap + FX history reconfig)",
       "binaryDir": "${sourceDir}/build/tsan",
@@ -55,6 +72,11 @@
       "jobs": 6
     },
     {
+      "name": "windows-default",
+      "configurePreset": "windows-default",
+      "jobs": 6
+    },
+    {
       "name": "tsan",
       "configurePreset": "tsan",
       "jobs": 6
@@ -71,6 +93,13 @@
     {
       "name": "linux-default",
       "configurePreset": "linux-default",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "windows-default",
+      "configurePreset": "windows-default",
       "output": {
         "outputOnFailure": true
       }

@@ -13,13 +13,31 @@ else()
     set(MWS_COPY_PLUGIN_AFTER_BUILD FALSE)
 endif()
 
+# Per-platform format set (architecture.md §3 ADR-002; tasks 049/050):
+#   * macOS : AU + VST3 + LV2 + Standalone (CLAP added below for all platforms).
+#   * Linux : VST3 + LV2 + Standalone (AU is macOS-only).
+#   * Windows : VST3 + Standalone (AU is macOS-only; LV2 is OPTIONAL on Windows —
+#     the Windows v1 set is VST3 + CLAP + Standalone per task 050, so LV2 is
+#     dropped there rather than shipped unvalidated. JUCE's native LV2 exporter is
+#     primarily exercised on Linux; there is no Windows LV2 validator wired here,
+#     so building it would produce an unchecked artifact — see the PR for the
+#     decision record).
+# CLAP is appended by clap_juce_extensions_plugin(...) below on every platform.
+if(APPLE)
+    set(MWS_PLUGIN_FORMATS AU VST3 LV2 Standalone)
+elseif(WIN32)
+    set(MWS_PLUGIN_FORMATS VST3 Standalone)
+else()  # Linux + other UNIX
+    set(MWS_PLUGIN_FORMATS VST3 LV2 Standalone)
+endif()
+
 juce_add_plugin(mwStime
     PRODUCT_NAME                "mwStime"
     COMPANY_NAME                mattWoolly
     BUNDLE_ID                   com.mattwoolly.mwstime
     PLUGIN_MANUFACTURER_CODE    MwSt
     PLUGIN_CODE                 MwS1
-    FORMATS                     AU VST3 LV2 Standalone
+    FORMATS                     ${MWS_PLUGIN_FORMATS}
     # Category minefield (architecture.md §7, ADR-002): IS_SYNTH FALSE +
     # NEEDS_MIDI_INPUT TRUE ⇒ the AU exports as `aumf` (music effect) so
     # Logic routes MIDI to it. auval must be invoked as:

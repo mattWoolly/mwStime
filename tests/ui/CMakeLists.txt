@@ -88,17 +88,27 @@ set(UI_GOLDEN_STATES
     faceplate_s1000_scale20
 )
 
-foreach(state IN LISTS UI_GOLDEN_STATES)
-    add_test(
-        NAME "ui-golden: ${state}"
-        COMMAND "${RUN_UI_CASE_SH}"
-                "${UI_BIN}" "${UI_BLESSED_DIR}" "${UI_SCRATCH}" "${state}"
-    )
-    set_tests_properties("ui-golden: ${state}" PROPERTIES LABELS ui-golden)
-endforeach()
+# The per-state CTest runner is a POSIX/bash script and the UI golden-screenshot
+# gate is macOS-only by design (testing-strategy.md §7 Wave 3; tasks 049/050 list
+# "UI screenshot gates (macOS-only by design)" as out of scope off-reference). The
+# ui_screenshot TARGET still builds on Windows above (good JUCE-GUI portability
+# coverage), but the .sh-driven CTests are not registered there — a .sh CTest on
+# Windows would hard-fail (CTest cannot exec it) rather than skip.
+if(NOT WIN32)
+    foreach(state IN LISTS UI_GOLDEN_STATES)
+        add_test(
+            NAME "ui-golden: ${state}"
+            COMMAND "${RUN_UI_CASE_SH}"
+                    "${UI_BIN}" "${UI_BLESSED_DIR}" "${UI_SCRATCH}" "${state}"
+        )
+        set_tests_properties("ui-golden: ${state}" PROPERTIES LABELS ui-golden)
+    endforeach()
 
-list(LENGTH UI_GOLDEN_STATES UI_GOLDEN_COUNT)
-message(STATUS "ui golden harness: registered ${UI_GOLDEN_COUNT} states (label `ui-golden`)")
+    list(LENGTH UI_GOLDEN_STATES UI_GOLDEN_COUNT)
+    message(STATUS "ui golden harness: registered ${UI_GOLDEN_COUNT} states (label `ui-golden`)")
+else()
+    message(STATUS "ui golden harness: target built, CTests skipped on Windows (macOS-only gate)")
+endif()
 
 # --- bless target -----------------------------------------------------------
 # `cmake --build --preset default --target bless_ui_goldens` re-captures every
