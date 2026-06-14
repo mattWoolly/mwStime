@@ -1,7 +1,7 @@
 ---
 id: 047b
 title: UI golden screenshot regression harness — macOS-arm64 gate, scale checks
-status: in-review
+status: done
 depends-on: [046, 047]
 component: qa
 estimated-size: M
