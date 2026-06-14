@@ -101,6 +101,13 @@ add_subdirectory(golden)
 # reused by every later tests/plugin/ task). Only built when the plugin is.
 if(MWS_BUILD_PLUGIN AND TARGET juce::juce_audio_processors)
     add_subdirectory(plugin)
+
+    # UI golden-screenshot regression harness (tests/ui/ — task 047b). Builds the
+    # headless ui_screenshot driver (software renderer), registers one CTest per
+    # state under LABEL `ui-golden`, and defines the gated `bless_ui_goldens`
+    # target. JUCE-linked (it captures the real UI components), so it lives under
+    # the same plugin-build guard.
+    add_subdirectory(ui)
 endif()
 
 # License-header convention check (docs/CONTRIBUTING.md). Every committed C++

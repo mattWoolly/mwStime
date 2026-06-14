@@ -1,0 +1,9 @@
+{
+  "kind": "ui-golden-screenshots",
+  "referencePlatform": "macOS arm64",
+  "date": "2026-06-13T23:38:35Z",
+  "blesser": "matt.woolly",
+  "platform": "Darwin arm64",
+  "reason": "dry-run check",
+  "stateCount": 8
+}
