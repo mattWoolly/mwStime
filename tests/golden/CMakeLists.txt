@@ -29,7 +29,10 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${GOLDEN_CASES_J
 set(RENDER_BIN "$<TARGET_FILE:mwstime_render>")
 set(COMPARE_BIN "$<TARGET_FILE:golden_compare>")
 
-set(RUN_CASE_SH "${CMAKE_SOURCE_DIR}/tools/run_golden_case.sh")
+# The per-case runner is a `cmake -P` script (cross-platform: no bash needed, so
+# the golden suite runs identically on macOS/Linux/Windows-MSVC — task 050). The
+# legacy tools/run_golden_case.sh wrapper is retained for manual shell use.
+set(RUN_CASE_CMAKE "${CMAKE_CURRENT_SOURCE_DIR}/RunGoldenCase.cmake")
 set(BLESS_SH "${CMAKE_SOURCE_DIR}/tools/bless_goldens.sh")
 
 # --- parse cases.json -------------------------------------------------------
@@ -76,17 +79,24 @@ foreach(i RANGE 0 ${GOLDEN_LAST_INDEX})
 
     string(APPEND GOLDEN_CASE_LIST_LINES "${CASE_ID} ${CASE_POLICY}\n")
 
-    # One CTest per case. The reference platform blesses bit-exact, so the
-    # tolerance gate is run with tol 0 there (a stricter-than-1e-6 reference
-    # check); off-reference platforms relax to GOLDEN_TOL (testing-strategy.md
-    # §4). `exact`-policy cases ignore the tol arg entirely (bit-exact gate).
+    # One CTest per case, run via `cmake -P` (cross-platform — task 050). The
+    # reference platform blesses bit-exact, so the tolerance gate is run with
+    # tol 0 there (a stricter-than-1e-6 reference check); off-reference platforms
+    # relax to GOLDEN_TOL (testing-strategy.md §4). `exact`-policy cases ignore
+    # the tol arg entirely (bit-exact gate on every platform).
     add_test(
         NAME "golden_${CASE_ID}"
-        COMMAND "${RUN_CASE_SH}"
-                "${RENDER_BIN}" "${COMPARE_BIN}"
-                "${GOLDEN_CASES_JSON}" "${GOLDEN_INPUTS_DIR}"
-                "${GOLDEN_BLESSED_DIR}" "${GOLDEN_SCRATCH}"
-                "${CASE_ID}" "${CASE_POLICY}" "${GOLDEN_TOL}"
+        COMMAND "${CMAKE_COMMAND}"
+                -D "RENDER_BIN=${RENDER_BIN}"
+                -D "COMPARE_BIN=${COMPARE_BIN}"
+                -D "CASES_JSON=${GOLDEN_CASES_JSON}"
+                -D "INPUTS_DIR=${GOLDEN_INPUTS_DIR}"
+                -D "BLESSED_DIR=${GOLDEN_BLESSED_DIR}"
+                -D "SCRATCH_DIR=${GOLDEN_SCRATCH}"
+                -D "CASE_ID=${CASE_ID}"
+                -D "POLICY=${CASE_POLICY}"
+                -D "TOL=${GOLDEN_TOL}"
+                -P "${RUN_CASE_CMAKE}"
     )
     set_tests_properties("golden_${CASE_ID}" PROPERTIES LABELS golden)
 endforeach()

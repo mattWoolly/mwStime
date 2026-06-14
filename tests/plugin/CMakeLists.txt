@@ -124,13 +124,18 @@ set_tests_properties(
 )
 
 # ---------------------------------------------------------------------------
-# Format validators (task 048 macOS; task 049 Linux; testing-strategy.md §5,
-# architecture.md §3/§7, plan/decisions/002).
+# Format validators (task 048 macOS; task 049 Linux; task 050 Windows;
+# testing-strategy.md §5, architecture.md §3/§7, plan/decisions/002).
 #   * macOS : pluginval (VST3+AU, strictness 10), auval (-v aumf MwS1 MwSt),
 #             clap-validator (CLAP).
 #   * Linux : pluginval (VST3 — AU is macOS-only), clap-validator (CLAP), and
 #             the LV2 checks (lv2lint + lv2_validate/sord_validate + REQUIRED
 #             Carla load smoke; xvfb-wrapped on headless boxes).
+#   * Windows : pluginval (VST3 — strictness 10), clap-validator (CLAP). No AU
+#             (macOS-only) and no LV2 (the Windows set is VST3 + CLAP +
+#             Standalone — task 050; LV2 is dropped on Windows). The .sh scripts
+#             are POSIX/bash, so Windows runs PowerShell ports (run_*.ps1) via
+#             `powershell.exe -File` (task 050: ".ps1 equivalents where needed").
 #
 # Each script self-skips with exit 77 when its tool can't be fetched/installed
 # (offline / package absent) or when no built artifact is present, so
@@ -148,7 +153,29 @@ set_tests_properties(
 set(MWS_VALIDATOR_SCRIPT_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
 set(MWS_VALIDATOR_NAMES "")   # collected to set shared properties once
 
-if(APPLE)
+if(WIN32)
+    # PowerShell host: prefer pwsh (PowerShell 7+) if present, else the built-in
+    # Windows PowerShell. -File runs the script; -ExecutionPolicy Bypass avoids a
+    # machine policy blocking an unsigned local script.
+    find_program(MWS_POWERSHELL NAMES pwsh powershell)
+    if(NOT MWS_POWERSHELL)
+        set(MWS_POWERSHELL "powershell")  # always present on Windows
+    endif()
+    add_test(
+        NAME "validators: pluginval VST3 (strictness 10)"
+        COMMAND "${MWS_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass
+                -File "${MWS_VALIDATOR_SCRIPT_DIR}/run_pluginval.ps1"
+    )
+    add_test(
+        NAME "validators: clap-validator CLAP"
+        COMMAND "${MWS_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass
+                -File "${MWS_VALIDATOR_SCRIPT_DIR}/run_clap_validator.ps1"
+    )
+    list(APPEND MWS_VALIDATOR_NAMES
+        "validators: pluginval VST3 (strictness 10)"
+        "validators: clap-validator CLAP"
+    )
+elseif(APPLE)
     add_test(
         NAME "validators: pluginval VST3+AU (strictness 10)"
         COMMAND "${MWS_VALIDATOR_SCRIPT_DIR}/run_pluginval.sh"
@@ -213,15 +240,22 @@ endif()
 # selects it together with the headless Standalone row registered in
 # tests/CMakeLists.txt; the `host-smoke:`-prefixed name also satisfies a
 # `ctest -R host-smoke` name selector (backlog/README silent-pass rule).
-add_test(
-    NAME "host-smoke: REAPER scripted smoke (insert/automation/state/render/PDC)"
-    COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/run_reaper_smoke.sh"
-)
-set_tests_properties(
-    "host-smoke: REAPER scripted smoke (insert/automation/state/render/PDC)"
-    PROPERTIES
-        LABELS host-smoke
-        SKIP_RETURN_CODE 77
-        TIMEOUT 600
-        ENVIRONMENT "MWS_BUILD_DIR=${CMAKE_BINARY_DIR}"
-)
+#
+# Guarded to non-Windows (task 050): the runner is a POSIX/bash script and the
+# REAPER host-smoke row is macOS/Linux only (Windows host smoke is out of scope —
+# task 050). Registering a .sh CTest on Windows would hard-fail (CTest cannot
+# exec it) instead of cleanly skipping, so it is simply not registered there.
+if(NOT WIN32)
+    add_test(
+        NAME "host-smoke: REAPER scripted smoke (insert/automation/state/render/PDC)"
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/run_reaper_smoke.sh"
+    )
+    set_tests_properties(
+        "host-smoke: REAPER scripted smoke (insert/automation/state/render/PDC)"
+        PROPERTIES
+            LABELS host-smoke
+            SKIP_RETURN_CODE 77
+            TIMEOUT 600
+            ENVIRONMENT "MWS_BUILD_DIR=${CMAKE_BINARY_DIR}"
+    )
+endif()

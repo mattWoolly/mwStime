@@ -138,7 +138,15 @@ endif()
 # License-header convention check (docs/CONTRIBUTING.md). Every committed C++
 # source under libs/ plugin/ tools/ tests/ must carry the SPDX header; every
 # later task inherits this gate automatically.
-add_test(
-    NAME license_headers
-    COMMAND "${CMAKE_SOURCE_DIR}/tools/check_license_headers.sh" "${CMAKE_SOURCE_DIR}"
-)
+#
+# Guarded to non-Windows (task 050): the checker is a POSIX/bash script
+# (git ls-files + head + grep). It validates COMMITTED source headers, which are
+# identical on every checkout, so the macOS/Linux ctest runs cover it fully;
+# registering a .sh CTest on Windows would hard-fail (CTest cannot exec it)
+# rather than add coverage. Not in scope to port a repo-content lint to .ps1.
+if(NOT WIN32)
+    add_test(
+        NAME license_headers
+        COMMAND "${CMAKE_SOURCE_DIR}/tools/check_license_headers.sh" "${CMAKE_SOURCE_DIR}"
+    )
+endif()
