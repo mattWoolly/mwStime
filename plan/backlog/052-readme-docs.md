@@ -1,7 +1,7 @@
 ---
 id: 052
 title: README + user-facing docs — what it is, authenticity boundary, building, manual
-status: in-review
+status: done
 depends-on: [046, 048, 049]
 component: docs
 estimated-size: S
