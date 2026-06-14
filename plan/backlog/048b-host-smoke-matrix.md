@@ -47,6 +47,26 @@ Read first:
 - Fixing non-trivial host bugs (file follow-ups).
 - CI (hosts are not CI-runnable; 051 must not reference this).
 
+## CRITICAL execution constraints (headless-safe — read before running anything)
+- **NEVER install a DAW** (no brew/cask/apt installs, no downloads of REAPER/Logic/
+  Bitwig/Ardour) and **NEVER launch a GUI host interactively** — launching a GUI DAW
+  blocks forever in this non-interactive environment and is what previously hung this
+  task. Probe for a host ONLY via non-blocking PATH/`/Applications` checks
+  (`command -v`, `ls /Applications`), never by starting it.
+- If a host binary is absent (or only launchable as a GUI), do NOT attempt to run it:
+  record that matrix row as `not available on this host — deferred to QA` with the
+  date, and have any scripted runner for it **self-skip via exit 77** (the CTest
+  SKIP_RETURN_CODE pattern from 048). A clean skip is a PASS for this task.
+- The ONLY rows that must actually EXECUTE here are: (a) `auval -v aumf <ids>` (already
+  available via the AU toolchain), and (b) a **headless Standalone** check of the
+  no-transport SYNC fallback that runs without opening a window (drive the audio
+  processor directly / `--headless`-style, or a unit-style harness — never a visible
+  app window). Everything else (REAPER/Logic/Bitwig/Ardour) is scripted-but-self-
+  skipping + recorded as deferred.
+- The REAPER batch script must be written and wired to CTest label `host-smoke`, but
+  it must self-skip cleanly (exit 77) when REAPER is not on PATH — do not block waiting
+  for it.
+
 ## Acceptance criteria
 - [ ] host-matrix.md committed with every testing-strategy §6 row and check.
 - [ ] REAPER script runs locally (or self-skips cleanly when REAPER absent);
