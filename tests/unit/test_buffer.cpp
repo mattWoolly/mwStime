@@ -6,6 +6,7 @@
 #include "mws/core/Buffer.h"
 
 #include <type_traits>
+#include <utility>  // std::as_const (libstdc++/GCC does not pull it in transitively)
 
 // Test-case names begin with the tag word so `ctest -R buffer` matches
 // (plan/backlog/README.md test-selection rules).

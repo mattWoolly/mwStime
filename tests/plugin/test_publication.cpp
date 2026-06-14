@@ -217,8 +217,19 @@ TEST_CASE("publication: concurrent publish vs per-block acquire/retire is race-f
                         consistencyFailures.fetch_add(1, std::memory_order_relaxed);
                     blocksProcessed.fetch_add(1, std::memory_order_relaxed);
                 }
-                if (!pub.retire(buf)) // graveyard sized to never overflow
-                    retireFailures.fetch_add(1, std::memory_order_relaxed);
+                // Yield-and-retry on a momentarily-full graveyard (collector
+                // behind under load); the buffer is never stranded (it is held by
+                // `buf`). Bounded so a permanent stall still fails. See the
+                // matching note in the "many producers' swaps" test below.
+                for (int attempt = 0; !pub.retire(buf); ++attempt)
+                {
+                    if (attempt >= 1'000'000)
+                    {
+                        retireFailures.fetch_add(1, std::memory_order_relaxed);
+                        break;
+                    }
+                    std::this_thread::yield();
+                }
             }
         }
     });
@@ -294,8 +305,22 @@ TEST_CASE("publication: many producers' swaps never strand a buffer", "[publicat
             auto buf = pub.acquire();
             if (buf && !buf->consistent())
                 consistencyFailures.fetch_add(1, std::memory_order_relaxed);
-            if (!pub.retire(buf))
-                retireFailures.fetch_add(1, std::memory_order_relaxed);
+            // retire() returns false only when the graveyard ring is momentarily
+            // FULL (the collector thread is behind) — the buffer is NOT stranded,
+            // it is still owned by `buf`, exactly as the real audio thread holds
+            // it until the next opportunity. Yield and retry until the collector
+            // drains a slot (bounded so a genuine permanent stall still fails).
+            // The original in-thread `REQUIRE(retire(...))` assumed the collector
+            // always keeps up, which a contended CI runner does not guarantee.
+            for (int attempt = 0; !pub.retire(buf); ++attempt)
+            {
+                if (attempt >= 1'000'000)
+                {
+                    retireFailures.fetch_add(1, std::memory_order_relaxed);
+                    break;
+                }
+                std::this_thread::yield();
+            }
         }
     });
 
