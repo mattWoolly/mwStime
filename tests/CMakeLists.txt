@@ -13,6 +13,11 @@ add_executable(mwstime_tests
     unit/test_cyclic_classic.cpp
     unit/test_cyclic_properties.cpp
     unit/test_cyclic_revised.cpp
+    # Host smoke matrix (task 048b): the headless Standalone no-transport SYNC
+    # fallback row (testing-strategy.md §6 Standalone; ADR-006). JUCE-free — it
+    # drives RealtimeStretcher directly, the exact engine the Standalone app
+    # runs, with NO window and NO transport (the task's headless-safe rule).
+    unit/test_host_smoke.cpp
     unit/test_modelspec.cpp
     unit/test_movinglpf.cpp
     unit/test_offline_renderer.cpp
@@ -89,6 +94,26 @@ add_test(
 set_tests_properties(
     "enginehost: tsan-labelled FX history reconfiguration handoff"
     PROPERTIES LABELS tsan
+)
+
+# Host smoke matrix (tests/plugin/host-matrix.md — task 048b; testing-strategy.md
+# §6). The ONE row that must actually EXECUTE headlessly is the Standalone
+# no-transport SYNC fallback (ADR-006): a JUCE-free RealtimeStretcher harness
+# (test_host_smoke.cpp, [host-smoke]-tagged) drives the exact engine the
+# Standalone app runs with no window and no play head. catch_discover_tests above
+# already registers each "host-smoke: ..." case individually (so
+# `ctest -R host-smoke` selects them — backlog/README silent-pass rule), but
+# Catch2 3.x does not map tags to CTest LABELS, so register the [host-smoke]-
+# tagged set as one labelled CTest. The name begins with "host-smoke" so a
+# `ctest -R host-smoke` name selector also matches it, and `ctest -L host-smoke`
+# selects exactly the headless Standalone row (+ the REAPER self-skip below).
+add_test(
+    NAME "host-smoke: Standalone no-transport SYNC fallback (headless)"
+    COMMAND mwstime_tests "[host-smoke]"
+)
+set_tests_properties(
+    "host-smoke: Standalone no-transport SYNC fallback (headless)"
+    PROPERTIES LABELS host-smoke
 )
 
 # Golden-render character regression (tests/golden/ — task 026). Registers one

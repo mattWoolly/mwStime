@@ -200,3 +200,28 @@ if(MWS_VALIDATOR_NAMES)
             ENVIRONMENT "MWS_BUILD_DIR=${CMAKE_BINARY_DIR}"
     )
 endif()
+
+# ---------------------------------------------------------------------------
+# Host smoke matrix (tests/plugin/host-matrix.md — task 048b; testing-strategy.md
+# §6). The REAPER row is the one DAW row that CAN be scripted ("scripted where
+# possible" — §6): REAPER has a batch/ReaScript runner. run_reaper_smoke.sh
+# probes for REAPER via PATH / /Applications ONLY (never launches a GUI, never
+# installs — task 048b CRITICAL execution constraints) and self-skips with exit
+# 77 when REAPER is absent, so SKIP_RETURN_CODE 77 keeps `ctest -L host-smoke`
+# GREEN on a REAPER-absent box (the norm here and in CI). Cross-platform (macOS +
+# Linux REAPER); the script picks the right probe per OS. LABEL `host-smoke`
+# selects it together with the headless Standalone row registered in
+# tests/CMakeLists.txt; the `host-smoke:`-prefixed name also satisfies a
+# `ctest -R host-smoke` name selector (backlog/README silent-pass rule).
+add_test(
+    NAME "host-smoke: REAPER scripted smoke (insert/automation/state/render/PDC)"
+    COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/run_reaper_smoke.sh"
+)
+set_tests_properties(
+    "host-smoke: REAPER scripted smoke (insert/automation/state/render/PDC)"
+    PROPERTIES
+        LABELS host-smoke
+        SKIP_RETURN_CODE 77
+        TIMEOUT 600
+        ENVIRONMENT "MWS_BUILD_DIR=${CMAKE_BINARY_DIR}"
+)
