@@ -186,7 +186,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             build-essential cmake ninja-build pkg-config ca-certificates curl unzip \
-            lld \
             libasound2-dev \
             libx11-dev libxext-dev libxinerama-dev libxrandr-dev \
             libxcursor-dev libxcomposite-dev \
@@ -222,24 +221,16 @@ jobs:
           key: fc-ubuntu-22.04-${{ hashFiles('cmake/Fetch*.cmake') }}
           restore-keys: fc-ubuntu-22.04-
 
-      # NOTES on two CI-environment-only adjustments (the build is otherwise the
-      # exact `linux-default` preset an agent runs locally):
-      #   1. Linker: the ubuntu-22.04 GNU ld (binutils 2.38) aborts the JUCE LV2
-      #      shared-object link with "final link failed: bad value" (a known
-      #      binutils/JUCE-LV2 interaction). Use LLD via -fuse-ld=lld on the
-      #      shared + exe links — toolchain-only, no source/preset change; the
-      #      emitted artifacts are identical formats. Confirmed unrelated to
-      #      ccache (removing ccache alone did not help), so the linker is pinned
-      #      explicitly rather than blamed on the launcher.
-      #   2. ccache is NOT used on Linux (a "where easy" nice-to-have, 051 scope);
-      #      macOS/Windows keep it.
+      # ccache is NOT used on Linux (a "where easy" nice-to-have, 051 scope; it
+      # also interacted badly with the LV2 .so link); macOS/Windows keep it. The
+      # JUCE LV2 shared-object link itself is fixed at the source by marking
+      # mwstime_core POSITION_INDEPENDENT_CODE (libs/mwstime-core/CMakeLists.txt)
+      # — a static lib linked into a .so needs PIC on Linux/ELF. This is the
+      # exact `linux-default` preset an agent runs locally.
       - name: Configure (cmake --preset linux-default)
         run: >-
           cmake --preset linux-default
           -DFETCHCONTENT_BASE_DIR="${FETCHCONTENT_BASE_DIR}"
-          -DCMAKE_SHARED_LINKER_FLAGS=-fuse-ld=lld
-          -DCMAKE_EXE_LINKER_FLAGS=-fuse-ld=lld
-          -DCMAKE_MODULE_LINKER_FLAGS=-fuse-ld=lld
 
       - name: Build (cmake --build --preset linux-default)
         run: cmake --build --preset linux-default -j 4
