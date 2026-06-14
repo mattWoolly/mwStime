@@ -86,8 +86,12 @@ namespace mws::plugin {
 /// The FX-mode engine wrapper. One instance per processor; owned by EngineHost.
 ///
 /// Threading: prepare()/requestReconfigure()/collectGarbage()/latencySamples()
-/// run on the message thread; processBlock() runs on the audio thread. The two
-/// sides communicate only through the lock-free pending slot and graveyard.
+/// run on the message thread; the LCD accessors clampActive()/monoSummed()/
+/// modelRate() run on the message thread too (the 30 Hz UI timer); processBlock()
+/// runs on the audio thread. The two sides communicate only through lock-free
+/// atomics: the pending slot (message→audio), the active slot (audio-published,
+/// message-read via std::atomic_load — task 055), the published LCD snapshot
+/// (audio→message), and the graveyard. No plain cross-thread pointer reads.
 class FxEngine
 {
 public:
@@ -137,6 +141,24 @@ public:
                                              // from here, automatable from the block
     };
 
+    /// The message-thread-readable LCD state, published atomically by the audio
+    /// thread (task 055; QA finding F2). The LCD accessors (clampActive() /
+    /// monoSummed() / modelRate()) used to dereference the live, audio-thread-
+    /// mutating `active_` shared_ptr and read RealtimeStretcher::clampActive_ (a
+    /// plain bool rewritten every block) directly from the message thread — a
+    /// use-after-free-class data race plus a torn-bool read. Instead the audio
+    /// thread publishes this small trivially-copyable POD as ONE atomic store and
+    /// the message thread loads a consistent snapshot; nothing on the message side
+    /// touches `active_` or the stretcher's internals. modelRate/monoSummed change
+    /// only on adopt; clampActive is restated every block — all three travel
+    /// together so the LCD never shows a mismatched mix.
+    struct LcdSnapshot
+    {
+        double modelRate = 0.0;
+        bool clampActive = false;
+        bool monoSummed = false;
+    };
+
     FxEngine() = default;
 
     FxEngine(const FxEngine&) = delete;
@@ -175,7 +197,9 @@ public:
         // prepareToPlay reports the latency unconditionally.
         std::atomic_store_explicit(&pending_, std::shared_ptr<PreparedFx>{},
                                    std::memory_order_release);
-        active_ = std::move(prepared);
+        publishLcd(*prepared); // initial LCD snapshot for the message thread
+        std::atomic_store_explicit(&active_, std::move(prepared),
+                                   std::memory_order_release);
         prepared_.store(true, std::memory_order_release);
     }
 
@@ -247,6 +271,15 @@ public:
                       const mws::engine::ParamSnapshot& params,
                       const mws::engine::RealtimeStretcher::TransportInfo& transport) noexcept
     {
+        // The audio thread is the SOLE writer of `active_`; the message thread
+        // only atomic_loads it (task 055). Load it ONCE into a local working
+        // pointer (refcount bump, no alloc/lock), mutate the local freely, then
+        // republish it with one atomic store at the end. This makes the handoff
+        // race-free on BOTH sides — matching the `pending_` discipline — without
+        // ever exposing a half-reassigned pointer to a concurrent LCD read.
+        std::shared_ptr<PreparedFx> active = std::atomic_load_explicit(
+            &active_, std::memory_order_acquire);
+
         // (1) Adopt a pending reconfiguration, if any. atomic_exchange the
         // pending slot to null so we adopt each publication exactly once. Wait-
         // free; allocates nothing. The OLD engine is NOT retired yet — when a
@@ -257,7 +290,7 @@ public:
             &pending_, std::shared_ptr<PreparedFx>{}, std::memory_order_acq_rel);
         const bool reconfigured = static_cast<bool>(incoming);
 
-        if (reconfigured && active_
+        if (reconfigured && active
             && numChannels <= fadeScratch_.numChannels()
             && numChannels <= fadeViews_.size())
         {
@@ -268,13 +301,13 @@ public:
             for (std::size_t ch = 0; ch < numChannels; ++ch)
                 fadeViews_[ch] = mws::core::AudioView{ fadeScratch_.channel(ch).data(), n };
 
-            runEngine(*active_, inputs, fadeViews_.data(), numChannels, params, transport);
-            graveyard_.retire(active_);       // outgoing engine freed on msg thread
-            active_ = std::move(incoming);
+            runEngine(*active, inputs, fadeViews_.data(), numChannels, params, transport);
+            graveyard_.retire(active);        // outgoing engine freed on msg thread
+            active = std::move(incoming);
 
             // (1b) Run the INCOMING engine in place, then a one-block linear
             // cross-fade: old fades out, new fades in. Click-free.
-            runEngine(*active_, inputs, outputs, numChannels, params, transport);
+            runEngine(*active, inputs, outputs, numChannels, params, transport);
             for (std::size_t ch = 0; ch < numChannels; ++ch)
             {
                 float* out = outputs[ch].data();
@@ -289,6 +322,7 @@ public:
                 }
             }
             applyOutTrim(outputs, numChannels, params.outTrim);
+            publishActive(active); // republish active_ + LCD snapshot atomically
             return;
         }
 
@@ -296,35 +330,42 @@ public:
         {
             // Adopt without a fade (no prior active engine, or a degenerate
             // channel/scratch mismatch — fall back to the plain swap).
-            if (active_)
-                graveyard_.retire(active_);
-            active_ = std::move(incoming);
+            if (active)
+                graveyard_.retire(active);
+            active = std::move(incoming);
         }
 
-        if (!active_)
+        if (!active)
         {
-            // Not prepared yet (no engine adopted): pass dry.
+            // Not prepared yet (no engine adopted): pass dry. No active_ change.
             passDry(inputs, outputs, numChannels);
             return;
         }
 
         // (2..6) Run the active engine in place + outTrim.
-        runEngine(*active_, inputs, outputs, numChannels, params, transport);
+        runEngine(*active, inputs, outputs, numChannels, params, transport);
         applyOutTrim(outputs, numChannels, params.outTrim);
+        publishActive(active); // republish active_ + LCD snapshot atomically
     }
 
     /// The model rate the active engine runs at (host rate when character OFF).
-    /// Audio/test thread; valid after the first adopt.
+    /// Message/audio/test thread; valid after the first adopt. Reads the
+    /// atomically-published LCD snapshot — NOT the live `active_` pointer (task
+    /// 055; QA F2). 0 before the first prepare()/adopt.
     [[nodiscard]] double modelRate() const noexcept
     {
-        return active_ ? active_->stretcher.modelRate() : 0.0;
+        return std::atomic_load_explicit(&lcd_, std::memory_order_acquire)
+            .modelRate;
     }
 
     /// True while the ADR-006 FREE causality clamp is engaged on the active
-    /// engine (LCD `FX MIN 100%`). Audio/message thread; valid after adopt.
+    /// engine (LCD `FX MIN 100%`). Message/audio thread; valid after adopt.
+    /// Reads the atomically-published snapshot, so it never tears the bool the
+    /// audio thread rewrites every block (task 055; QA F2).
     [[nodiscard]] bool clampActive() const noexcept
     {
-        return active_ && active_->stretcher.clampActive();
+        return std::atomic_load_explicit(&lcd_, std::memory_order_acquire)
+            .clampActive;
     }
 
     /// LCD mono-sum flag (dsp-engine.md §5): the S900/S950 are mono machines, so
@@ -333,17 +374,49 @@ public:
     /// (task 041) can read it; reflects the active engine's model + character +
     /// the prepared channel count. (The actual mono-sum runs in the streaming
     /// character chain — see the CHARACTER-ON deviation in the file header.)
+    /// Reads the atomically-published snapshot (task 055; QA F2).
     [[nodiscard]] bool monoSummed() const noexcept
     {
-        if (!active_)
-            return false;
-        const auto& cfg = active_->config;
-        if (!cfg.character || channels_ <= 1)
-            return false;
-        return mws::model::ModelSpec::get(cfg.model).monoSum;
+        return std::atomic_load_explicit(&lcd_, std::memory_order_acquire)
+            .monoSummed;
     }
 
 private:
+    /// Compute the LCD snapshot for a prepared engine, given the prepared channel
+    /// count. monoSummed mirrors the old live computation (mono machine + CHARACTER
+    /// ON + multi-channel input); modelRate/clampActive come from the stretcher.
+    /// `channels_` is set in prepare() (message thread) and is stable for the life
+    /// of the stream, so reading it here on the audio thread is race-free.
+    [[nodiscard]] LcdSnapshot computeLcd(const PreparedFx& engine) const noexcept
+    {
+        LcdSnapshot s;
+        s.modelRate = engine.stretcher.modelRate();
+        s.clampActive = engine.stretcher.clampActive();
+        const auto& cfg = engine.config;
+        s.monoSummed = cfg.character && channels_ > 1
+                       && mws::model::ModelSpec::get(cfg.model).monoSum;
+        return s;
+    }
+
+    /// Publish the LCD snapshot for `engine` as ONE atomic store (release) so the
+    /// message-thread LCD accessors load a consistent, never-torn snapshot.
+    void publishLcd(const PreparedFx& engine) noexcept
+    {
+        std::atomic_store_explicit(&lcd_, computeLcd(engine),
+                                   std::memory_order_release);
+    }
+
+    /// Audio thread: republish the active engine pointer (release) AND its LCD
+    /// snapshot. The LCD snapshot is published FIRST so the message thread can
+    /// never observe a newer `active_` paired with a stale LCD reading; the LCD
+    /// accessors read only the snapshot, never `active_`, so ordering here is for
+    /// freshness, not correctness. Wait-free; no alloc/lock.
+    void publishActive(std::shared_ptr<PreparedFx>& engine) noexcept
+    {
+        publishLcd(*engine);
+        std::atomic_store_explicit(&active_, engine, std::memory_order_release);
+    }
+
     /// Audio thread: run one prepared engine over the channel views (steps 2–5
     /// of the legacy processBlock body — effective-snapshot build, setParams,
     /// transport, stretch). outTrim is applied by the caller (so the cross-fade
@@ -457,9 +530,25 @@ private:
     // engine here; the audio thread atomic_exchanges it to null and adopts it.
     std::shared_ptr<PreparedFx> pending_{};
 
-    // The engine the audio thread is currently running (audio-thread owned once
-    // adopted; never touched by the message thread).
+    // The engine the audio thread is currently running. The audio thread is its
+    // SOLE writer (processBlock republishes it with one atomic store); the
+    // message thread used to read it directly for the LCD accessors, which raced
+    // the reassignment (QA finding F2 / task 055). All access — write and read —
+    // now goes through std::atomic_store_explicit/atomic_load_explicit, the same
+    // discipline pending_ already uses, and the message thread reads LCD state
+    // from the published snapshot below rather than dereferencing this pointer.
     std::shared_ptr<PreparedFx> active_{};
+
+    // The atomically-published LCD snapshot (task 055). The audio thread stores
+    // it (one release store per adopt/block via publishLcd); the message-thread
+    // LCD accessors load it. A small trivially-copyable POD so the store/load is
+    // a single lock-free atomic op — keeping processBlock lock-free. The
+    // static_assert fails the build loudly on any target where the type would
+    // need a lock (would violate the RT contract) rather than silently degrading.
+    std::atomic<LcdSnapshot> lcd_{ LcdSnapshot{} };
+    static_assert(std::atomic<LcdSnapshot>::is_always_lock_free,
+                  "FxEngine LCD snapshot must be lock-free to keep processBlock "
+                  "lock-free (task 055)");
 
     // Retired engines wait here for the message thread to free them. The
     // graveyard takes shared_ptr<const T>; engines are const-cast on the way in

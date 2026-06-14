@@ -190,6 +190,7 @@ TEST_CASE("enginehost: FX reconfiguration handoff is race-free under processing"
     std::atomic<bool> done{ false };
     std::atomic<std::uint64_t> blocks{ 0 };
     std::atomic<std::uint64_t> nonFinite{ 0 };
+    std::atomic<std::uint64_t> lcdPolls{ 0 };
 
     // Audio thread: process blocks in place forever, adopting whatever the
     // message thread has published. Never allocates, never frees.
@@ -232,14 +233,38 @@ TEST_CASE("enginehost: FX reconfiguration handoff is race-free under processing"
         }
     });
 
+    // LCD-poll thread: the 30 Hz UI timer path (PluginEditor::pollEngine ->
+    // EngineHost::fxClampActive/fxMonoSummed + modelRate) reads the live engine
+    // state from the MESSAGE side WHILE the audio thread reassigns active_ and
+    // mutates clampActive_ every block. This is the exact accessor pattern QA
+    // finding F2 (HIGH) races: a plain shared_ptr read of active_ + a torn bool
+    // read. Without the atomic snapshot handoff this thread makes the [tsan] run
+    // report races; with it the run is clean (acceptance criterion).
+    std::thread lcd([&] {
+        bool sink = false;
+        double rateSink = 0.0;
+        while (!done.load(std::memory_order_acquire))
+        {
+            sink ^= fx.clampActive();
+            sink ^= fx.monoSummed();
+            rateSink += fx.modelRate();
+            lcdPolls.fetch_add(1, std::memory_order_relaxed);
+        }
+        // Keep the reads observable so the optimizer cannot elide them.
+        if (sink && rateSink < 0.0)
+            nonFinite.fetch_add(1, std::memory_order_relaxed);
+    });
+
     message.join();
     done.store(true, std::memory_order_release);
     audio.join();
+    lcd.join();
 
     // Deterministic shutdown: drain the graveyard fully.
     fx.collectGarbage();
 
     REQUIRE(blocks.load() > 0);
+    REQUIRE(lcdPolls.load() > 0);   // the LCD accessors actually ran concurrently
     REQUIRE(nonFinite.load() == 0); // no NaN/inf ever produced
     REQUIRE_FALSE(fx.hasGarbage()); // every retired engine was freed
 }
