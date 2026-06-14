@@ -24,6 +24,11 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+// MSVC does not define M_PI from <cmath> unless _USE_MATH_DEFINES is set before
+// the header is included (POSIX/Clang/GCC expose it by default). Defined here so
+// the `windows-default` MSVC build of this test compiles; no behaviour change on
+// any platform. (Discovered by the first Windows CI run — task 051.)
+#define _USE_MATH_DEFINES
 #include <atomic>
 #include <cmath>
 #include <cstddef>

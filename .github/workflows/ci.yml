@@ -136,15 +136,17 @@ jobs:
         if: always()
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
           out="artifacts-macos"
           mkdir -p "${out}"
           src="build/default/plugin/mwStime_artefacts/RelWithDebInfo"
           # AU/.component, VST3, LV2, CLAP, Standalone .app — whatever was built.
-          find "${src}" -maxdepth 2 \
-            \( -name '*.component' -o -name '*.vst3' -o -name '*.lv2' \
-               -o -name '*.clap' -o -name '*.app' \) -print 2>/dev/null \
-            | while read -r p; do cp -R "${p}" "${out}/"; done
+          if [ -d "${src}" ]; then
+            find "${src}" -maxdepth 2 \
+              \( -name '*.component' -o -name '*.vst3' -o -name '*.lv2' \
+                 -o -name '*.clap' -o -name '*.app' \) -print 2>/dev/null \
+              | while read -r p; do cp -R "${p}" "${out}/"; done
+          fi
           ls -la "${out}" || true
 
       - name: Upload macOS plugin artifacts
@@ -175,10 +177,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Build toolchain + JUCE Linux runtime headers (docs/BUILDING.md §Linux 1-2)
-      # and the validator tooling (lv2lint + lilv-utils + sordi + carla + xvfb,
-      # docs/BUILDING.md §Linux 5). WebKit/GTK intentionally omitted.
-      - name: Install build + validator dependencies (docs/BUILDING.md)
+      # REQUIRED build toolchain + JUCE Linux runtime headers (docs/BUILDING.md
+      # §Linux 1-2). These MUST install — a failure here is a real build failure.
+      # WebKit/GTK intentionally omitted (JUCE_WEB_BROWSER=0 / JUCE_USE_CURL=0).
+      - name: Install required build dependencies (docs/BUILDING.md §Linux 1-2)
         run: |
           set -euo pipefail
           sudo apt-get update
@@ -188,8 +190,29 @@ jobs:
             libx11-dev libxext-dev libxinerama-dev libxrandr-dev \
             libxcursor-dev libxcomposite-dev \
             libfreetype-dev libfontconfig1-dev \
-            libcurl4-openssl-dev \
-            lv2lint lilv-utils sordi carla xvfb
+            libcurl4-openssl-dev
+
+      # OPTIONAL validator tooling (docs/BUILDING.md §Linux 5): lv2lint +
+      # lilv-utils (lv2_validate) + sordi (sord_validate) + carla (LV2 load
+      # smoke) + xvfb. These are BEST-EFFORT and live in the `universe` pocket;
+      # the LV2 check script SELF-SKIPS (exit 77) for any tool that is absent, so
+      # a package with no install candidate on this runner image degrades to a
+      # clean validator skip rather than failing the whole build (the documented
+      # tools-absent contract — testing-strategy.md §5; run_lv2_checks.sh). xvfb
+      # is installed first and on its own so headless GUI wrapping always works.
+      - name: Install optional validator tooling (docs/BUILDING.md §Linux 5, best-effort)
+        run: |
+          set -uo pipefail
+          sudo add-apt-repository -y universe || true
+          sudo apt-get update || true
+          sudo apt-get install -y xvfb || true
+          # Install each validator tool independently so one missing candidate
+          # (e.g. lv2lint is not packaged on every Ubuntu release) does not abort
+          # the rest; the script self-skips per absent tool.
+          for pkg in lv2lint lilv-utils sordi carla; do
+            sudo apt-get install -y "${pkg}" \
+              || echo "::warning::optional validator package '${pkg}' unavailable on this runner — its check will self-skip"
+          done
 
       - name: Cache FetchContent deps (JUCE / Catch2 / clap-juce-extensions)
         uses: actions/cache@v4
@@ -227,14 +250,16 @@ jobs:
         if: always()
         shell: bash
         run: |
-          set -euo pipefail
+          set -uo pipefail
           out="artifacts-linux"
           mkdir -p "${out}"
           src="build/linux-default/plugin/mwStime_artefacts"
-          find "${src}" -maxdepth 3 \
-            \( -name '*.vst3' -o -name '*.lv2' -o -name '*.clap' \
-               -o -path '*/Standalone/*' -type f -name 'mwStime' \) -print 2>/dev/null \
-            | while read -r p; do cp -R "${p}" "${out}/" 2>/dev/null || true; done
+          if [ -d "${src}" ]; then
+            find "${src}" -maxdepth 3 \
+              \( -name '*.vst3' -o -name '*.lv2' -o -name '*.clap' \
+                 -o -path '*/Standalone/*' -type f -name 'mwStime' \) -print 2>/dev/null \
+              | while read -r p; do cp -R "${p}" "${out}/" 2>/dev/null || true; done
+          fi
           ls -la "${out}" || true
 
       - name: Upload Linux plugin artifacts
