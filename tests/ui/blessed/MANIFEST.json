@@ -1,9 +1,9 @@
 {
   "kind": "ui-golden-screenshots",
   "referencePlatform": "macOS arm64",
-  "date": "2026-06-13T23:38:35Z",
+  "date": "2026-06-14T06:35:05Z",
   "blesser": "matt.woolly",
   "platform": "Darwin arm64",
-  "reason": "dry-run check",
+  "reason": "task 054 (QA F1+F3): stretchMode LCD field is now greyed (INTELL unreachable at v1, ADR-001 res.#2); the S1000/S1100 TIME-page CYCLIC text renders in the Greyed style. Affects only faceplate_s1000_time, faceplate_s1100_time, faceplate_s1000_scale06, faceplate_s1000_scale20.",
   "stateCount": 8
 }

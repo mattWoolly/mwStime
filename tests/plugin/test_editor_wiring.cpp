@@ -139,23 +139,25 @@ TEST_CASE("editor: field cursor traversal follows the 041 field map and skips "
     f.editor.setPage(page);
 
     // The 041 S1000 field map order is: ZoneStart, ZoneEnd, CycleLen,
-    // TimeFactor, StretchMode, Qual(greyed), Width(greyed), NewName. The cursor
-    // parks on the first editable field (ZoneStart, index 0).
+    // TimeFactor, StretchMode(greyed), Qual(greyed), Width(greyed), NewName.
+    // INTELL is unreachable at v1 (task 054 / QA F1+F3), so StretchMode joins
+    // qual/width as a greyed, cursor-skipped field. The cursor parks on the
+    // first editable field (ZoneStart, index 0).
     REQUIRE(f.editor.focusedIndex() == 0);
     REQUIRE(f.editor.focusedField() != nullptr);
     CHECK(f.editor.focusedField()->kind == LcdFieldKind::ZoneStart);
 
     // Walk forward across every editable field, recording the visited indices.
     std::vector<int> visited{ f.editor.focusedIndex() };
-    for (int i = 0; i < 5; ++i)
+    for (int i = 0; i < 4; ++i)
     {
         f.editor.moveCursor(CursorDir::Right);
         visited.push_back(f.editor.focusedIndex());
     }
 
-    // ZoneStart(0) → ZoneEnd(1) → CycleLen(2) → TimeFactor(3) → StretchMode(4)
-    // → NewName(7): Qual(5)/Width(6) are greyed and skipped.
-    CHECK(visited == std::vector<int>{ 0, 1, 2, 3, 4, 7 });
+    // ZoneStart(0) → ZoneEnd(1) → CycleLen(2) → TimeFactor(3) → NewName(7):
+    // StretchMode(4)/Qual(5)/Width(6) are greyed and skipped.
+    CHECK(visited == std::vector<int>{ 0, 1, 2, 3, 7 });
 
     // Down behaves like Right (next field); Up/Left go to the previous one.
     f.editor.focusField(7);
@@ -163,12 +165,14 @@ TEST_CASE("editor: field cursor traversal follows the 041 field map and skips "
     CHECK(f.editor.focusedIndex() == 0);
     f.editor.moveCursor(CursorDir::Up);    // wraps to the last editable (NewName)
     CHECK(f.editor.focusedIndex() == 7);
-    f.editor.moveCursor(CursorDir::Left);  // previous editable skips Width/Qual
-    CHECK(f.editor.focusedIndex() == 4);
+    f.editor.moveCursor(CursorDir::Left);  // previous editable skips Width/Qual/StretchMode
+    CHECK(f.editor.focusedIndex() == 3);   // lands on TimeFactor
 
-    // The greyed qual/width fields are never landed on.
-    f.editor.focusField(5);  // attempting to focus a greyed field is a no-op
-    CHECK(f.editor.focusedIndex() == 4);
+    // The greyed stretchMode/qual/width fields are never landed on.
+    f.editor.focusField(4);  // attempting to focus greyed StretchMode is a no-op
+    CHECK(f.editor.focusedIndex() == 3);
+    f.editor.focusField(5);  // ...and greyed Qual is a no-op too
+    CHECK(f.editor.focusedIndex() == 3);
 }
 
 // ---------------------------------------------------------------------------

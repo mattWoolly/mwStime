@@ -322,6 +322,16 @@ RenderResult OfflineRenderer::render(const core::AudioBuffer& source,
         case ModelId::S1100:
         default:
         {
+            // INTELL is deferred to v1.1 and must be unreachable at v1: the UI
+            // greys the field, the param is non-automatable, and makeSnapshot()
+            // coerces it. This branch only implements CYCLIC, so an INTELL
+            // snapshot reaching the engine would silently render as CYCLIC under
+            // the authentic name — the plausible-fake failure ADR-001 res.#2
+            // forbids. Fail loudly instead of rendering a guess (F1).
+            assert(params.stretchMode == StretchMode::Cyclic
+                   && "OfflineRenderer: INTELL is deferred to v1.1 (ADR-001); "
+                      "stretchMode must be coerced to CYCLIC before the engine");
+
             // Stereo rule (dsp-engine.md §3): the CLASSIC/REVISED schedule
             // depends only on (N, C, T, hopMode) — never on content — so
             // per-channel renders share the identical hop schedule by
