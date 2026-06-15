@@ -1,7 +1,7 @@
 ---
 id: 058
 title: Fix Linux build break — make std::atomic<LcdSnapshot> always lock-free (latent from 055)
-status: todo
+status: in-review
 depends-on: []
 component: plugin
 estimated-size: S

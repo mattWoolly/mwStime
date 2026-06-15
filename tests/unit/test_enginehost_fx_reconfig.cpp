@@ -333,6 +333,69 @@ TEST_CASE("enginehost: FX T=100% character OFF nulls against the reported latenc
     REQUIRE(firstMismatch == -1);
 }
 
+TEST_CASE("enginehost: FX modelRate is exact across all supported rates (task 058)",
+          "[enginehost]")
+{
+    // Task 058 shrinks LcdSnapshot::modelRate from double to float so the
+    // published snapshot is <= 8 bytes and std::atomic<LcdSnapshot> is always
+    // lock-free (the Linux/GCC build fix). Every supported model/host rate is an
+    // integer <= 2^24, exactly representable in float, so the float round-trip
+    // is LOSSLESS — the model-rate equality/null-test path
+    // ((s.modelRate() < hostRate_) || (hostRate_ < s.modelRate())) must still
+    // treat modelRate == hostRate as EQUAL on every supported rate. This pins
+    // that exactness so the float change can never silently break the null path.
+
+    // (a) Character OFF: modelRate == hostRate exactly (CharacterChain §8.4) for
+    // every supported host sample rate. This is the contract null path (T=100%,
+    // character OFF) — the equality must hold bit-for-bit through the float store.
+    const double hostRates[] = { 22050.0, 44100.0, 48000.0, 96000.0, 192000.0 };
+    for (double host : hostRates)
+    {
+        FxEngine fx;
+        const auto off =
+            fxParams(ModelId::S1000, 19.2, SampleRateSel::Fs44100, /*character=*/false);
+        fx.prepare(host, kMaxBlock, /*channels=*/1, off);
+        // Exact: float(host) widened back to double equals host for these
+        // integer rates, so the null/equality path sees modelRate == hostRate.
+        REQUIRE(fx.modelRate() == host);
+    }
+
+    // (b) Fixed-rate model rates (S1000 44.1k / 22.05k per sampleRateSel,
+    // character ON) survive the float round-trip exactly.
+    {
+        FxEngine fx;
+        fx.prepare(48000.0, kMaxBlock, /*channels=*/1,
+                   fxParams(ModelId::S1000, 19.2, SampleRateSel::Fs44100, true));
+        REQUIRE(fx.modelRate() == 44100.0);
+        fx.requestReconfigure(
+            fxParams(ModelId::S1000, 19.2, SampleRateSel::Fs22050, true));
+        // Force the audio thread to adopt the pending engine so the LCD snapshot
+        // reflects the new rate.
+        const auto ramp = makeRamp(kMaxBlock);
+        std::vector<float> work = ramp;
+        ConstAudioView in{ work.data(), work.size() };
+        AudioView out{ work.data(), work.size() };
+        fx.processBlock(&in, &out, 1,
+                        fxParams(ModelId::S1000, 19.2, SampleRateSel::Fs22050, true),
+                        RealtimeStretcher::TransportInfo{});
+        REQUIRE(fx.modelRate() == 22050.0);
+    }
+
+    // (c) The S950 variable clock (model rate = 2500 x bandwidth, character ON)
+    // at integer-Hz bandwidths is exact too: 19.2 kHz -> 48000 Hz, 16.0 -> 40000,
+    // 3.0 -> 7500. All <= 2^24 and integral, so the float store is lossless and
+    // the realizedLatencyOf rate compare against the host stays exact.
+    struct VarCase { double bw; double expected; };
+    const VarCase varCases[] = { { 19.2, 48000.0 }, { 16.0, 40000.0 }, { 3.0, 7500.0 } };
+    for (const auto& vc : varCases)
+    {
+        FxEngine fx;
+        fx.prepare(48000.0, kMaxBlock, /*channels=*/1,
+                   fxParams(ModelId::S950, vc.bw, SampleRateSel::Fs44100, true));
+        REQUIRE(fx.modelRate() == vc.expected);
+    }
+}
+
 TEST_CASE("enginehost: FX automation spam is allocation-free and never NaN/inf",
           "[enginehost]")
 {
