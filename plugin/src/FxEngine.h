@@ -152,9 +152,23 @@ public:
     /// touches `active_` or the stretcher's internals. modelRate/monoSummed change
     /// only on adopt; clampActive is restated every block — all three travel
     /// together so the LCD never shows a mismatched mix.
+    ///
+    /// SIZE CONTRACT (task 058): this POD must stay <= 8 bytes with <= 8-byte
+    /// alignment so `std::atomic<LcdSnapshot>` is a 64-bit atomic — which is
+    /// ALWAYS lock-free on every supported 64-bit target (x86-64 AND arm64),
+    /// keeping processBlock lock-free portably (see the static_asserts at the
+    /// `lcd_` member). A 16-byte snapshot (e.g. a `double` modelRate, which pads
+    /// the struct to 16 bytes) is lock-free on macOS/clang-arm64 but NOT on
+    /// Linux/GCC x86_64 (no guaranteed 128-bit lock-free atomic without -mcx16),
+    /// so it would break the Linux build (the latent 055 bug 058 fixes). Hence
+    /// modelRate is stored as `float`: all supported model/host rates are
+    /// integers <= 2^24 (44100/22050/48000/96000/192000 and the S950 variable
+    /// clock = 2500 x bandwidth), exactly representable in `float`, and the
+    /// public accessor modelRate() widens back to `double` so no caller changes.
+    /// The two bools then pack into the remaining 4 bytes => 8 bytes total.
     struct LcdSnapshot
     {
-        double modelRate = 0.0;
+        float modelRate = 0.0f;
         bool clampActive = false;
         bool monoSummed = false;
     };
@@ -390,7 +404,11 @@ private:
     [[nodiscard]] LcdSnapshot computeLcd(const PreparedFx& engine) const noexcept
     {
         LcdSnapshot s;
-        s.modelRate = engine.stretcher.modelRate();
+        // modelRate is stored as float (the <= 8-byte lock-free size contract,
+        // task 058). Every supported rate is an integer <= 2^24, exactly
+        // representable in float, so this narrowing is lossless for the
+        // null/equality path; the accessor widens it back to double.
+        s.modelRate = static_cast<float>(engine.stretcher.modelRate());
         s.clampActive = engine.stretcher.clampActive();
         const auto& cfg = engine.config;
         s.monoSummed = cfg.character && channels_ > 1
@@ -543,9 +561,18 @@ private:
     // it (one release store per adopt/block via publishLcd); the message-thread
     // LCD accessors load it. A small trivially-copyable POD so the store/load is
     // a single lock-free atomic op — keeping processBlock lock-free. The
-    // static_assert fails the build loudly on any target where the type would
+    // static_asserts fail the build loudly on any target where the type would
     // need a lock (would violate the RT contract) rather than silently degrading.
     std::atomic<LcdSnapshot> lcd_{ LcdSnapshot{} };
+    // The portable guard (task 058): an 8-byte naturally-aligned type is a 64-bit
+    // atomic, which is ALWAYS lock-free on every supported 64-bit target (x86-64
+    // AND arm64). This makes the lock-free guarantee PROVABLE without a Linux
+    // host — it is what stops the 055 regression (a 16-byte snapshot was lock-free
+    // on macOS/clang-arm64 but not on Linux/GCC x86_64, breaking the build).
+    static_assert(sizeof(LcdSnapshot) <= 8,
+                  "FxEngine LCD snapshot must be <= 8 bytes so std::atomic<> is a "
+                  "64-bit atomic — always lock-free on x86-64 AND arm64; a 16-byte "
+                  "snapshot is lock-free on macOS/clang but not Linux/GCC (task 058)");
     static_assert(std::atomic<LcdSnapshot>::is_always_lock_free,
                   "FxEngine LCD snapshot must be lock-free to keep processBlock "
                   "lock-free (task 055)");
