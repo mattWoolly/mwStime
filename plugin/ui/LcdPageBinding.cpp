@@ -51,6 +51,12 @@ void applyWorkerEvent(const WorkerEvent& ev, LcdRenderInfo& info) noexcept
     }
 }
 
+bool renderFinishedSuccessfully(const WorkerEvent& ev) noexcept
+{
+    return ev.kind == WorkerEvent::Kind::Finished
+           && ev.outcome == RenderOutcome::Completed;
+}
+
 void renderPage(const LcdPage& page, LcdDisplay& lcd, int cursorFieldIndex)
 {
     // Layout follows the page's row count (the page model chose it from the

@@ -22,8 +22,11 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
 
+#include <chrono>
 #include <iostream>
+#include <memory>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include <juce_audio_processors/juce_audio_processors.h>
@@ -468,6 +471,209 @@ TEST_CASE("editor: a worker FIFO event refreshes the LCD cells via the page "
         row2 += lcd.cellChar(LcdDisplay::kRows - 1, c);
     CHECK(row2.find("NOT ENOUGH MEMORY") != std::string::npos);
     CHECK_FALSE(lcd.hasCursor());  // negative field index hides the cursor
+}
+
+// ---------------------------------------------------------------------------
+// Render → WaveformView bridge (task 056): the gap test_editor_wiring left.
+// The editor's pollEngine must bridge a COMPLETED published render into the
+// view so hasRender() flips true (re-enabling the body drag-out + A/B overlay).
+// This exercises the REAL seam end-to-end — a real EngineHost render publishes a
+// RenderedSample, the headless renderFinishedSuccessfully predicate decides the
+// bridge, and a real WaveformView receives host.currentRender()->audio — never a
+// manual setRenderedSample with a synthetic buffer.
+// ---------------------------------------------------------------------------
+
+namespace {
+
+/// A deterministic mono ramp source the worker can actually stretch-render.
+std::shared_ptr<const mws::core::AudioBuffer> makeRampSource(std::size_t frames,
+                                                             double rate = 44100.0)
+{
+    auto buf = std::make_shared<mws::core::AudioBuffer>(1, frames);
+    buf->sampleRate = rate;
+    auto ch = buf->channel(0);
+    for (std::size_t i = 0; i < frames; ++i)
+        ch[i] = static_cast<float>((i % 257) - 128) / 128.0f;
+    return buf;
+}
+
+/// Drain the worker FIFO until a Finished event arrives (or timeout), applying
+/// EXACTLY the editor's pollEngine logic: fold each event into the LcdRenderInfo
+/// AND, when renderFinishedSuccessfully fires, bridge the published render into
+/// the view (guarding null / zero frames) just as PluginEditor::pollEngine does.
+bool drainAndBridge(mws::plugin::EngineHost& host, WaveformView& view,
+                    LcdRenderInfo& info, std::uint64_t requestId,
+                    int timeoutMs = 5000)
+{
+    using mws::plugin::WorkerEvent;
+    const auto deadline = std::chrono::steady_clock::now()
+                          + std::chrono::milliseconds(timeoutMs);
+    bool sawFinished = false;
+    while (std::chrono::steady_clock::now() < deadline && ! sawFinished)
+    {
+        WorkerEvent ev;
+        bool drainedAny = false;
+        while (host.popEvent(ev))
+        {
+            drainedAny = true;
+            mws::ui::applyWorkerEvent(ev, info);
+
+            // The task-056 bridge (mirrors PluginEditor::pollEngine):
+            if (mws::ui::renderFinishedSuccessfully(ev))
+            {
+                if (auto render = host.currentRender())
+                    if (render->audio.numFrames() > 0)
+                        view.setRenderedSample(
+                            std::make_shared<const mws::core::AudioBuffer>(render->audio));
+            }
+            if (ev.kind == WorkerEvent::Kind::Finished && ev.requestId == requestId)
+                sawFinished = true;
+        }
+        host.collectGarbage();
+        if (! drainedAny)
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    return sawFinished;
+}
+
+} // namespace
+
+TEST_CASE("editor: a completed published render bridges into the WaveformView so "
+          "hasRender() flips true and the body drag-out fires",
+          "[editor]")
+{
+    juce::ScopedJuceInitialiser_GUI juceInit;
+
+    mws::plugin::EngineHost host;
+    host.startWorker();
+
+    auto source = makeRampSource(44100);  // 1 s
+    host.setSource(source);
+
+    WaveformView view;
+    view.setSize(340, 86);
+    view.setSourceSample(source);  // a loaded source, but no render yet
+    view.finishPeaksBuild();
+
+    // Precondition (the reported bug): before any render bridges in, the view
+    // has NO render — so the body drag-out is permanently inert.
+    REQUIRE(view.hasSource());
+    REQUIRE_FALSE(view.hasRender());
+
+    // GO: a real offline render of the full source publishes a RenderedSample.
+    ParamSnapshot params;  // defaults: S1000, CLASSIC
+    params.timeFactor = 200.0;
+    const auto id = host.requestRender(params);
+    REQUIRE(id != 0);
+
+    LcdRenderInfo info;
+    const bool finished = drainAndBridge(host, view, info, id);
+    REQUIRE(finished);
+
+    // The render published, and the bridge copied it into the view.
+    auto published = host.currentRender();
+    REQUIRE(published != nullptr);
+    REQUIRE(published->audio.numFrames() > 0);
+    CHECK(view.hasRender());  // ← the fix: pollEngine bridged the render in
+
+    // hasRender() true ⇒ the body drag-out gesture now actually fires
+    // onDragExport (WaveformView gates it on hasRender()). Drive the REAL mouse
+    // handlers: a body press then a drag past the click slop.
+    int dragExports = 0;
+    view.onDragExport = [&] { ++dragExports; };
+
+    const juce::Point<float> down(view.getWidth() / 2.0f, view.getHeight() / 2.0f);
+    const juce::Point<float> moved(down.x + WaveformView::kClickSlopPx + 40.0f, down.y);
+    const auto now = juce::Time::getCurrentTime();
+
+    juce::MouseEvent press(juce::Desktop::getInstance().getMainMouseSource(), down,
+                           juce::ModifierKeys::leftButtonModifier, 1.0f, 0.0f, 0.0f,
+                           0.0f, 0.0f, &view, &view, now, down, now, 1, false);
+    view.mouseDown(press);
+
+    juce::MouseEvent drag(juce::Desktop::getInstance().getMainMouseSource(), moved,
+                          juce::ModifierKeys::leftButtonModifier, 1.0f, 0.0f, 0.0f,
+                          0.0f, 0.0f, &view, &view, now, down, now, 1, false);
+    view.mouseDrag(drag);
+
+    CHECK(dragExports == 1);  // the body drag-out finally reaches ExportService
+
+    host.stopWorker();
+}
+
+TEST_CASE("editor: loading a new source clears the bridged render so a stale "
+          "render can't be dragged out",
+          "[editor]")
+{
+    juce::ScopedJuceInitialiser_GUI juceInit;
+
+    WaveformView view;
+    view.setSize(340, 86);
+
+    // Stand in for a completed render already bridged into the view.
+    auto rendered = std::make_shared<const mws::core::AudioBuffer>(
+        mws::core::AudioBuffer(1u, std::size_t{ 2048 }));
+    view.setRenderedSample(rendered);
+    REQUIRE(view.hasRender());
+
+    // A new source load (PluginEditor::pollFileLoader) must invalidate the
+    // render: setRenderedSample(nullptr) so hasRender() resets to false and the
+    // now-stale render can no longer be dragged out.
+    auto newSource = makeRampSource(8000);
+    view.setSourceSample(newSource);
+    view.setRenderedSample(nullptr);  // ← the editor's invalidation step
+
+    CHECK(view.hasSource());
+    CHECK_FALSE(view.hasRender());
+
+    // Drag-out is gated on hasRender(): with the render cleared the body drag-out
+    // is inert again (no onDragExport).
+    int dragExports = 0;
+    view.onDragExport = [&] { ++dragExports; };
+
+    const juce::Point<float> down(view.getWidth() / 2.0f, view.getHeight() / 2.0f);
+    const juce::Point<float> moved(down.x + WaveformView::kClickSlopPx + 40.0f, down.y);
+    const auto now = juce::Time::getCurrentTime();
+    juce::MouseEvent press(juce::Desktop::getInstance().getMainMouseSource(), down,
+                           juce::ModifierKeys::leftButtonModifier, 1.0f, 0.0f, 0.0f,
+                           0.0f, 0.0f, &view, &view, now, down, now, 1, false);
+    view.mouseDown(press);
+    juce::MouseEvent drag(juce::Desktop::getInstance().getMainMouseSource(), moved,
+                          juce::ModifierKeys::leftButtonModifier, 1.0f, 0.0f, 0.0f,
+                          0.0f, 0.0f, &view, &view, now, down, now, 1, false);
+    view.mouseDrag(drag);
+    CHECK(dragExports == 0);
+}
+
+TEST_CASE("editor: renderFinishedSuccessfully fires only for Finished/Completed",
+          "[editor]")
+{
+    using mws::plugin::RenderOutcome;
+    using mws::plugin::WorkerEvent;
+
+    WorkerEvent completed;
+    completed.kind = WorkerEvent::Kind::Finished;
+    completed.outcome = RenderOutcome::Completed;
+    CHECK(mws::ui::renderFinishedSuccessfully(completed));
+
+    // A refused / aborted finish publishes NOTHING — must NOT bridge a render.
+    for (auto bad : { RenderOutcome::NotEnoughMemory, RenderOutcome::Aborted,
+                      RenderOutcome::UnsupportedModel })
+    {
+        WorkerEvent ev;
+        ev.kind = WorkerEvent::Kind::Finished;
+        ev.outcome = bad;
+        CHECK_FALSE(mws::ui::renderFinishedSuccessfully(ev));
+    }
+
+    // Started / Progress are not terminal — never bridge.
+    WorkerEvent started;
+    started.kind = WorkerEvent::Kind::Started;
+    CHECK_FALSE(mws::ui::renderFinishedSuccessfully(started));
+    WorkerEvent progress;
+    progress.kind = WorkerEvent::Kind::Progress;
+    progress.progress = 0.5f;
+    CHECK_FALSE(mws::ui::renderFinishedSuccessfully(progress));
 }
 
 // ---------------------------------------------------------------------------

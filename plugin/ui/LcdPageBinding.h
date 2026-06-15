@@ -34,6 +34,16 @@ namespace mws::ui {
 ///     Completed/Aborted just close the progress line.
 void applyWorkerEvent(const mws::plugin::WorkerEvent& ev, LcdRenderInfo& info) noexcept;
 
+/// True when this drained worker event means a render just FINISHED and PUBLISHED
+/// a new RenderedSample (Kind::Finished with RenderOutcome::Completed) — the seam
+/// the editor's poll uses to decide it should bridge `EngineHost::currentRender()`
+/// into the WaveformView (task 056). Pure/headless so the render→view bridge is
+/// testable without the editor: a NotEnoughMemory/Aborted Finished, or any
+/// Started/Progress event, returns false (nothing new was published). The editor's
+/// pollEngine() copies the published render into `WaveformView::setRenderedSample`
+/// only when this returns true, re-enabling hasRender() ⇒ drag-out + A/B overlay.
+[[nodiscard]] bool renderFinishedSuccessfully(const mws::plugin::WorkerEvent& ev) noexcept;
+
 /// Push a built page into the display: layout (rows count → S950_2Line / page),
 /// every cell's character + style, and the block cursor on the field at
 /// `cursorFieldIndex` in the page's field map (negative hides the cursor).
