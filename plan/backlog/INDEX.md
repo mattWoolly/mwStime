@@ -76,6 +76,7 @@ Deferred to v1.1 by ADR (no tasks here beyond reserved slots): INTELL engine
 | 16 | 056 | Fix sample export — bridge completed render to the WaveformView + add Save-As fallback | plugin | M | — | done |
 | 16 | 057 | Fix soft keys appearing dead — visible disabled state, live-key feedback, real-click test | ui | M | — | done |
 | 16 | 058 | Fix Linux build break — make std::atomic<LcdSnapshot> always lock-free (latent from 055) | plugin | S | — | done |
+| 16 | 059 | Fix AU crash — FxEngine::prepare() races processBlock (prepareToPlay not audio-thread-safe) | plugin | M | — | done |
 
 Notes:
 - Waves 3–4 are the widest (up to 11 parallel tasks); DSP, plugin-shell, and UI
