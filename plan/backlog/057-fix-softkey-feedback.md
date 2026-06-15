@@ -1,7 +1,7 @@
 ---
 id: 057
 title: Fix soft keys appearing dead — visible disabled state, live-key feedback, real-click test
-status: in-review
+status: done
 depends-on: []
 component: ui
 estimated-size: M

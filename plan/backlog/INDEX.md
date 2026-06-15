@@ -74,6 +74,7 @@ Deferred to v1.1 by ADR (no tasks here beyond reserved slots): INTELL engine
 | 16 | 054 | Gate INTELL — grey + non-automatable stretchMode (no plausible-fake CYCLIC) | plugin | S | 041, 045b | done |
 | 16 | 055 | Fix data race on FxEngine::active_ (atomic shared_ptr handoff) + LCD-snapshot + TSan coverage | plugin | M | 033 | done |
 | 16 | 056 | Fix sample export — bridge completed render to the WaveformView + add Save-As fallback | plugin | M | — | done |
+| 16 | 057 | Fix soft keys appearing dead — visible disabled state, live-key feedback, real-click test | ui | M | — | done |
 
 Notes:
 - Waves 3–4 are the widest (up to 11 parallel tasks); DSP, plugin-shell, and UI
