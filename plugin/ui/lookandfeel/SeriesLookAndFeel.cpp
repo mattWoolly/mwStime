@@ -81,6 +81,20 @@ void SeriesLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& bu
     else if (shouldDrawButtonAsHighlighted)
         cap = cap.brighter(0.08f);
 
+    // Mode-disabled (greyed) keys read as visibly greyed (task 057,
+    // ui-design §6.4): the whole cap desaturates toward the chassis so the user
+    // sees the key is mode-gated, not broken — paired with the dimmed
+    // legend/text. The SoftKeyBar keeps the JUCE button enabled (so a press
+    // still reaches pressKey for the gated-key LCD hint) and flags the greyed
+    // state via kModeDisabledProp, which we read here (a plain !isEnabled()
+    // also greys, e.g. for non-soft-key buttons).
+    const bool greyed =
+        ! button.isEnabled()
+        || static_cast<bool>(button.getProperties().getWithDefault(
+               "mwsSoftKeyModeDisabled", false));
+    if (greyed)
+        cap = current->chassis.interpolatedWith(cap.withSaturation(0.0f), 0.6f);
+
     // Key-cap body with a vertical sheen — period moulded plastic (PI).
     g.setGradientFill(juce::ColourGradient(cap.brighter(0.10f), bounds.getTopLeft(),
                                            cap.darker(0.12f), bounds.getBottomLeft(),
@@ -114,10 +128,16 @@ void SeriesLookAndFeel::drawButtonText(juce::Graphics& g, juce::TextButton& butt
                                        bool /*shouldDrawButtonAsHighlighted*/,
                                        bool shouldDrawButtonAsDown)
 {
+    // Greyed text for a disabled OR mode-gated (kModeDisabledProp) key — the
+    // 0.4 dim matches SoftKeyBar::kDisabledDim (task 057).
+    const bool greyed =
+        ! button.isEnabled()
+        || static_cast<bool>(button.getProperties().getWithDefault(
+               "mwsSoftKeyModeDisabled", false));
     const auto textColour =
         button.findColour(button.getToggleState() ? juce::TextButton::textColourOnId
                                                   : juce::TextButton::textColourOffId)
-            .withMultipliedAlpha(button.isEnabled() ? 1.0f : 0.4f);
+            .withMultipliedAlpha(greyed ? 0.4f : 1.0f);
 
     g.setColour(textColour);
     g.setFont(legendFont(juce::jmin(13.0f, (float) button.getHeight() * 0.5f)));

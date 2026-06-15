@@ -4,6 +4,8 @@
 #include "EditorActions.h"
 
 #include <algorithm>
+#include <cmath>
+#include <cstdio>
 #include <numeric>
 
 #include "mws/stretch/AutoCycle.h"
@@ -92,6 +94,57 @@ bool softKeyEnabled(int index, const engine::ParamSnapshot& params,
         case softkey::kAb:    return !fx;
 
         default: return false;
+    }
+}
+
+std::string softKeyPressHint(int index, const engine::ParamSnapshot& params,
+                             const model::ModelSpec& spec,
+                             const SoftKeyPressContext& ctx)
+{
+    if (index < 0 || index >= softkey::kCount)
+        return {};
+
+    // A mode-disabled key in FX mode: legibility, not silence. The press itself
+    // emits nothing (the bar gates it), so the editor calls this to surface WHY
+    // — the action is a SAMPLE-mode key (ui-design §6.4). Stretch-only keys that
+    // are inert on the S900 (autC/ZONE) report the same idiom.
+    if (!softKeyEnabled(index, params, spec))
+        return softkeyhint::kSampleModeOnly;
+
+    switch (index)
+    {
+        // F1 TIME is "page focus" only (PluginEditor::handleSoftKey) — with no
+        // engine side effect, a press looked dead. Confirm the page is shown.
+        case softkey::kTime:
+            return softkeyhint::kTimePage;
+
+        // F2 autC / AUTO-D with no sample: was a silent fallback write. Tell the
+        // user to load a sample instead (task 057 scope). With a sample loaded
+        // the detector visibly updates the cycle-length field, so no notice.
+        case softkey::kAutC:
+            return ctx.sampleLoaded ? std::string{} : softkeyhint::kLoadSample;
+
+        // F7 SYNC tap-tempo (ui-design §6.2 step 4): show progress on EACH tap so
+        // one tap registers before the 2nd completes the measurement. Once two
+        // taps define a BPM, show it; the first tap shows the running count.
+        case softkey::kSync:
+        {
+            if (ctx.tapBpm > 0.0)
+            {
+                char buf[40]{};
+                std::snprintf(buf, sizeof(buf), "** SYNC %ld BPM **",
+                              std::lround(ctx.tapBpm));
+                return buf;
+            }
+            char buf[24]{};
+            std::snprintf(buf, sizeof(buf), "** TAP %d **", std::max(0, ctx.tapCount));
+            return buf;
+        }
+
+        // GO/PLAY/A-B/ZONE (SAMPLE-mode, live here) and ABORT (the hold key with
+        // its own progress affordance) produce their own visible result.
+        default:
+            return {};
     }
 }
 

@@ -141,6 +141,9 @@ private:
     // average into a source BPM through ui::TapTempo; the source-BPM text
     // entry overlay is the typed path.
     ui::TapTempo tapTempo;
+    /// The BPM the most recent F7 tap implied (0 until >= 2 taps): drives the
+    /// per-tap SYNC LCD feedback hint (task 057, softKeyPressHint).
+    double lastTapBpm_ = 0.0;
     std::unique_ptr<juce::TextEditor> syncTextEditor;
     void openSyncTextEditor();
     void closeSyncTextEditor(bool commit);

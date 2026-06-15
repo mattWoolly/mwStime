@@ -59,6 +59,7 @@ PluginEditor::PluginEditor(PluginProcessor& owner)
 
     // Cursor keys move the LCD field cursor across the active page's field map.
     softKeyBar.onCursor = [this](ui::CursorDir dir) {
+        renderInfo_.softKeyHint.clear();  // a navigation gesture clears the notice
         fieldEditor.moveCursor(dir);
         refreshLcd();
     };
@@ -77,6 +78,16 @@ PluginEditor::PluginEditor(PluginProcessor& owner)
     // only ever sees live keys.
     softKeyBar.onSoftKey = [this](int index) { handleSoftKey(index); };
 
+    // A press on a mode-DISABLED (greyed) key surfaces a "** SAMPLE MODE KEY **"
+    // LCD hint so users discover GO/PLAY/ZONE/A-B are SAMPLE-mode keys rather
+    // than reading the greyed key as broken (task 057, ui-design §6.4).
+    softKeyBar.onDisabledKey = [this](int index) {
+        const auto snapshot = processor.makeParamSnapshot();
+        renderInfo_.softKeyHint = ui::softKeyPressHint(
+            index, snapshot, specForSnapshot(snapshot), ui::SoftKeyPressContext{});
+        refreshLcd();
+    };
+
     // F8 ABORT is a hold gesture, NOT a tap (ui-design §1 region 3 / §6.3 step
     // 2: "hold F8 to abort", hold >= 600 ms (PI)). The editor owns this wiring
     // explicitly so an accidental F8 tap can never kill a running GO render —
@@ -86,6 +97,7 @@ PluginEditor::PluginEditor(PluginProcessor& owner)
 
     // Jog wheel edits the focused field with the hardware step (fine on Shift).
     jogWheel.onDelta = [this](int steps, bool fine) {
+        renderInfo_.softKeyHint.clear();  // editing clears the transient notice
         fieldEditor.applyJog(steps, fine);
         refreshLcd();
     };
@@ -565,13 +577,14 @@ EngineHost::Zone PluginEditor::currentZone() const noexcept
 
 void PluginEditor::handleSoftKey(int index)
 {
+    const auto snapshot = processor.makeParamSnapshot();
+
     switch (index)
     {
         case ui::softkey::kTime:  grabKeyboardFocus(); break;  // F1: page focus
         case ui::softkey::kAutC:  doAutoCycle(); break;        // F2: auto cycle
         case ui::softkey::kZone:                               // F3: ZONE preview
         {
-            const auto snapshot = processor.makeParamSnapshot();
             const bool on = ! processor.engineHost().zonePreviewActive();
             processor.engineHost().setZonePreview(on, currentZone(), snapshot);
             break;
@@ -585,6 +598,18 @@ void PluginEditor::handleSoftKey(int index)
             break;
         default: break;
     }
+
+    // Single-press LCD feedback (task 057): every live key lands a visible
+    // notice so a press is never silent (F1 page, F2 "** LOAD SAMPLE **" with
+    // no sample, F7 tap progress). The hint logic is headless in EditorActions;
+    // here we feed it the press-time context the snapshot can't carry.
+    ui::SoftKeyPressContext ctx;
+    ctx.sampleLoaded = ! loadedSampleName_.empty();
+    ctx.tapCount = static_cast<int>(tapTempo.numTaps());
+    ctx.tapBpm = lastTapBpm_;
+    renderInfo_.softKeyHint =
+        ui::softKeyPressHint(index, snapshot, specForSnapshot(snapshot), ctx);
+
     refreshLcd();
 }
 
@@ -594,6 +619,12 @@ void PluginEditor::doAutoCycle()
     // this message thread — AutoCycle allocates, not RT-safe) and land the
     // result in the cycleLen parameter (ui-design §6.2 step 3). The autoCycle
     // trigger parameter is the §2 momentary signal: set it, consume, reset.
+    // No sample loaded: do NOT silently write the AutoCycle fallback (task 057
+    // — that looked like a dead key). handleSoftKey surfaces "** LOAD SAMPLE **"
+    // on the LCD via softKeyPressHint instead; the cycle field is left as-is.
+    if (loadedSampleName_.empty())
+        return;
+
     auto* trigger = processor.parameterState().getParameter(paramid::autoCycle);
     if (trigger != nullptr)
         trigger->setValueNotifyingHost(1.0f);
@@ -651,6 +682,7 @@ void PluginEditor::doSyncEntry()
     // F7 press is a tap; the running tap average sets the source BPM. A
     // double-click on the sync LCD line opens the typed overlay (openSync...).
     const double bpm = tapTempo.tap((double) juce::Time::getMillisecondCounter());
+    lastTapBpm_ = bpm;  // task 057: drive the per-tap LCD feedback hint
     if (bpm > 0.0)
         processor.engineHost().setSourceBpm(bpm, /*userSet=*/true);
 }

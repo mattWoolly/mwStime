@@ -48,6 +48,8 @@ constexpr const char* kCursorTitles[5] = {
 
 } // namespace
 
+const juce::Identifier SoftKeyBar::kModeDisabledProp{ "mwsSoftKeyModeDisabled" };
+
 SoftKeyBar::SoftKeyBar()
 {
     setWantsKeyboardFocus(true);  // arrows/Enter mirroring, ui-design §7
@@ -124,16 +126,34 @@ void SoftKeyBar::setKeyEnabled(int index, bool enabled)
     if (! juce::isPositiveAndBelow(index, kNumSoftKeys))
         return;
 
-    keys[(size_t) index].button->setEnabled(enabled);
+    auto& key = keys[(size_t) index];
+    key.modeEnabled = enabled;
+
+    // Keep the JUCE button ENABLED so a press still reaches onStateChange ->
+    // pressKey even when mode-gated (task 057): pressKey then gates the action
+    // and fires onDisabledKey for the greyed-key LCD hint. A truly disabled
+    // JUCE button would swallow the click and look broken. The greyed cap is
+    // driven by the kModeDisabledProp the LookAndFeel reads, plus the dimmed
+    // legend in paint(); the dimmed button TEXT keys off this property too.
+    key.button->getProperties().set(kModeDisabledProp, ! enabled);
+
     if (! enabled && heldIndex == index)
-        releaseKey(index);  // disabling a key cancels its in-flight hold
+        releaseKey(index);  // mode-gating a key cancels its in-flight hold
+    key.button->repaint();
     repaint();
 }
 
 bool SoftKeyBar::isKeyEnabled(int index) const
 {
     return juce::isPositiveAndBelow(index, kNumSoftKeys)
-           && keys[(size_t) index].button->isEnabled();
+           && keys[(size_t) index].modeEnabled;
+}
+
+float SoftKeyBar::keyLegendAlpha(int index) const
+{
+    if (! juce::isPositiveAndBelow(index, kNumSoftKeys))
+        return 0.0f;
+    return isKeyEnabled(index) ? 1.0f : kDisabledDim;
 }
 
 void SoftKeyBar::setKeyRequiresHold(int index, int milliseconds)
@@ -156,8 +176,14 @@ int SoftKeyBar::keyHoldMs(int index) const
 
 void SoftKeyBar::pressKey(int index)
 {
-    if (! isKeyEnabled(index))  // disabled keys emit nothing (§6.4)
+    if (! isKeyEnabled(index))  // disabled keys emit no ACTION (§6.4) ...
+    {
+        // ... but a press still gets visible feedback so the greyed key reads
+        // as mode-gated, not broken (task 057). The action stays gated.
+        if (juce::isPositiveAndBelow(index, kNumSoftKeys) && onDisabledKey != nullptr)
+            onDisabledKey(index);
         return;
+    }
 
     const auto& key = keys[(size_t) index];
     if (key.holdMs > 0)
@@ -325,7 +351,7 @@ void SoftKeyBar::paint(juce::Graphics& g)
         cell.removeFromTop(cell.getHeight() * kCapFraction);
         const auto strip = cell.reduced(1.0f);
 
-        g.setColour(legend.withMultipliedAlpha(isKeyEnabled(i) ? 1.0f : 0.4f));
+        g.setColour(legend.withMultipliedAlpha(keyLegendAlpha(i)));
         g.setFont(SeriesLookAndFeel::legendFont(
             juce::jmin(11.0f, strip.getHeight() * 0.85f)));
         g.drawFittedText(keys[(size_t) i].caption, strip.toNearestInt(),
@@ -343,11 +369,25 @@ void SoftKeyBar::paintOverChildren(juce::Graphics& g)
     const auto* lnf = dynamic_cast<SeriesLookAndFeel*>(&getLookAndFeel());
     const auto accent =
         lnf != nullptr ? lnf->spec().accent : juce::Colour(0xFF1F7A6B);
+    const auto legend =
+        lnf != nullptr ? lnf->spec().legend : findColour(juce::Label::textColourId);
 
-    auto cap = keys[(size_t) heldIndex].button->getBounds().toFloat();
-    const auto bar = cap.removeFromBottom(3.0f).withWidth(cap.getWidth() * progress);
+    const auto capBounds = keys[(size_t) heldIndex].button->getBounds().toFloat();
+
+    // Holding affordance (task 057): an overlay word on the held cap so the
+    // 600 ms hold reads as a deliberate gesture in progress, not a dead press —
+    // "HOLD…" while filling, "ABORT" the moment it fires.
+    g.setColour(legend);
+    g.setFont(SeriesLookAndFeel::legendFont(
+        juce::jmin(11.0f, capBounds.getHeight() * 0.4f)));
+    g.drawFittedText(holdFired ? "ABORT" : "HOLD\xE2\x80\xA6",
+                     capBounds.reduced(2.0f).toNearestInt(),
+                     juce::Justification::centred, 1);
+
+    auto bar = capBounds;
+    const auto fill = bar.removeFromBottom(3.0f).withWidth(capBounds.getWidth() * progress);
     g.setColour(accent);
-    g.fillRoundedRectangle(bar.reduced(1.0f, 0.0f), 1.0f);
+    g.fillRoundedRectangle(fill.reduced(1.0f, 0.0f), 1.0f);
 }
 
 void SoftKeyBar::refreshAccessibilityTitle(int index)

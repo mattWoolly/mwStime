@@ -75,6 +75,53 @@ softKeyLabels(const engine::ParamSnapshot& params, const model::ModelSpec& spec)
 [[nodiscard]] bool zonePreviewSupported(const model::ModelSpec& spec) noexcept;
 
 // ---------------------------------------------------------------------------
+// Single-press soft-key LCD feedback (task 057).
+//
+// The bug "the function buttons don't work" was really a feedback gap: several
+// always-live keys gave no visible result on a single press, and the
+// mode-disabled keys looked broken rather than mode-gated. Every soft-key
+// gesture now returns a transient LCD notice line so a single press lands a
+// visible result; the editor stores it in LcdRenderInfo::softKeyHint and the
+// page model renders it on the message line (LcdPageModel::activeMessage).
+// Pure C++ (no JUCE) so the QA fleet can pin each notice headlessly.
+// ---------------------------------------------------------------------------
+
+/// Fixed, asserted-verbatim soft-key feedback notices (hardware-idiom (PI),
+/// ui-design §6.1 step 3 wording style).
+namespace softkeyhint {
+/// F2 autC / AUTO-D with nothing loaded: tells the user to load a sample
+/// instead of silently writing the AutoCycle fallback (task 057 scope).
+inline constexpr const char* kLoadSample = "** LOAD SAMPLE **";
+/// A mode-disabled key pressed in FX mode: the action lives in SAMPLE mode.
+inline constexpr const char* kSampleModeOnly = "** SAMPLE MODE KEY **";
+/// F1 TIME: the press refreshed/focused the TIME (stretch) page.
+inline constexpr const char* kTimePage = "** TIME PAGE **";
+} // namespace softkeyhint
+
+/// Inputs to softKeyPressHint() the editor knows at press time but the headless
+/// helper cannot derive from the snapshot alone.
+struct SoftKeyPressContext {
+    bool sampleLoaded = false;  ///< a sample is in the slot (autC has data)
+    int tapCount = 0;           ///< taps recorded so far (F7 tap-tempo ring)
+    double tapBpm = 0.0;        ///< running tap BPM (0 until >= 2 taps)
+};
+
+/// The transient LCD notice a single press of soft key `index` should show, so
+/// EVERY press has a visible result (task 057). Returns empty when the key's own
+/// action already produces a visible change (e.g. GO/PLAY/A-B/ZONE in SAMPLE
+/// mode drive the engine + waveform). Covers:
+///   · a mode-disabled key pressed in FX mode -> kSampleModeOnly (legible
+///     "this is a SAMPLE-mode key" rather than a dead button);
+///   · F1 TIME            -> kTimePage (the press visibly (re)shows the page);
+///   · F2 autC/AUTO-D     -> kLoadSample when no sample is loaded (was silent);
+///   · F7 SYNC tap        -> tap progress ("TAP 1", then "SYNC nnn BPM") so one
+///     tap registers visibly before the 2nd completes the measurement.
+[[nodiscard]] std::string softKeyPressHint(int index,
+                                           const engine::ParamSnapshot& params,
+                                           const model::ModelSpec& spec,
+                                           const SoftKeyPressContext& ctx);
+
+// ---------------------------------------------------------------------------
 // F2 autC / AUTO-D auto cycle detection (ui-design §6.2 step 3).
 // ---------------------------------------------------------------------------
 

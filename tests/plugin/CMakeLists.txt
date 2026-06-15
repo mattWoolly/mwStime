@@ -38,6 +38,7 @@ target_sources(mwstime_plugin_tests
         test_alloc_counter.cpp
         test_editor_wiring.cpp
         test_editor_actions.cpp
+        test_softkey_feedback.cpp
         test_modelswitch.cpp
         test_resize.cpp
         "${CMAKE_SOURCE_DIR}/plugin/src/EngineHost.cpp"

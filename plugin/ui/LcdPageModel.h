@@ -132,6 +132,14 @@ struct LcdRenderInfo {
     double hostBpm = 0.0;
     LcdLoadError loadError = LcdLoadError::None;
     bool pathOnlyPersistence = false;  ///< task-032 over-16MB embed flag
+
+    /// Transient soft-key feedback notice (task 057): the editor sets this from
+    /// ui::softKeyPressHint on each press so a single press lands a visible LCD
+    /// result (F1 TIME page, F2 "** LOAD SAMPLE **", F7 tap progress, a greyed
+    /// FX-mode key's "** SAMPLE MODE KEY **"). Cleared on the next non-soft-key
+    /// interaction. Empty == no notice. Sits below hard errors/render progress
+    /// in activeMessage's priority order, above the idle achieved-length line.
+    std::string softKeyHint;
 };
 
 // ---------------------------------------------------------------------------
