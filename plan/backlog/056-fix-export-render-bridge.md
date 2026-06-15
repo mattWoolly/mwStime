@@ -1,7 +1,7 @@
 ---
 id: 056
 title: Fix sample export — bridge completed render to the WaveformView + add Save-As fallback
-status: in-review
+status: done
 depends-on: []
 component: plugin
 estimated-size: M
