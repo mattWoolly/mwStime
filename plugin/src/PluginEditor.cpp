@@ -314,6 +314,12 @@ void PluginEditor::pollFileLoader()
                 host.setAuditionSource(buffer);
                 waveform.setSourceSample(buffer);
 
+                // Invalidate any previously-bridged render (task 056): the new
+                // source makes the old render stale, so clear it from the view
+                // (hasRender() → false) — a stale render must not be draggable or
+                // shown in the A/B overlay until a fresh GO publishes one.
+                waveform.setRenderedSample(nullptr);
+
                 loadedSampleName_ = source->name.toStdString();
                 loadedSampleFrames_ = source->numFrames;
                 newSampleName_.clear();  // new render name falls back to "*ST"
@@ -341,10 +347,26 @@ void PluginEditor::pollEngine()
 {
     auto& host = processor.engineHost();
 
-    // Drain every queued worker event into the render-info the page reads.
+    // Drain every queued worker event into the render-info the page reads, and
+    // — the task-056 fix — bridge a COMPLETED render into the WaveformView so the
+    // user can finally get the stretched audio out. applyWorkerEvent only updates
+    // the LCD progress/refusal line; it NEVER touched the view, so renderedSample
+    // stayed null forever (hasRender() permanently false ⇒ drag-out inert + no A/B
+    // overlay). When a render Finished/Completed, copy the published render into
+    // the view (message-thread RCU read of currentRender(); guard null / zero
+    // frames). This re-enables hasRender() ⇒ the body drag-out gesture fires and
+    // the A/B overlay draws (ui-design §6.3 step 3/4).
     WorkerEvent ev;
     while (host.popEvent(ev))
+    {
         ui::applyWorkerEvent(ev, renderInfo_);
+
+        if (ui::renderFinishedSuccessfully(ev))
+            if (auto render = host.currentRender())
+                if (render->audio.numFrames() > 0)
+                    waveform.setRenderedSample(
+                        std::make_shared<const mws::core::AudioBuffer>(render->audio));
+    }
 
     // FX-mode engine feedback (ADR-006 clamp + SYNC readout) for the page model.
     renderInfo_.fxClampActive = host.fxClampActive();
@@ -777,6 +799,21 @@ void PluginEditor::showHamburgerMenu()
     // "manual" — opens the project manual / URL.
     menu.addItem(2, "Manual…");
 
+    // "Export rendered sample…" — the discoverable, host-independent Save-As
+    // fallback (task 056): a render exported as a WAV through a FileChooser, no
+    // matter the host's drag-and-drop support. Enabled ONLY when a completed
+    // render has been published (ExportService::saveAs honors the same no-render
+    // guard, but greying the item makes the precondition visible — ui-design §6.3
+    // step 4 "save as…"). hasCompletedRender() mirrors the WaveformView's
+    // hasRender() seam: both read the one published render.
+    const bool hasRender =
+        processor.engineHost().currentRender() != nullptr
+        && processor.engineHost().currentRender()->audio.numFrames() > 0;
+    menu.addSeparator();
+    menu.addItem(3, "Export rendered sample…", /*isEnabled*/ hasRender,
+                 /*isTicked*/ false);
+    menu.addSeparator();
+
     // "scale" submenu — 75/100/150/200% (ui-design §1 region 1). A tick marks
     // the entry nearest the current scale.
     const double current = ui::resize::scaleForWidth(getWidth());
@@ -818,6 +855,12 @@ void PluginEditor::showHamburgerMenu()
                     juce::URL("https://github.com/mattWoolly/mwStime/blob/main/"
                               "docs/design/ui-design.md")
                         .launchInDefaultBrowser();
+                    break;
+                case 3:  // Export rendered sample… (task 056 Save-As fallback)
+                    // Async FileChooser → write the STRETCHED published render via
+                    // ExportService (deterministic <sample>_<model>_<tf>.wav name).
+                    // The no-render guard inside saveAs is the final safety net.
+                    exportService.saveAs(this);
                     break;
                 case 100: applyScale(0.75); break;
                 case 101: applyScale(1.0); break;
