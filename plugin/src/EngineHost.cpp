@@ -267,12 +267,20 @@ int EngineHost::prepareFx(double hostRate, int maxBlockFrames,
                           std::size_t numChannels,
                           const mws::engine::ParamSnapshot& params)
 {
-    fx_.prepare(hostRate, maxBlockFrames, numChannels, params);
+    // Size the per-block channel-view scratch BEFORE handing the engine to the
+    // audio thread, and only when the channel count actually changes (task 059).
+    // AU/ausdk overlap prepareToPlay with Render; processFxBlock rewrites every
+    // element from channelData before use, so re-assigning the same-sized vector
+    // on each re-prepare would be a benign-but-flagged write under a live read.
+    // Doing it before fx_.prepare() (which publishes the engine) and only on a
+    // genuine size change keeps it off the audio-thread read path. Sized once so
+    // processFxBlock never allocates (architecture.md §4).
+    if (fxIns_.size() != numChannels)
+        fxIns_.assign(numChannels, mws::core::ConstAudioView{});
+    if (fxOuts_.size() != numChannels)
+        fxOuts_.assign(numChannels, mws::core::AudioView{});
 
-    // Per-block channel-view scratch, sized once here so processFxBlock never
-    // allocates (architecture.md §4).
-    fxIns_.assign(numChannels, mws::core::ConstAudioView{});
-    fxOuts_.assign(numChannels, mws::core::AudioView{});
+    fx_.prepare(hostRate, maxBlockFrames, numChannels, params);
 
     // The FX input scope FIFO (one rolling window of decimated samples). Sized
     // generously: a worst-case block at the smallest decimation still fits with
@@ -297,6 +305,16 @@ void EngineHost::processFxBlock(
     const mws::engine::RealtimeStretcher::TransportInfo& transport) noexcept
 {
     if (numChannels <= 0 || numFrames <= 0)
+        return;
+
+    // Belt-and-braces (task 059): if prepareToPlay has not built the FX engine
+    // yet, leave the buffer as-is (dry passthrough) rather than driving an
+    // unprepared engine. FxEngine::processBlock also guards each adopted engine
+    // (engineRunnable + passDry), so a torn/half-prepared engine can never reach
+    // RealtimeStretcher::process; this is the outer early-out for the no-engine
+    // case. AU/ausdk may overlap prepareToPlay with Render, so this runs on the
+    // audio thread and reads only the atomic prepared_ flag.
+    if (!fx_.isPrepared())
         return;
 
     const auto chans = static_cast<std::size_t>(numChannels);
