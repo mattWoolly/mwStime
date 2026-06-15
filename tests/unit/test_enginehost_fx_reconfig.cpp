@@ -269,6 +269,107 @@ TEST_CASE("enginehost: FX reconfiguration handoff is race-free under processing"
     REQUIRE_FALSE(fx.hasGarbage()); // every retired engine was freed
 }
 
+TEST_CASE("enginehost: FX prepare() storm races processBlock race-free (task 059)",
+          "[enginehost][tsan]")
+{
+    // Task 059: AU/ausdk hosts call prepareToPlay (-> FxEngine::prepare()) from
+    // threads that overlap Render/processBlock. The original prepare() mutated
+    // NON-ATOMIC state the audio thread reads (hostRate_/maxBlock_/channels_/
+    // activeKey_, fadeScratch_/fadeViews_) and stored directly into active_ while
+    // a stretcher was still mid-prepare — a real data race that deterministically
+    // SEGFAULTed AU under pluginval strictness 10 (seed 0x26d1e76). This races a
+    // thread storming prepare() (varying sampleRate/blockSize/channels) against a
+    // thread running processBlock plus the LCD poll; it FAILS today under TSan and
+    // must be clean after the fix (no torn/half-prepared engine ever reaches
+    // RealtimeStretcher::process; no NaN/inf; the graveyard drains).
+    FxEngine fx;
+    fx.prepare(kHostRate, kMaxBlock, /*channels=*/1,
+               fxParams(ModelId::S1000, 19.2, SampleRateSel::Fs44100, true));
+
+    const auto ramp = makeRamp(kMaxBlock);
+
+    std::atomic<bool> done{ false };
+    std::atomic<std::uint64_t> blocks{ 0 };
+    std::atomic<std::uint64_t> nonFinite{ 0 };
+    std::atomic<std::uint64_t> lcdPolls{ 0 };
+
+    // Audio thread: process blocks in place forever. Channel count and block size
+    // vary within the prepared maxima so prepare()'s reconfiguration of those
+    // dimensions overlaps a live block.
+    std::thread audio([&] {
+        std::vector<float> l(static_cast<std::size_t>(kMaxBlock));
+        std::vector<float> r(static_cast<std::size_t>(kMaxBlock));
+        while (!done.load(std::memory_order_acquire))
+        {
+            const auto i = blocks.load(std::memory_order_relaxed);
+            const std::size_t n = 64 + static_cast<std::size_t>(i % 449); // <= 512
+            const std::size_t ch = 1 + static_cast<std::size_t>(i % 2);   // 1 or 2
+            l = ramp;
+            r = ramp;
+            ConstAudioView ins[2]{ { l.data(), n }, { r.data(), n } };
+            AudioView outs[2]{ { l.data(), n }, { r.data(), n } };
+            ParamSnapshot p;
+            p.timeFactor = 100.0 + static_cast<double>(i % 400);
+            fx.processBlock(ins, outs, ch, p, RealtimeStretcher::TransportInfo{});
+            if (!allFinite(l) || !allFinite(r))
+                nonFinite.fetch_add(1, std::memory_order_relaxed);
+            blocks.fetch_add(1, std::memory_order_relaxed);
+        }
+    });
+
+    // Message thread: storm prepare() with varying sampleRate / blockSize /
+    // channels — exactly the AU prepareToPlay-vs-Render overlap. Each prepare()
+    // must route through the publish/adopt handoff, never mutating live state.
+    std::thread message([&] {
+        struct PrepCase { double rate; int block; std::size_t ch; ModelId model; double bw;
+                          SampleRateSel fs; bool character; };
+        const PrepCase cases[] = {
+            { 48000.0, 512, 2, ModelId::S950, 19.2, SampleRateSel::Fs44100, true },
+            { 44100.0, 256, 1, ModelId::S1000, 19.2, SampleRateSel::Fs22050, true },
+            { 96000.0, 128, 2, ModelId::S1100, 19.2, SampleRateSel::Fs44100, false },
+            { 48000.0, 384, 1, ModelId::S900, 16.0, SampleRateSel::Fs44100, true },
+            { 22050.0, 512, 2, ModelId::S950, 3.0, SampleRateSel::Fs44100, true },
+            { 48000.0, 512, 1, ModelId::S1000, 19.2, SampleRateSel::Fs44100, true },
+        };
+        for (int i = 0; i < 200; ++i)
+        {
+            const auto& c = cases[static_cast<std::size_t>(i) % 6];
+            fx.prepare(c.rate, c.block, c.ch,
+                       fxParams(c.model, c.bw, c.fs, c.character));
+            (void) fx.consumeLatencyDirty();
+            fx.collectGarbage();
+        }
+    });
+
+    // LCD-poll thread: the 30 Hz UI timer path reads modelRate/clampActive/
+    // monoSummed concurrently with prepare() reconfiguring channels_ etc.
+    std::thread lcd([&] {
+        bool sink = false;
+        double rateSink = 0.0;
+        while (!done.load(std::memory_order_acquire))
+        {
+            sink ^= fx.clampActive();
+            sink ^= fx.monoSummed();
+            rateSink += fx.modelRate();
+            lcdPolls.fetch_add(1, std::memory_order_relaxed);
+        }
+        if (sink && rateSink < 0.0)
+            nonFinite.fetch_add(1, std::memory_order_relaxed);
+    });
+
+    message.join();
+    done.store(true, std::memory_order_release);
+    audio.join();
+    lcd.join();
+
+    fx.collectGarbage();
+
+    REQUIRE(blocks.load() > 0);
+    REQUIRE(lcdPolls.load() > 0);
+    REQUIRE(nonFinite.load() == 0);
+    REQUIRE_FALSE(fx.hasGarbage());
+}
+
 TEST_CASE("enginehost: FX T=100% character OFF nulls against the reported latency",
           "[enginehost]")
 {

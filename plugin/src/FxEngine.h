@@ -139,6 +139,20 @@ public:
         mws::engine::RealtimeStretcher stretcher;
         mws::engine::ParamSnapshot config{}; // non-automatable inputs are taken
                                              // from here, automatable from the block
+
+        // The dimensions this engine was prepared with, carried WITH the engine
+        // across the handoff (task 059). The audio thread reads these from the
+        // adopted engine, NEVER from a mutable FxEngine member a concurrent
+        // prepare() could be re-writing: computeLcd reads `channels` here, and
+        // the model-switch cross-fade uses `fadeScratch`/`fadeViews` (one block
+        // of the OUTGOING engine's output, blended against this incoming
+        // engine's first block). Sized off the audio thread in buildPrepared()
+        // and only ever READ on the audio thread after the atomic publish, so
+        // nothing is reallocated under a live processBlock.
+        std::size_t channels = 0;
+        int maxBlock = 0;
+        mws::core::AudioBuffer fadeScratch{};
+        std::vector<mws::core::AudioView> fadeViews{};
     };
 
     /// The message-thread-readable LCD state, published atomically by the audio
@@ -186,35 +200,42 @@ public:
     void prepare(double hostRate, int maxBlockFrames, std::size_t numChannels,
                  const mws::engine::ParamSnapshot& params)
     {
+        // CONCURRENCY CONTRACT (task 059): prepareToPlay is NOT exclusive of the
+        // audio thread. AU/ausdk hosts call prepareToPlay() from threads that
+        // overlap Render/processBlock, so prepare() must use the SAME lock-free
+        // publish/adopt handoff as requestReconfigure() — it may NOT mutate
+        // non-atomic state the audio thread reads, nor store directly into
+        // `active_` while a block may be running (the original code did both,
+        // publishing a still-mid-prepare engine into active_ and re-writing
+        // channels_/fadeScratch_ under a live processBlock — the AU strictness-10
+        // SEGFAULT, pluginval seed 0x26d1e76). hostRate_/maxBlock_/channels_/
+        // activeKey_ below are MESSAGE-THREAD-ONLY bookkeeping for buildPrepared()
+        // and requestReconfigure()'s key compare; the audio thread reads the
+        // prepared dimensions from the published PreparedFx, never from here.
         hostRate_ = hostRate;
         maxBlock_ = maxBlockFrames;
         channels_ = numChannels;
         activeKey_ = keyOf(params);
 
-        // Preallocate the model-switch cross-fade scratch (ui-design §6.5, task
-        // 046): one block of the OUTGOING engine's output, blended against the
-        // incoming engine's first block. Sized here, off the audio thread, so
-        // processBlock's fade allocates nothing.
-        fadeScratch_.resize(numChannels,
-                            static_cast<std::size_t>(std::max(1, maxBlockFrames)));
-        fadeViews_.assign(numChannels, mws::core::AudioView{});
-
         auto prepared = buildPrepared(params);
+
+        // Report latency + the LCD snapshot immediately via their atomics so the
+        // message-thread accessors (latencySamples()/modelRate()/clampActive()/
+        // monoSummed()) reflect the new config right after prepareToPlay, before
+        // any block has run — both are race-free single atomic stores. The dirty
+        // flag is NOT set: prepareToPlay reports the latency unconditionally.
         latencyHost_.store(realizedLatencyOf(*prepared),
                            std::memory_order_release);
+        publishLcd(*prepared);
 
-        // prepare() is prepareToPlay only — the audio thread is stopped — so the
-        // freshly built engine becomes the active one directly (no handoff race),
-        // and modelRate()/clampActive() reflect it immediately. The pending slot
-        // and graveyard stay clear; only requestReconfigure() (audio running)
-        // uses the publish/adopt handoff. The dirty flag is NOT set here:
-        // prepareToPlay reports the latency unconditionally.
-        std::atomic_store_explicit(&pending_, std::shared_ptr<PreparedFx>{},
-                                   std::memory_order_release);
-        publishLcd(*prepared); // initial LCD snapshot for the message thread
-        std::atomic_store_explicit(&active_, std::move(prepared),
-                                   std::memory_order_release);
+        // Publish via the pending slot — the audio thread atomic-exchanges and
+        // adopts it on its next block (cross-fading from any live engine), the
+        // path task 055 proved race-free on BOTH sides. NEVER store into active_
+        // here. A previous pending publication (a queued reconfigure or prepare)
+        // is dropped on THIS message thread by the store; never freed on audio.
         prepared_.store(true, std::memory_order_release);
+        std::atomic_store_explicit(&pending_, std::move(prepared),
+                                   std::memory_order_release);
     }
 
     /// Whether prepare() has run (and the FX path is usable).
@@ -294,6 +315,11 @@ public:
         std::shared_ptr<PreparedFx> active = std::atomic_load_explicit(
             &active_, std::memory_order_acquire);
 
+        // The block frame count, used by the engineRunnable() guard to refuse a
+        // block larger than the adopted engine's prepared maxBlock (task 059).
+        const std::size_t numFrames =
+            numChannels > 0 ? outputs[0].numFrames() : 0;
+
         // (1) Adopt a pending reconfiguration, if any. atomic_exchange the
         // pending slot to null so we adopt each publication exactly once. Wait-
         // free; allocates nothing. The OLD engine is NOT retired yet — when a
@@ -304,18 +330,29 @@ public:
             &pending_, std::shared_ptr<PreparedFx>{}, std::memory_order_acq_rel);
         const bool reconfigured = static_cast<bool>(incoming);
 
+        // The cross-fade scratch travels WITH the incoming engine (task 059):
+        // it was sized in buildPrepared() to the incoming engine's own
+        // channels x maxBlock, off the audio thread, so it covers the current
+        // block and is never reallocated under this live read. Both engines must
+        // also be runnable for this block (history allocated + channel match) so
+        // RealtimeStretcher::process is never fed a torn/mismatched engine.
         if (reconfigured && active
-            && numChannels <= fadeScratch_.numChannels()
-            && numChannels <= fadeViews_.size())
+            && engineRunnable(*active, numChannels, numFrames)
+            && engineRunnable(*incoming, numChannels, numFrames)
+            && numChannels <= incoming->fadeScratch.numChannels()
+            && numChannels <= incoming->fadeViews.size())
         {
+            mws::core::AudioBuffer& fadeScratch = incoming->fadeScratch;
+            std::vector<mws::core::AudioView>& fadeViews = incoming->fadeViews;
+
             // (1a) Run the OUTGOING engine for this block into the fade scratch,
             // so its tail can be cross-faded against the incoming engine's first
             // block (no hard step when the fresh engine's history ring is empty).
-            const std::size_t n = numChannels > 0 ? outputs[0].numFrames() : 0;
             for (std::size_t ch = 0; ch < numChannels; ++ch)
-                fadeViews_[ch] = mws::core::AudioView{ fadeScratch_.channel(ch).data(), n };
+                fadeViews[ch] =
+                    mws::core::AudioView{ fadeScratch.channel(ch).data(), numFrames };
 
-            runEngine(*active, inputs, fadeViews_.data(), numChannels, params, transport);
+            runEngine(*active, inputs, fadeViews.data(), numChannels, params, transport);
             graveyard_.retire(active);        // outgoing engine freed on msg thread
             active = std::move(incoming);
 
@@ -325,7 +362,7 @@ public:
             for (std::size_t ch = 0; ch < numChannels; ++ch)
             {
                 float* out = outputs[ch].data();
-                const float* old = fadeScratch_.channel(ch).data();
+                const float* old = fadeScratch.channel(ch).data();
                 const std::size_t len = outputs[ch].numFrames();
                 for (std::size_t i = 0; i < len; ++i)
                 {
@@ -349,9 +386,12 @@ public:
             active = std::move(incoming);
         }
 
-        if (!active)
+        if (!active || !engineRunnable(*active, numChannels, numFrames))
         {
-            // Not prepared yet (no engine adopted): pass dry. No active_ change.
+            // Not prepared yet (no engine adopted), or the adopted engine cannot
+            // run this block (history ring unallocated / channel-count mismatch):
+            // pass dry rather than feed RealtimeStretcher::process a torn or
+            // mismatched engine (task 059 belt-and-braces). No active_ change.
             passDry(inputs, outputs, numChannels);
             return;
         }
@@ -396,12 +436,15 @@ public:
     }
 
 private:
-    /// Compute the LCD snapshot for a prepared engine, given the prepared channel
-    /// count. monoSummed mirrors the old live computation (mono machine + CHARACTER
-    /// ON + multi-channel input); modelRate/clampActive come from the stretcher.
-    /// `channels_` is set in prepare() (message thread) and is stable for the life
-    /// of the stream, so reading it here on the audio thread is race-free.
-    [[nodiscard]] LcdSnapshot computeLcd(const PreparedFx& engine) const noexcept
+    /// Compute the LCD snapshot for a prepared engine. monoSummed mirrors the old
+    /// live computation (mono machine + CHARACTER ON + multi-channel input);
+    /// modelRate/clampActive come from the stretcher. The channel count is read
+    /// from the engine itself (PreparedFx::channels, fixed at buildPrepared()),
+    /// NOT from the mutable `channels_` member — a concurrent prepare() rewrites
+    /// that member, so reading it on the audio thread was the task-059 data race
+    /// (TSan: WRITE FxEngine.h prepare() vs READ here). Reading the adopted
+    /// engine's own count is race-free.
+    [[nodiscard]] static LcdSnapshot computeLcd(const PreparedFx& engine) noexcept
     {
         LcdSnapshot s;
         // modelRate is stored as float (the <= 8-byte lock-free size contract,
@@ -411,7 +454,7 @@ private:
         s.modelRate = static_cast<float>(engine.stretcher.modelRate());
         s.clampActive = engine.stretcher.clampActive();
         const auto& cfg = engine.config;
-        s.monoSummed = cfg.character && channels_ > 1
+        s.monoSummed = cfg.character && engine.channels > 1
                        && mws::model::ModelSpec::get(cfg.model).monoSum;
         return s;
     }
@@ -433,6 +476,23 @@ private:
     {
         publishLcd(*engine);
         std::atomic_store_explicit(&active_, engine, std::memory_order_release);
+    }
+
+    /// Audio thread: whether a prepared engine can safely run this block — its
+    /// history ring is allocated, its channel count matches the block, AND the
+    /// block fits the maxBlock it was prepared for. Task 059 belt-and-braces:
+    /// with the publish/adopt fix an engine is always fully built before it is
+    /// published and the host never exceeds the prepared maxBlock, so this is
+    /// normally true; the guard is the last line of defence that a torn,
+    /// channel-mismatched, or oversized block never reaches
+    /// RealtimeStretcher::process (whose process() asserts all three).
+    [[nodiscard]] static bool engineRunnable(const PreparedFx& engine,
+                                             std::size_t numChannels,
+                                             std::size_t numFrames) noexcept
+    {
+        return engine.stretcher.historyLengthSamples() > 0
+               && engine.channels == numChannels
+               && numFrames <= static_cast<std::size_t>(engine.maxBlock);
     }
 
     /// Audio thread: run one prepared engine over the channel views (steps 2–5
@@ -465,7 +525,20 @@ private:
     {
         auto prepared = std::make_shared<PreparedFx>();
         prepared->config = params;
+        prepared->channels = channels_;
+        prepared->maxBlock = maxBlock_;
         prepared->stretcher.prepare(hostRate_, maxBlock_, channels_, params);
+
+        // Preallocate this engine's model-switch cross-fade scratch (ui-design
+        // §6.5, task 046): one block of the OUTGOING engine's output, blended
+        // against this incoming engine's first block. Sized here, off the audio
+        // thread, and carried WITH the engine so processBlock's fade reads it
+        // from the adopted engine (never from a member a concurrent prepare()
+        // re-sizes — task 059). A block can only be as large as the maxBlock the
+        // host prepared, so this engine's scratch always covers the current block.
+        prepared->fadeScratch.resize(
+            channels_, static_cast<std::size_t>(std::max(1, maxBlock_)));
+        prepared->fadeViews.assign(channels_, mws::core::AudioView{});
         return prepared;
     }
 
@@ -526,18 +599,19 @@ private:
                 s *= gain;
     }
 
-    // prepare()-time configuration (message thread).
+    // prepare()-time configuration. MESSAGE-THREAD-ONLY (task 059): used only by
+    // buildPrepared() to size a new engine and by requestReconfigure()'s key
+    // compare. The audio thread NEVER reads these — the prepared dimensions
+    // travel with the published PreparedFx (channels/fadeScratch/fadeViews) — so
+    // a prepare() rewriting them cannot race a live processBlock.
     double hostRate_ = 0.0;
     int maxBlock_ = 0;
     std::size_t channels_ = 0;
     ConfigKey activeKey_{}; // last configured non-automatable key (message thread)
 
-    // Model-switch one-block cross-fade scratch (ui-design §6.5, task 046):
-    // the outgoing engine's block output, blended against the incoming engine's
-    // first block. Sized in prepare() (off the audio thread); the view array
-    // points into it each block. processBlock allocates nothing.
-    mws::core::AudioBuffer fadeScratch_{};
-    std::vector<mws::core::AudioView> fadeViews_{};
+    // (The model-switch cross-fade scratch lives in PreparedFx now (task 059):
+    //  sized off the audio thread, carried with the incoming engine, so the fade
+    //  reads it from the adopted engine and processBlock allocates nothing.)
 
     // Reported latency + a one-shot dirty flag the processor consumes.
     std::atomic<int> latencyHost_{ 0 };

@@ -1,7 +1,7 @@
 ---
 id: 059
 title: Fix AU crash — FxEngine::prepare() races processBlock (prepareToPlay not audio-thread-safe)
-status: todo
+status: in-review
 depends-on: []
 component: plugin
 estimated-size: M
