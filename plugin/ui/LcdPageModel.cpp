@@ -126,6 +126,11 @@ std::string activeMessage(const LcdRenderInfo& render)
     if (render.progressPercent >= 0)
         return LcdPageModel::formatProgress(render.progressPercent,
                                             render.remainingSeconds);
+    // Transient soft-key feedback (task 057) — below the load-error / refusal /
+    // in-progress lines (those must not be hidden by a press notice), above the
+    // passive status lines so a single press lands a visible result.
+    if (!render.softKeyHint.empty())
+        return render.softKeyHint;
     if (render.pathOnlyPersistence)
         return LcdPageModel::kPathOnlyNotice;
     return {};

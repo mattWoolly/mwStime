@@ -43,6 +43,10 @@ public:
 
     // --- callback interface (no business logic inside the component) --------
     std::function<void(int /*index 0..7*/)> onSoftKey;
+    /// Fired when a mode-DISABLED key is pressed (task 057): the action is gated
+    /// (onSoftKey never fires for it), but the editor surfaces a "this key lives
+    /// in SAMPLE mode" LCD hint so a greyed key reads as mode-gated, not broken.
+    std::function<void(int /*index 0..7*/)> onDisabledKey;
     std::function<void(CursorDir)> onCursor;
     std::function<void()> onEnter;
 
@@ -54,6 +58,18 @@ public:
     /// Greys a key and stops it emitting (FX mode greys GO/PLAY/A-B, §6.4).
     void setKeyEnabled(int index, bool enabled);
     [[nodiscard]] bool isKeyEnabled(int index) const;
+
+    /// The alpha multiplier the caption legend is painted with for key `index`
+    /// (task 057): 1.0 for an enabled key, kDisabledDim (< 1.0) for a
+    /// mode-disabled key. This IS the value paint() applies, so a test can
+    /// assert the visible greyed/dimmed disabled state without rasterizing the
+    /// component (out-of-range returns 0). Disabled keys also desaturate their
+    /// cap via SeriesLookAndFeel::drawButtonBackground.
+    [[nodiscard]] float keyLegendAlpha(int index) const;
+
+    /// Legend/text dim factor for a mode-disabled key (ui-design §6.4 greyed
+    /// state). Matches SeriesLookAndFeel::drawButtonText's disabled multiplier.
+    static constexpr float kDisabledDim = 0.4f;
 
     /// Configures key `index` as a hold gesture: it fires only after a
     /// continuous press >= `milliseconds` (0 restores fire-on-press).
@@ -97,8 +113,15 @@ private:
     struct Key {
         std::unique_ptr<juce::TextButton> button;
         juce::String caption;
-        int holdMs = 0;  // 0 = fire on press
+        int holdMs = 0;       // 0 = fire on press
+        bool modeEnabled = true;  // false == mode-gated (greyed, §6.4)
     };
+
+    /// Property key on each button's NamedValueSet flagging the mode-disabled
+    /// (greyed) state, read by SeriesLookAndFeel::drawButtonBackground to
+    /// desaturate the cap (task 057). The JUCE button stays enabled so a press
+    /// still reaches pressKey, which gates the action and fires onDisabledKey.
+    static const juce::Identifier kModeDisabledProp;
 
     std::array<Key, kNumSoftKeys> keys;
 
