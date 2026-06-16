@@ -24,9 +24,9 @@ There are two operating modes, set by the **MODE** switch:
 ## 1. Load a sample (SAMPLE mode)
 
 1. Switch **MODE** to **SAMPLE**.
-2. **Drag an audio file onto the waveform area** (or use the F-menu → load).
-   Supported formats: **WAV, AIFF, FLAC** (no MP3 at v1). The file decodes off the
-   audio thread, so the UI never stalls.
+2. **Drag an audio file onto the waveform area** to load it. Supported formats:
+   **WAV, AIFF, FLAC** (no MP3 at v1). The file decodes off the audio thread, so the
+   UI never stalls.
 3. The LCD's top line shows the sample name and the waveform draws. The stretch
    **zone** defaults to the full sample length (`STRETCH ZONE / TO`).
 4. If the format is unsupported you get a hardware-style LCD message line rather
@@ -63,8 +63,15 @@ There are two operating modes, set by the **MODE** switch:
 3. **F5 `PLAY`** plays the rendered sample; **F6 `A/B`** toggles between the
    original and the stretched result. **MIDI notes also trigger playback** (root
    C3, chromatic repitch, monophonic at v1).
-4. **Drag the waveform out** to your host or desktop to export the render as a WAV
-   file.
+4. **Export the render** two ways, once a `GO` render has completed (the waveform
+   shows the stretched result and the `A/B` overlay becomes available):
+   - **Drag the waveform out** to your host timeline or the desktop. *(Dragging
+     directly into a DAW track is host-dependent on macOS — if a host doesn't
+     accept the drop, use the menu below.)*
+   - **Menu → "Export rendered sample…"** (the hamburger/`☰` menu) opens a file
+     chooser and writes the stretched render to a WAV. This path is
+     host-independent and is the reliable way to export. The item is greyed until
+     a render exists.
 
 ---
 
